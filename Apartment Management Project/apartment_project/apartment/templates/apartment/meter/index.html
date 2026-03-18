@@ -1,0 +1,199 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+
+<!-- Header bar -->
+<div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+    <h4 class="mb-0">⚡ จดมิเตอร์</h4>
+
+    <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="mb-0 fw-bold">ประจำเดือน</label>
+
+        <!-- dropdown เดือน -->
+        <select name="month" class="form-select form-select-sm" style="width:140px;">
+            {% for num, mname in months_th %}
+            <option value="{{ num }}" {% if num == month %}selected{% endif %}>
+                {{ mname }}
+            </option>
+            {% endfor %}
+        </select>
+
+        <!-- dropdown ปี -->
+        <select name="year" class="form-select form-select-sm" style="width:90px;">
+            {% for y in years %}
+            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="btn btn-secondary btn-sm">ดู</button>
+    </form>
+
+    <!-- วันที่จด -->
+    <div class="d-flex align-items-center gap-2">
+        <label class="mb-0 fw-bold">วันที่จด</label>
+        <input type="date" id="record_date" class="form-control form-control-sm"
+               style="width:160px;" value="{{ today|date:'Y-m-d' }}">
+    </div>
+
+    <!-- ปุ่ม -->
+    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print">
+        🖨️ พิมพ์ใบจดมิเตอร์
+    </button>
+    <button onclick="submitMeter()" class="btn btn-warning btn-sm no-print fw-bold">
+        💾 บันทึกรอบจดมิเตอร์
+    </button>
+</div>
+
+{% if request.GET.saved %}
+<div class="alert alert-success">✅ บันทึกสำเร็จ {{ request.GET.saved }} ห้อง</div>
+{% endif %}
+
+<!-- ฟอร์มหลัก -->
+<form method="post" action="{% url 'meter_save' %}" id="meterForm">
+    {% csrf_token %}
+    <input type="hidden" name="month" value="{{ month }}">
+    <input type="hidden" name="year"  value="{{ year }}">
+    <input type="hidden" name="record_date" id="hidden_record_date" value="{{ today|date:'Y-m-d' }}">
+
+    {% for building_no, floors in buildings.items %}
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white fw-bold">
+            🏗️ อาคาร {{ building_no }}
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-bordered table-sm mb-0" style="font-size:0.85rem;">
+                <thead>
+                    <tr class="text-center">
+                        <th rowspan="2" class="align-middle">ชั้น</th>
+                        <th rowspan="2" class="align-middle">เลขห้อง</th>
+                        <th rowspan="2" class="align-middle">สถานะ</th>
+                        <!-- มิเตอร์น้ำ -->
+                        <th colspan="3" class="table-info">💧 มิเตอร์น้ำ</th>
+                        <!-- มิเตอร์ไฟ -->
+                        <th colspan="3" class="table-warning">⚡ มิเตอร์ไฟฟ้า</th>
+                    </tr>
+                    <tr class="text-center">
+                        <th class="table-info">ก่อนหน้า</th>
+                        <th class="table-info">ล่าสุด <span class="text-danger">*</span></th>
+                        <th class="table-info">หน่วยที่ใช้</th>
+                        <th class="table-warning">ก่อนหน้า</th>
+                        <th class="table-warning">ล่าสุด <span class="text-danger">*</span></th>
+                        <th class="table-warning">หน่วยที่ใช้</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for floor_no, room_list in floors.items %}
+                    <!-- แถวหัวชั้น -->
+                    <tr class="table-light">
+                        <td colspan="9" class="fw-bold text-muted ps-3">
+                            ชั้น {{ floor_no }}
+                        </td>
+                    </tr>
+                    {% for item in room_list %}
+                    <tr class="text-center" id="row_{{ item.room.Room_ID }}">
+                        <td>{{ item.room.Floor }}</td>
+                        <td class="fw-bold">{{ item.room.Room_Number }}</td>
+                        <td>
+                            <span class="badge bg-primary">{{ item.room.Status }}</span>
+                        </td>
+
+                        <!-- มิเตอร์น้ำ -->
+                        <td class="table-info">
+                            <span class="water-prev">{{ item.water_prev }}</span>
+                        </td>
+                        <td class="table-info p-1">
+                            {% if item.curr_u %}
+                                <!-- บันทึกไปแล้ว แสดงค่า -->
+                                <span class="text-success fw-bold">{{ item.curr_u.Water_Unit_After }}</span>
+                            {% else %}
+                                <input type="number"
+                                       name="water_after_{{ item.room.Room_ID }}"
+                                       id="water_after_{{ item.room.Room_ID }}"
+                                       class="form-control form-control-sm water-input text-center p-0"
+                                       style="width:80px; margin:auto;"
+                                       min="0" step="0.01"
+                                       data-prev="{{ item.water_prev }}"
+                                       data-room="{{ item.room.Room_ID }}"
+                                       oninput="calcUnit(this, 'water')">
+                            {% endif %}
+                        </td>
+                        <td class="table-info" id="water_used_{{ item.room.Room_ID }}">
+                            {% if item.curr_u %}
+                                {{ item.curr_u.Water_Unit_Used }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- มิเตอร์ไฟ -->
+                        <td class="table-warning">
+                            <span class="elec-prev">{{ item.elec_prev }}</span>
+                        </td>
+                        <td class="table-warning p-1">
+                            {% if item.curr_u %}
+                                <span class="text-success fw-bold">
+                                    {{ item.curr_u.Elec_Unit_Used|add:item.curr_u.Water_Unit_Before }}
+                                </span>
+                            {% else %}
+                                <input type="number"
+                                       name="elec_after_{{ item.room.Room_ID }}"
+                                       id="elec_after_{{ item.room.Room_ID }}"
+                                       class="form-control form-control-sm elec-input text-center p-0"
+                                       style="width:80px; margin:auto;"
+                                       min="0" step="0.01"
+                                       data-prev="{{ item.elec_prev }}"
+                                       data-room="{{ item.room.Room_ID }}"
+                                       oninput="calcUnit(this, 'elec')">
+                            {% endif %}
+                        </td>
+                        <td class="table-warning" id="elec_used_{{ item.room.Room_ID }}">
+                            {% if item.curr_u %}
+                                {{ item.curr_u.Elec_Unit_Used }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">ไม่มีห้องที่มีผู้เช่าในขณะนี้</div>
+    {% endfor %}
+
+</form>
+
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .navbar, nav { display: none !important; }
+    .card-header { background: #eee !important; color: #000 !important; }
+}
+</style>
+
+<script>
+// คำนวณหน่วยที่ใช้แบบ real-time
+function calcUnit(input, type) {
+    const roomId = input.dataset.room;
+    const prev   = parseFloat(input.dataset.prev) || 0;
+    const curr   = parseFloat(input.value) || 0;
+    const used   = Math.max(0, curr - prev);
+    document.getElementById(`${type}_used_${roomId}`).textContent =
+        used % 1 === 0 ? used : used.toFixed(2);
+}
+
+// sync วันที่จด
+document.getElementById('record_date').addEventListener('change', function() {
+    document.getElementById('hidden_record_date').value = this.value;
+});
+
+// submit form
+function submitMeter() {
+    if (confirm('ยืนยันบันทึกรอบจดมิเตอร์เดือนนี้?')) {
+        document.getElementById('meterForm').submit();
+    }
+}
+</script>
+{% endblock %}

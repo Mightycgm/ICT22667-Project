@@ -46,4 +46,14 @@ urlpatterns = [
     path('bookings/add/<int:room_pk>/',     views.booking_create,  name='booking_create_room'),
     path('bookings/<int:pk>/cancel/',       views.booking_cancel,  name='booking_cancel'),
     path('bookings/<int:pk>/confirm/',      views.booking_confirm, name='booking_confirm'),
+
+    # Meter
+    path('meter/',       views.meter_index, name='meter_index'),
+    path('meter/save/',  views.meter_save,  name='meter_save'),
+
+    # Room Actions
+    path('rooms/<int:pk>/moveout/',     views.room_action_moveout,     name='room_moveout'),
+    path('rooms/<int:pk>/notify-out/',  views.room_action_notify_out,  name='room_notify_out'),
+    path('rooms/<int:pk>/clean/',       views.room_action_clean,       name='room_clean'),
+    path('rooms/<int:pk>/done-clean/',  views.room_action_done_clean,  name='room_done_clean'),
 ]

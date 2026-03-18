@@ -1,0 +1,18 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div style="max-width:500px; margin: 60px auto;">
+    <div class="card border-{{ btn_color }}">
+        <div class="card-header bg-{{ btn_color }} text-white fw-bold">
+            {{ title }}
+        </div>
+        <div class="card-body">
+            <p>{{ message }}</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-{{ btn_color }}">ยืนยัน</button>
+                <a href="{% url 'room_detail' room.Room_ID %}" class="btn btn-secondary">ยกเลิก</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
