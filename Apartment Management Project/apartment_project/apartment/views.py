@@ -483,3 +483,266 @@ def booking_confirm(request, pk):
         'booking':       booking,
         'contract_form': contract_form,
     })
+
+# ==================== METER ====================
+
+@login_required
+def meter_index(request):
+    import datetime
+    today = datetime.date.today()
+
+    # รับเดือน/ปีที่เลือก (default = เดือนปัจจุบัน)
+    month = int(request.GET.get('month', today.month))
+    year  = int(request.GET.get('year',  today.year))
+    bill_month = datetime.date(year, month, 1)
+
+    # เดือนก่อนหน้า
+    if month == 1:
+        prev_month = datetime.date(year - 1, 12, 1)
+    else:
+        prev_month = datetime.date(year, month - 1, 1)
+
+    # ดึงห้องที่มีผู้เช่าเท่านั้น จัดกลุ่มตามอาคาร/ชั้น
+    rooms = Room.objects.filter(
+        Status='มีผู้เช่า'
+    ).order_by('Building_No', 'Floor', 'Room_Number')
+
+    # ดึง utility เดือนก่อนหน้า → ใช้เป็น "เลขก่อนหน้า"
+    prev_utilities = Utility.objects.filter(Bill_Month=prev_month)
+    prev_map = {u.Room_ID_id: u for u in prev_utilities}
+
+    # ดึง utility เดือนปัจจุบัน (ถ้าบันทึกไปแล้ว)
+    curr_utilities = Utility.objects.filter(Bill_Month=bill_month)
+    curr_map = {u.Room_ID_id: u for u in curr_utilities}
+
+    # ดึง contract เพื่อรู้ค่าน้ำ/ไฟต่อหน่วย
+    contracts = Contract.objects.filter(
+        Status='ใช้งาน'
+    ).select_related('Room_ID')
+    contract_map = {c.Room_ID_id: c for c in contracts}
+
+    # จัดกลุ่มห้องตามอาคาร→ชั้น
+    from itertools import groupby
+    buildings = {}
+    for room in rooms:
+        b = room.Building_No
+        f = room.Floor
+        if b not in buildings:
+            buildings[b] = {}
+        if f not in buildings[b]:
+            buildings[b][f] = []
+
+        prev_u    = prev_map.get(room.Room_ID)
+        curr_u    = curr_map.get(room.Room_ID)
+        contract  = contract_map.get(room.Room_ID)
+
+        buildings[b][f].append({
+            'room':     room,
+            'contract': contract,
+            'prev_u':   prev_u,
+            'curr_u':   curr_u,
+            # เลขก่อนหน้า: ถ้ามี utility เดือนก่อน ใช้ Water_Unit_After, ถ้าไม่มีใช้ Water_Meter_Start จาก contract
+            'water_prev': prev_u.Water_Unit_After if prev_u else (contract.Water_Meter_Start if contract else 0),
+            'elec_prev':  prev_u.Elec_Unit_Used + (prev_u.Water_Unit_Before if prev_u else 0) if prev_u else (contract.Elec_Meter_Start if contract else 0),
+        })
+
+    # dropdown ตัวเลือก
+    months_th = [
+        (1,'มกราคม'),(2,'กุมภาพันธ์'),(3,'มีนาคม'),(4,'เมษายน'),
+        (5,'พฤษภาคม'),(6,'มิถุนายน'),(7,'กรกฎาคม'),(8,'สิงหาคม'),
+        (9,'กันยายน'),(10,'ตุลาคม'),(11,'พฤศจิกายน'),(12,'ธันวาคม'),
+    ]
+    years     = list(range(today.year - 2, today.year + 2))
+
+    return render(request, 'apartment/meter/index.html', {
+        'buildings':  buildings,
+        'month':      month,
+        'year':       year,
+        'bill_month': bill_month,
+        'today':      today,
+        'months_th':  months_th,
+        'years':      years,
+    })
+
+
+@login_required
+def meter_save(request):
+    import datetime
+    if request.method != 'POST':
+        return redirect('meter_index')
+
+    month      = int(request.POST.get('month'))
+    year       = int(request.POST.get('year'))
+    record_date = request.POST.get('record_date')
+    bill_month = datetime.date(year, month, 1)
+
+    rooms = Room.objects.filter(Status='มีผู้เช่า')
+    contract_map = {
+        c.Room_ID_id: c
+        for c in Contract.objects.filter(Status='ใช้งาน')
+    }
+
+    saved = 0
+    for room in rooms:
+        water_after_key = f"water_after_{room.Room_ID}"
+        elec_after_key  = f"elec_after_{room.Room_ID}"
+
+        water_after = request.POST.get(water_after_key, '').strip()
+        elec_after  = request.POST.get(elec_after_key,  '').strip()
+
+        # ข้ามถ้าไม่ได้กรอก
+        if not water_after or not elec_after:
+            continue
+
+        contract = contract_map.get(room.Room_ID)
+        if not contract:
+            continue
+
+        # ดึงเลขก่อนหน้า
+        if month == 1:
+            prev_month = datetime.date(year - 1, 12, 1)
+        else:
+            prev_month = datetime.date(year, month - 1, 1)
+
+        prev_u = Utility.objects.filter(
+            Room_ID=room, Bill_Month=prev_month
+        ).first()
+
+        water_before = float(prev_u.Water_Unit_After) if prev_u else float(contract.Water_Meter_Start)
+        elec_before  = float(prev_u.Elec_Unit_Used + prev_u.Water_Unit_Before) if prev_u else float(contract.Elec_Meter_Start)
+
+        water_after_f = float(water_after)
+        elec_after_f  = float(elec_after)
+        water_used    = water_after_f - water_before
+        elec_used     = elec_after_f  - elec_before
+
+        water_total = water_used * contract.Water_Cost_Unit
+        elec_total  = elec_used  * contract.Elec_Cost_Unit
+
+        # สร้าง Invoice สำหรับเดือนนี้ก่อน (ถ้ายังไม่มี)
+        invoice, created = Invoice.objects.get_or_create(
+            Contract_ID  = contract,
+            Billing_Date = bill_month,
+            defaults={
+                'Due_Date':    bill_month.replace(day=15),
+                'Grand_Total': 0,
+                'Status':      'รอชำระ',
+            }
+        )
+
+        # บันทึก/อัปเดต Utility
+        Utility.objects.update_or_create(
+            Invoice_ID = invoice,
+            Room_ID    = room,
+            defaults={
+                'Bill_Month':        bill_month,
+                'Water_Unit_Before': water_before,
+                'Water_Unit_After':  water_after_f,
+                'Water_Unit_Used':   water_used,
+                'Elec_Unit_Used':    elec_used,
+                'Water_Cost_Unit':   contract.Water_Cost_Unit,
+                'Elec_Cost_Unit':    contract.Elec_Cost_Unit,
+                'Water_Total':       water_total,
+                'Elec_Total':        elec_total,
+            }
+        )
+
+        # บันทึก/อัปเดต MonthlyBill
+        MonthlyBill.objects.update_or_create(
+            Invoice_ID = invoice,
+            defaults={
+                'Bill_Month': bill_month,
+                'Amount':     contract.Rent_Price,
+            }
+        )
+
+        # อัปเดต Grand_Total ของ Invoice
+        fine_total = Fine.objects.filter(
+            Invoice_ID=invoice
+        ).aggregate(t=Sum('Amount'))['t'] or 0
+
+        invoice.Grand_Total = contract.Rent_Price + water_total + elec_total + fine_total
+        invoice.save()
+        saved += 1
+
+    return redirect(f"/meter/?month={month}&year={year}&saved={saved}")
+
+# ==================== ROOM ACTIONS ====================
+
+@login_required
+def room_action_moveout(request, pk):
+    # ย้ายออก: ปิดสัญญา + เปลี่ยนสถานะห้อง
+    room     = get_object_or_404(Room, pk=pk)
+    contract = Contract.objects.filter(Room_ID=room, Status='ใช้งาน').first()
+
+    if request.method == 'POST':
+        if contract:
+            contract.Status = 'หมดอายุ'
+            contract.save()
+        room.Status      = 'ว่าง'
+        room.Status_Flag = 'รอทำความสะอาด'  # ย้ายออกแล้วรอทำความสะอาด
+        room.save()
+        return redirect('room_detail', pk=pk)
+
+    return render(request, 'apartment/room/action_confirm.html', {
+        'room':    room,
+        'action':  'moveout',
+        'title':   f'ยืนยันย้ายออก — ห้อง {room.Room_Number}',
+        'message': f'ยืนยันการย้ายออกของห้อง {room.Room_Number} ? สัญญาจะถูกปิด และห้องจะเปลี่ยนเป็น "รอทำความสะอาด"',
+        'btn_color': 'danger',
+    })
+
+
+@login_required
+def room_action_notify_out(request, pk):
+    # แจ้งย้ายออก: เปลี่ยน Status_Flag เป็น แจ้งย้ายออก
+    room = get_object_or_404(Room, pk=pk)
+
+    if request.method == 'POST':
+        room.Status_Flag = 'แจ้งย้ายออก'
+        room.save()
+        return redirect('room_detail', pk=pk)
+
+    return render(request, 'apartment/room/action_confirm.html', {
+        'room':    room,
+        'action':  'notify_out',
+        'title':   f'แจ้งย้ายออก — ห้อง {room.Room_Number}',
+        'message': f'บันทึกว่าผู้เช่าห้อง {room.Room_Number} แจ้งความประสงค์จะย้ายออก ?',
+        'btn_color': 'warning',
+    })
+
+
+@login_required
+def room_action_clean(request, pk):
+    # แจ้งทำความสะอาด
+    room = get_object_or_404(Room, pk=pk)
+
+    if request.method == 'POST':
+        room.Status_Flag = 'รอทำความสะอาด'
+        room.save()
+        return redirect('room_detail', pk=pk)
+
+    return render(request, 'apartment/room/action_confirm.html', {
+        'room':    room,
+        'action':  'clean',
+        'title':   f'แจ้งทำความสะอาด — ห้อง {room.Room_Number}',
+        'message': f'บันทึกว่าห้อง {room.Room_Number} ต้องการทำความสะอาด ?',
+        'btn_color': 'info',
+    })
+
+
+@login_required
+def room_action_done_clean(request, pk):
+    # ทำความสะอาดเสร็จ → คืนสถานะปกติ
+    room = get_object_or_404(Room, pk=pk)
+    if request.method == 'POST':
+        room.Status_Flag = 'ปกติ'
+        room.save()
+        return redirect('room_detail', pk=pk)
+    return render(request, 'apartment/room/action_confirm.html', {
+        'room':    room,
+        'action':  'done_clean',
+        'title':   f'ทำความสะอาดเสร็จ — ห้อง {room.Room_Number}',
+        'message': f'ยืนยันว่าห้อง {room.Room_Number} ทำความสะอาดเสร็จแล้ว ?',
+        'btn_color': 'success',
+    })
