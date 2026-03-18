@@ -168,3 +168,27 @@ class Fine(models.Model):
 
     def __str__(self):
         return f"ค่าปรับ #{self.Fine_ID}"
+
+# ตาราง: การจองห้อง
+class Booking(models.Model):
+    Booking_ID   = models.AutoField(primary_key=True)
+    Room_ID      = models.ForeignKey(Room, on_delete=models.PROTECT, db_column='Room_ID')
+    # ข้อมูลผู้จอง (เก็บไว้ก่อน ยังไม่ได้เป็น Tenant)
+    First_Name   = models.CharField(max_length=50)
+    Last_Name    = models.CharField(max_length=50)
+    ID_Card      = models.CharField(max_length=13)
+    Phone        = models.CharField(max_length=20)
+    Email        = models.EmailField(max_length=50, null=True, blank=True)
+    Line_ID      = models.CharField(max_length=50, null=True, blank=True)
+    Address      = models.CharField(max_length=255, null=True, blank=True)
+    # ข้อมูลห้องที่ต้องการ
+    Note         = models.CharField(max_length=255, null=True, blank=True)
+    Booking_Date = models.DateField(auto_now_add=True)
+    Status       = models.CharField(max_length=20, default='รอยืนยัน')
+    # ค่า: รอยืนยัน / ยืนยันแล้ว / ยกเลิก
+
+    class Meta:
+        db_table = 'BOOKING'
+
+    def __str__(self):
+        return f"จอง #{self.Booking_ID} - {self.First_Name} {self.Last_Name} ห้อง {self.Room_ID}"

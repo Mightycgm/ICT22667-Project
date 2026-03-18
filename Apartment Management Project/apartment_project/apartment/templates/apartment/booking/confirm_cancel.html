@@ -1,0 +1,14 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<h4>ยกเลิกการจอง</h4>
+<div class="alert alert-warning mt-3">
+    ยืนยันการยกเลิกการจองห้อง <strong>{{ booking.Room_ID.Room_Number }}</strong>
+    ของ <strong>{{ booking.First_Name }} {{ booking.Last_Name }}</strong> ?
+    <br><small class="text-muted">ห้องจะกลับไปเป็นสถานะ "ว่าง" ทันที</small>
+</div>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">ยืนยันยกเลิก</button>
+    <a href="{% url 'booking_list' %}" class="btn btn-secondary">กลับ</a>
+</form>
+{% endblock %}

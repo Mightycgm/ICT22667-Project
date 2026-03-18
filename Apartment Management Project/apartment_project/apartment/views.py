@@ -3,8 +3,8 @@ from django.db import models as django_models
 from django.db.models import Sum, Count, Q
 from django.contrib.auth.decorators import login_required
 from decimal import Decimal
-from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance
-from .forms  import TenantForm, RoomForm, ContractForm, InvoiceForm, UtilityForm, PaymentForm, FineForm, MaintenanceForm
+from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance, Booking
+from .forms  import TenantForm, RoomForm, ContractForm, InvoiceForm, UtilityForm, PaymentForm, FineForm, MaintenanceForm, BookingForm
 
 
 # ==================== DASHBOARD ====================
@@ -150,11 +150,17 @@ def room_detail(request, pk):
         Room_ID=room
     ).order_by('-Report_Date')
 
+    # ดึงการจองที่รอยืนยัน
+    booking = Booking.objects.filter(
+        Room_ID=room, Status='รอยืนยัน'
+    ).first()
+
     return render(request, 'apartment/room/detail.html', {
         'room':         room,
         'contract':     contract,
         'invoices':     invoices,
         'maintenances': maintenances,
+        'booking':      booking,
     })
 # ==================== CONTRACT ====================
 
@@ -376,3 +382,104 @@ def monthly_summary(request):
         'summary':  summary,
     })
 
+# ==================== BOOKING ====================
+
+@login_required
+def booking_list(request):
+    bookings = Booking.objects.select_related('Room_ID').filter(
+        Status='รอยืนยัน'
+    ).order_by('-Booking_Date')
+    return render(request, 'apartment/booking/list.html', {'bookings': bookings})
+
+
+@login_required
+def booking_create(request, room_pk=None):
+    initial = {}
+    if room_pk:
+        room = get_object_or_404(Room, pk=room_pk)
+        initial['Room_ID'] = room
+
+    form = BookingForm(request.POST or None, initial=initial)
+    # กรองเฉพาะห้องว่าง
+    form.fields['Room_ID'].queryset = Room.objects.filter(Status='ว่าง')
+
+    if form.is_valid():
+        booking = form.save(commit=False)
+        booking.Status = 'รอยืนยัน'
+        booking.save()
+        # อัปเดตสถานะห้องเป็น จอง
+        room             = booking.Room_ID
+        room.Status_Flag = 'จอง'
+        room.save()
+        return redirect('booking_list')
+
+    return render(request, 'apartment/booking/form.html', {
+        'form':  form,
+        'title': 'บันทึกการจองห้อง',
+    })
+
+
+@login_required
+def booking_cancel(request, pk):
+    booking = get_object_or_404(Booking, pk=pk)
+    if request.method == 'POST':
+        # คืนสถานะห้องเป็นปกติ
+        room             = booking.Room_ID
+        room.Status_Flag = 'ปกติ'
+        room.save()
+        booking.Status = 'ยกเลิก'
+        booking.save()
+        return redirect('booking_list')
+    return render(request, 'apartment/booking/confirm_cancel.html', {'booking': booking})
+
+
+@login_required
+def booking_confirm(request, pk):
+    # ดึงข้อมูลการจองมาเติมใน ContractForm อัตโนมัติ
+    booking = get_object_or_404(Booking, pk=pk)
+
+    # สร้าง Tenant จากข้อมูลการจองก่อน
+    if request.method == 'POST':
+        contract_form = ContractForm(request.POST)
+        contract_form.fields['Room_ID'].queryset = Room.objects.filter(
+            Room_ID=booking.Room_ID.Room_ID
+        )
+        if contract_form.is_valid():
+            # 1. สร้าง Tenant
+            tenant = Tenant.objects.create(
+                First_Name = booking.First_Name,
+                Last_Name  = booking.Last_Name,
+                ID_Card    = booking.ID_Card,
+                Phone      = booking.Phone,
+                Email      = booking.Email      or '',
+                Line_ID    = booking.Line_ID    or '',
+                Address    = booking.Address    or '',
+            )
+            # 2. สร้าง Contract
+            contract            = contract_form.save(commit=False)
+            contract.Tenant_ID  = tenant
+            contract.save()
+            # 3. อัปเดตห้อง
+            room             = booking.Room_ID
+            room.Status      = 'มีผู้เช่า'
+            room.Status_Flag = 'ปกติ'
+            room.save()
+            # 4. ปิดการจอง
+            booking.Status = 'ยืนยันแล้ว'
+            booking.save()
+            return redirect('contract_print', pk=contract.Contract_ID)
+    else:
+        # pre-fill ข้อมูลจากการจอง
+        import datetime
+        contract_form = ContractForm(initial={
+            'Room_ID':   booking.Room_ID,
+            'Tenant_ID': None,
+        })
+        contract_form.fields['Room_ID'].queryset = Room.objects.filter(
+            Room_ID=booking.Room_ID.Room_ID
+        )
+
+    return render(request, 'apartment/booking/confirm.html', {
+        'booking':       booking,
+        'contract_form': contract_form,
+    })
