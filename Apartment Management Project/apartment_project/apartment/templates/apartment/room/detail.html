@@ -1,0 +1,217 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>🚪 ห้อง {{ room.Room_Number }}
+        <small class="text-muted fs-6">อาคาร {{ room.Building_No }} ชั้น {{ room.Floor }}</small>
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'room_edit' room.Room_ID %}" class="btn btn-warning btn-sm">✏️ แก้ไขห้อง</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-sm">กลับ</a>
+    </div>
+</div>
+
+<!-- สถานะห้อง -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="card-body p-2">
+                <div class="small text-muted">สถานะหลัก</div>
+                {% if room.Status == 'ว่าง' %}
+                    <span class="badge bg-success fs-6">{{ room.Status }}</span>
+                {% elif room.Status == 'มีผู้เช่า' %}
+                    <span class="badge bg-primary fs-6">{{ room.Status }}</span>
+                {% else %}
+                    <span class="badge bg-dark fs-6">{{ room.Status }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center py-3">
+            <div class="card-body p-2">
+                <div class="small text-muted">สถานะเสริม</div>
+                <span class="badge bg-secondary fs-6">{{ room.Status_Flag }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if contract %}
+<!-- ข้อมูลผู้เช่าปัจจุบัน -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white fw-bold">
+        👤 ข้อมูลผู้เช่าปัจจุบัน
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-borderless table-sm mb-0">
+                    <tr>
+                        <td class="text-muted" width="140">ชื่อ-นามสกุล</td>
+                        <td><strong>{{ contract.Tenant_ID.First_Name }} {{ contract.Tenant_ID.Last_Name }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">เลขบัตรประชาชน</td>
+                        <td>{{ contract.Tenant_ID.ID_Card }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">เบอร์โทร</td>
+                        <td>{{ contract.Tenant_ID.Phone }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Line ID</td>
+                        <td>{{ contract.Tenant_ID.Line_ID|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">อีเมล์</td>
+                        <td>{{ contract.Tenant_ID.Email|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">ที่อยู่</td>
+                        <td>{{ contract.Tenant_ID.Address|default:"-" }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-borderless table-sm mb-0">
+                    <tr>
+                        <td class="text-muted" width="140">เลขสัญญา</td>
+                        <td>#{{ contract.Contract_ID }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">วันเริ่มสัญญา</td>
+                        <td>{{ contract.Start_Date }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">วันสิ้นสุด</td>
+                        <td>{{ contract.End_Date }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">ค่าเช่า/เดือน</td>
+                        <td><strong>{{ contract.Rent_Price }} บาท</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">เงินประกัน</td>
+                        <td>{{ contract.Deposit }} บาท</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">ค่าน้ำ/หน่วย</td>
+                        <td>{{ contract.Water_Cost_Unit }} บาท</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">ค่าไฟ/หน่วย</td>
+                        <td>{{ contract.Elec_Cost_Unit }} บาท</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="mt-2 d-flex gap-2">
+            <a href="{% url 'contract_print' contract.Contract_ID %}" class="btn btn-outline-primary btn-sm">
+                🖨️ พิมพ์สัญญา
+            </a>
+            <a href="{% url 'contract_edit' contract.Contract_ID %}" class="btn btn-outline-warning btn-sm">
+                ✏️ แก้ไขสัญญา
+            </a>
+            <a href="{% url 'invoice_create' %}" class="btn btn-outline-success btn-sm">
+                📄 ออกใบแจ้งหนี้
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ประวัติใบแจ้งหนี้ -->
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white fw-bold">
+        📄 ประวัติใบแจ้งหนี้
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>วันออกบิล</th>
+                    <th>ครบกำหนด</th>
+                    <th class="text-end">ยอดรวม</th>
+                    <th>สถานะ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td>{{ inv.Invoice_ID }}</td>
+                    <td>{{ inv.Billing_Date }}</td>
+                    <td>{{ inv.Due_Date }}</td>
+                    <td class="text-end">{{ inv.Grand_Total }} บาท</td>
+                    <td>
+                        {% if inv.Status == 'ชำระแล้ว' %}
+                            <span class="badge bg-success">{{ inv.Status }}</span>
+                        {% elif inv.Status == 'เกินกำหนด' %}
+                            <span class="badge bg-danger">{{ inv.Status }}</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">{{ inv.Status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'invoice_detail' inv.Invoice_ID %}" class="btn btn-sm btn-outline-info">ดู</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีใบแจ้งหนี้</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<!-- ห้องว่าง -->
+<div class="alert alert-success d-flex justify-content-between align-items-center">
+    <span>🟢 ห้องนี้ว่างอยู่ พร้อมให้เช่า</span>
+    <a href="{% url 'contract_create' %}" class="btn btn-success btn-sm">+ สร้างสัญญาใหม่</a>
+</div>
+{% endif %}
+
+<!-- ประวัติแจ้งซ่อม -->
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white fw-bold">
+        🔧 ประวัติแจ้งซ่อม
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>รายละเอียด</th>
+                    <th>วันที่แจ้ง</th>
+                    <th>สถานะ</th>
+                    <th>ค่าซ่อม</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in maintenances %}
+                <tr>
+                    <td>{{ m.Maintenance_ID }}</td>
+                    <td>{{ m.Problem_Detail }}</td>
+                    <td>{{ m.Report_Date }}</td>
+                    <td>
+                        {% if m.Status == 'ซ่อมเสร็จ' %}
+                            <span class="badge bg-success">{{ m.Status }}</span>
+                        {% elif m.Status == 'กำลังซ่อม' %}
+                            <span class="badge bg-warning text-dark">{{ m.Status }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ m.Status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ m.Repair_Cost }} บาท</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-3">ไม่มีประวัติแจ้งซ่อม</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

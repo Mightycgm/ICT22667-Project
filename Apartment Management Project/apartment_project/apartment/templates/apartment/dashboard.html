@@ -3,56 +3,109 @@
 
 <h4 class="mb-3">🏢 ภาพรวมอพาร์ทเม้นต์</h4>
 
-<!-- Summary Cards -->
-<div class="row g-3 mb-4">
+<!-- Summary Cards — ตรงกับสีใน badge ทุกอัน -->
+<div class="row g-2 mb-4">
+
+    <!-- ห้องทั้งหมด -->
     <div class="col-6 col-md-2">
-        <div class="card text-white bg-secondary text-center py-2">
-            <div class="card-body p-2">
+        <div class="card text-center py-2 bg-secondary text-white">
+            <div class="card-body p-1">
                 <div class="fs-4 fw-bold">{{ total_rooms }}</div>
                 <div class="small">ห้องทั้งหมด</div>
             </div>
         </div>
     </div>
+
+    <!-- ขาว = ว่าง -->
     <div class="col-6 col-md-2">
-        <div class="card text-white bg-success text-center py-2">
-            <div class="card-body p-2">
-                <div class="fs-4 fw-bold">{{ vacant }}</div>
-                <div class="small">ว่าง</div>
+        <div class="card text-center py-2 border-2" style="background:#fff; border-color:#ccc;">
+            <div class="card-body p-1">
+                <div class="fs-4 fw-bold text-dark">{{ count_white }}</div>
+                <div class="small text-dark">ว่าง</div>
             </div>
         </div>
     </div>
+
+    <!-- น้ำเงิน = มีผู้เช่า -->
     <div class="col-6 col-md-2">
-        <div class="card text-white bg-primary text-center py-2">
-            <div class="card-body p-2">
-                <div class="fs-4 fw-bold">{{ occupied }}</div>
+        <div class="card text-center py-2 bg-primary text-white">
+            <div class="card-body p-1">
+                <div class="fs-4 fw-bold">{{ count_blue }}</div>
                 <div class="small">มีผู้เช่า</div>
             </div>
         </div>
     </div>
+
+    <!-- เหลือง = แจ้งย้ายออก -->
     <div class="col-6 col-md-2">
-        <div class="card text-white bg-dark text-center py-2">
-            <div class="card-body p-2">
-                <div class="fs-4 fw-bold">{{ maintenance }}</div>
+        <div class="card text-center py-2 bg-warning">
+            <div class="card-body p-1">
+                <div class="fs-4 fw-bold text-dark">{{ count_yellow }}</div>
+                <div class="small text-dark">แจ้งย้ายออก</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- แดง = เกินกำหนดชำระ -->
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2 bg-danger text-white">
+            <div class="card-body p-1">
+                <div class="fs-4 fw-bold">{{ count_red }}</div>
+                <div class="small">เกินกำหนดชำระ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ดำ = ซ่อมบำรุง -->
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2 bg-dark text-white">
+            <div class="card-body p-1">
+                <div class="fs-4 fw-bold">{{ count_black }}</div>
                 <div class="small">ซ่อมบำรุง</div>
             </div>
         </div>
     </div>
+
+    <!-- 📌 จอง -->
     <div class="col-6 col-md-2">
-        <div class="card text-white bg-warning text-center py-2">
-            <div class="card-body p-2">
-                <div class="fs-4 fw-bold text-dark">{{ pending_invoices }}</div>
-                <div class="small text-dark">Invoice รอชำระ</div>
+        <div class="card text-center py-2" style="background:#fff3cd; border-color:#ffc107;">
+            <div class="card-body p-1">
+                <div class="fs-4 fw-bold text-dark">{{ count_pin }}</div>
+                <div class="small text-dark">📌 จอง</div>
             </div>
         </div>
     </div>
+
+    <!-- 🧹 รอทำความสะอาด -->
     <div class="col-6 col-md-2">
-        <div class="card text-white bg-danger text-center py-2">
-            <div class="card-body p-2">
-                <div class="fs-4 fw-bold">{{ pending_repairs }}</div>
-                <div class="small">แจ้งซ่อมค้าง</div>
+        <div class="card text-center py-2" style="background:#e8f5e9; border-color:#a5d6a7;">
+            <div class="card-body p-1">
+                <div class="fs-4 fw-bold text-dark">{{ count_broom }}</div>
+                <div class="small text-dark">🧹 รอทำความสะอาด</div>
             </div>
         </div>
     </div>
+
+    <!-- $ ค้างชำระ -->
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2" style="background:#fff8e1; border-color:#ffca28;">
+            <div class="card-body p-1">
+                <div class="fs-4 fw-bold text-dark">{{ count_unpaid }}</div>
+                <div class="small text-dark">$ ค้างชำระ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔧 แจ้งซ่อมค้าง -->
+    <div class="col-6 col-md-2">
+        <div class="card text-center py-2" style="background:#fce4ec; border-color:#ef9a9a;">
+            <div class="card-body p-1">
+                <div class="fs-4 fw-bold text-dark">{{ count_repair }}</div>
+                <div class="small text-dark">🔧 แจ้งซ่อมค้าง</div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- Room Grid แบ่งตามอาคารและชั้น -->

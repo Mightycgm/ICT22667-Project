@@ -11,26 +11,53 @@ from .forms  import TenantForm, RoomForm, ContractForm, InvoiceForm, UtilityForm
 
 @login_required
 def dashboard(request):
-    rooms       = Room.objects.all()
-    total_rooms = rooms.count()
-    vacant      = rooms.filter(Status='ว่าง').count()
-    occupied    = rooms.filter(Status='มีผู้เช่า').count()
-    maintenance = rooms.filter(Status='ซ่อมบำรุง').count()
+    import datetime
+    today = datetime.date.today()
+    rooms = Room.objects.all().order_by('Building_No', 'Floor', 'Room_Number')
 
-    # Invoice รอชำระ
-    pending_invoices = Invoice.objects.filter(Status='รอชำระ').count()
+    # ห้องที่มี invoice เกินกำหนด → สีแดง
+    overdue_room_ids = list(Invoice.objects.filter(
+        Status='รอชำระ', Due_Date__lt=today
+    ).values_list('Contract_ID__Room_ID', flat=True))
 
-    # แจ้งซ่อมที่ยังไม่เสร็จ
-    pending_repairs  = Maintenance.objects.exclude(Status='ซ่อมเสร็จ').count()
+    # ห้องที่มี invoice รอชำระ (ยังไม่เกิน) → แสดง $
+    unpaid_room_ids = list(Invoice.objects.filter(
+        Status='รอชำระ'
+    ).values_list('Contract_ID__Room_ID', flat=True))
+
+    # ห้องที่มีแจ้งซ่อมค้าง → แสดง 🔧
+    repair_room_ids = list(Maintenance.objects.exclude(
+        Status='ซ่อมเสร็จ'
+    ).values_list('Room_ID', flat=True))
+
+    # --- นับตาม "สีจริง" ที่แสดงใน badge ---
+    count_white    = rooms.filter(Status='ว่าง', Status_Flag='ปกติ').count()
+    count_pin      = rooms.filter(Status='ว่าง', Status_Flag='จอง').count()
+    count_broom    = rooms.filter(Status='ว่าง', Status_Flag='รอทำความสะอาด').count()
+    count_blue     = rooms.filter(Status='มีผู้เช่า', Status_Flag='ปกติ').exclude(
+                         Room_ID__in=overdue_room_ids).count()
+    count_yellow   = rooms.filter(Status='มีผู้เช่า', Status_Flag='แจ้งย้ายออก').count()
+    count_red      = rooms.filter(Room_ID__in=overdue_room_ids).count()
+    count_black    = rooms.filter(Status='ซ่อมบำรุง').count()
+    count_repair   = len(set(repair_room_ids))
+    count_unpaid   = len(set(unpaid_room_ids))
 
     context = {
         'rooms':            rooms,
-        'total_rooms':      total_rooms,
-        'vacant':           vacant,
-        'occupied':         occupied,
-        'maintenance':      maintenance,
-        'pending_invoices': pending_invoices,
-        'pending_repairs':  pending_repairs,
+        'overdue_room_ids': overdue_room_ids,
+        'unpaid_room_ids':  unpaid_room_ids,
+        'repair_room_ids':  repair_room_ids,
+        # summary cards
+        'total_rooms':   rooms.count(),
+        'count_white':   count_white,
+        'count_pin':     count_pin,
+        'count_broom':   count_broom,
+        'count_blue':    count_blue,
+        'count_yellow':  count_yellow,
+        'count_red':     count_red,
+        'count_black':   count_black,
+        'count_repair':  count_repair,
+        'count_unpaid':  count_unpaid,
     }
     return render(request, 'apartment/dashboard.html', context)
 
@@ -104,7 +131,31 @@ def room_delete(request, pk):
         return redirect('room_list')
     return render(request, 'apartment/room/confirm_delete.html', {'object': room, 'title': 'ลบห้องพัก'})
 
+@login_required
+def room_detail(request, pk):
+    room     = get_object_or_404(Room, pk=pk)
 
+    # ดึงสัญญาที่ใช้งานอยู่ของห้องนี้
+    contract = Contract.objects.filter(
+        Room_ID=room, Status='ใช้งาน'
+    ).select_related('Tenant_ID').first()
+
+    # ดึง invoice ของสัญญานี้
+    invoices = Invoice.objects.filter(
+        Contract_ID=contract
+    ).order_by('-Billing_Date') if contract else []
+
+    # ดึงแจ้งซ่อมของห้องนี้
+    maintenances = Maintenance.objects.filter(
+        Room_ID=room
+    ).order_by('-Report_Date')
+
+    return render(request, 'apartment/room/detail.html', {
+        'room':         room,
+        'contract':     contract,
+        'invoices':     invoices,
+        'maintenances': maintenances,
+    })
 # ==================== CONTRACT ====================
 
 @login_required

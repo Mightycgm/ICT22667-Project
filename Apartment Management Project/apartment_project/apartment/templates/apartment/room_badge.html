@@ -1,6 +1,7 @@
-<div class="badge {{ bg }} {{ txt }} p-2 position-relative"
-     style="width:58px; height:42px; font-size:0.75rem; cursor:pointer;"
-     title="ห้อง {{ room.Room_Number }} — {{ room.Status }}">
+<a href="{% url 'room_detail' room.Room_ID %}"
+   class="badge {{ bg }} {{ txt }} p-2 position-relative text-decoration-none"
+   style="width:58px; height:42px; font-size:0.75rem; cursor:pointer;"
+   title="ห้อง {{ room.Room_Number }} — {{ room.Status }}">
     {{ room.Room_Number }}
     <span style="font-size:0.65rem; display:block; line-height:1;">
         {% if room.Room_ID in unpaid_room_ids %}${% endif %}
@@ -8,4 +9,4 @@
         {% if room.Room_ID in repair_room_ids %}🔧{% endif %}
         {% if room.Status_Flag == 'รอทำความสะอาด' %}🧹{% endif %}
     </span>
-</div>
+</a>
