@@ -1,0 +1,12 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<h2>{{ title }}</h2>
+<div class="alert alert-danger mt-3">
+    ยืนยันการลบ <strong>{{ object }}</strong> ?
+</div>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">ยืนยันลบ</button>
+    <a href="{% url 'contract_list' %}" class="btn btn-secondary">ยกเลิก</a>
+</form>
+{% endblock %}

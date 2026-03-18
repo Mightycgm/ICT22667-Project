@@ -1,0 +1,20 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<h2>{{ title }}</h2>
+<div class="card mt-3" style="max-width: 400px;">
+    <div class="card-body">
+        <p>Invoice #{{ invoice.Invoice_ID }} ยอด <strong>{{ invoice.Grand_Total }} บาท</strong></p>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-success">ยืนยันชำระเงิน</button>
+            <a href="{% url 'invoice_detail' invoice.Invoice_ID %}" class="btn btn-secondary">ยกเลิก</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

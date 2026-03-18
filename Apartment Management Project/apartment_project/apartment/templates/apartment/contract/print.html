@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>สัญญาเช่าห้องพัก</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        @media print { .no-print { display: none !important; } }
+        body { font-family: 'Sarabun', sans-serif; font-size: 15px; }
+        .contract-box { max-width: 750px; margin: 0 auto; padding: 40px; }
+        .signature-box { border-top: 1px solid #000; width: 200px; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="contract-box">
+
+    <!-- ปุ่ม -->
+    <div class="no-print mb-4 d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ พิมพ์สัญญา</button>
+        <a href="{% url 'contract_list' %}" class="btn btn-secondary">กลับรายการสัญญา</a>
+    </div>
+
+    <!-- หัวสัญญา -->
+    <h4 class="text-center mb-1">สัญญาเช่าห้องพัก</h4>
+    <p class="text-center text-muted mb-4">เลขที่สัญญา: {{ contract.Contract_ID }}</p>
+
+    <p>
+        สัญญาฉบับนี้ทำขึ้นเมื่อวันที่
+        <strong>{{ contract.Start_Date|date:"d F Y" }}</strong>
+        ระหว่าง <strong>ผู้ให้เช่า</strong> (เจ้าของอพาร์ทเม้นต์)
+        กับ <strong>ผู้เช่า</strong> คือ
+        <strong>{{ contract.Tenant_ID.First_Name }} {{ contract.Tenant_ID.Last_Name }}</strong>
+        เลขบัตรประชาชน {{ contract.Tenant_ID.ID_Card }}
+        เบอร์โทร {{ contract.Tenant_ID.Phone }}
+        {% if contract.Tenant_ID.Address %}
+        ที่อยู่ {{ contract.Tenant_ID.Address }}
+        {% endif %}
+    </p>
+
+    <p>
+        ผู้เช่าตกลงเช่า <strong>ห้อง {{ contract.Room_ID.Room_Number }}</strong>
+        อาคาร {{ contract.Room_ID.Building_No }} ชั้น {{ contract.Room_ID.Floor }}
+        ในราคา <strong>{{ contract.Rent_Price }} บาท/เดือน</strong>
+        ตั้งแต่วันที่ {{ contract.Start_Date|date:"d F Y" }}
+        ถึงวันที่ {{ contract.End_Date|date:"d F Y" }}
+    </p>
+
+    <h6 class="mt-4">เงื่อนไขการเช่า</h6>
+    <ol>
+        <li>ผู้เช่าชำระค่าเช่าล่วงหน้าทุกต้นเดือน ภายในวันที่ 5 ของเดือน</li>
+        <li>เงินประกันห้อง <strong>{{ contract.Deposit }} บาท</strong> จะได้รับคืนเมื่อออกจากห้องและห้องอยู่ในสภาพปกติ</li>
+        <li>เงินมัดจำ <strong>{{ contract.Deposit_Advance }} บาท</strong> ชำระ ณ วันทำสัญญา</li>
+        <li>ค่าน้ำประปา คิดในอัตรา {{ contract.Water_Cost_Unit }} บาท/หน่วย (มิเตอร์เริ่มต้น: {{ contract.Water_Meter_Start }})</li>
+        <li>ค่าไฟฟ้า คิดในอัตรา {{ contract.Elec_Cost_Unit }} บาท/หน่วย (มิเตอร์เริ่มต้น: {{ contract.Elec_Meter_Start }})</li>
+        <li>ห้ามนำสัตว์เลี้ยงเข้าพักอาศัย</li>
+        <li>ห้ามก่อเสียงดังรบกวนผู้อื่นหลัง 22.00 น.</li>
+        <li>หากผิดนัดชำระเกิน 15 วัน ผู้ให้เช่ามีสิทธิ์บอกเลิกสัญญาได้ทันที</li>
+    </ol>
+
+    <!-- ลายเซ็น -->
+    <div class="row mt-5">
+        <div class="col-6 text-center">
+            <div class="signature-box mx-auto mt-5 pt-2">
+                <p class="mb-0">ผู้ให้เช่า</p>
+                <p class="text-muted small">วันที่ ............/............/............</p>
+            </div>
+        </div>
+        <div class="col-6 text-center">
+            <div class="signature-box mx-auto mt-5 pt-2">
+                <p class="mb-0">{{ contract.Tenant_ID.First_Name }} {{ contract.Tenant_ID.Last_Name }}</p>
+                <p class="text-muted small">วันที่ ............/............/............</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

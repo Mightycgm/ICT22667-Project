@@ -1,0 +1,48 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>รายการแจ้งซ่อม</h2>
+    <a href="{% url 'maintenance_create' %}" class="btn btn-primary">+ แจ้งซ่อม</a>
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>#</th>
+            <th>ห้อง</th>
+            <th>รายละเอียด</th>
+            <th>วันที่แจ้ง</th>
+            <th>สถานะ</th>
+            <th>ค่าซ่อม</th>
+            <th>วันซ่อมเสร็จ</th>
+            <th>จัดการ</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.Maintenance_ID }}</td>
+            <td>{{ item.Room_ID }}</td>
+            <td>{{ item.Problem_Detail }}</td>
+            <td>{{ item.Report_Date }}</td>
+            <td>
+                {% if item.Status == 'ซ่อมเสร็จ' %}
+                    <span class="badge bg-success">{{ item.Status }}</span>
+                {% elif item.Status == 'กำลังซ่อม' %}
+                    <span class="badge bg-warning text-dark">{{ item.Status }}</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ item.Status }}</span>
+                {% endif %}
+            </td>
+            <td>{{ item.Repair_Cost }} บาท</td>
+            <td>{{ item.Resolved_Date|default:"-" }}</td>
+            <td>
+                <a href="{% url 'maintenance_edit' item.Maintenance_ID %}" class="btn btn-sm btn-warning">อัปเดต</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted">ไม่มีรายการแจ้งซ่อม</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

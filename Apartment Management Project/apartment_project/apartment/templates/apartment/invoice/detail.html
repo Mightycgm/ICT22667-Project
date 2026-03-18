@@ -1,0 +1,91 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>ใบแจ้งหนี้ #{{ invoice.Invoice_ID }}</h2>
+    <div>
+        {% if invoice.Status != 'ชำระแล้ว' %}
+            <a href="{% url 'invoice_pay' invoice.Invoice_ID %}" class="btn btn-success">บันทึกชำระเงิน</a>
+        {% endif %}
+        <a href="{% url 'invoice_list' %}" class="btn btn-secondary">กลับ</a>
+        <a href="{% url 'invoice_print' invoice.Invoice_ID %}" class="btn btn-outline-secondary" target="_blank">🖨️ พิมพ์</a>
+    </div>
+</div>
+
+<!-- ข้อมูลสัญญา -->
+<div class="card mb-3">
+    <div class="card-header bg-dark text-white">ข้อมูลผู้เช่า</div>
+    <div class="card-body">
+        <p>ผู้เช่า: <strong>{{ invoice.Contract_ID.Tenant_ID }}</strong></p>
+        <p>ห้อง: <strong>{{ invoice.Contract_ID.Room_ID }}</strong></p>
+        <p>วันออกบิล: {{ invoice.Billing_Date }} | ครบกำหนด: {{ invoice.Due_Date }}</p>
+        <p>สถานะ:
+            {% if invoice.Status == 'ชำระแล้ว' %}
+                <span class="badge bg-success">{{ invoice.Status }}</span>
+                — วันที่ชำระ: {{ invoice.Paid_Date }}
+            {% elif invoice.Status == 'เกินกำหนด' %}
+                <span class="badge bg-danger">{{ invoice.Status }}</span>
+            {% else %}
+                <span class="badge bg-warning text-dark">{{ invoice.Status }}</span>
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- รายการค่าใช้จ่าย -->
+<div class="card mb-3">
+    <div class="card-header bg-dark text-white">รายการค่าใช้จ่าย</div>
+    <div class="card-body">
+        <table class="table">
+            <tbody>
+                {% if monthly_bill %}
+                <tr>
+                    <td>ค่าเช่า</td>
+                    <td class="text-end">{{ monthly_bill.Amount }} บาท</td>
+                </tr>
+                {% endif %}
+                {% if utility %}
+                <tr>
+                    <td>ค่าน้ำ ({{ utility.Water_Unit_Used }} หน่วย × {{ utility.Water_Cost_Unit }} บาท)</td>
+                    <td class="text-end">{{ utility.Water_Total }} บาท</td>
+                </tr>
+                <tr>
+                    <td>ค่าไฟ ({{ utility.Elec_Unit_Used }} หน่วย × {{ utility.Elec_Cost_Unit }} บาท)</td>
+                    <td class="text-end">{{ utility.Elec_Total }} บาท</td>
+                </tr>
+                {% endif %}
+                {% for fine in fines %}
+                <tr class="text-danger">
+                    <td>ค่าปรับ: {{ fine.Reason }}</td>
+                    <td class="text-end">{{ fine.Amount }} บาท</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-dark">
+                    <th>ยอดรวมทั้งหมด</th>
+                    <th class="text-end">{{ invoice.Grand_Total }} บาท</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- เพิ่มค่าปรับ -->
+{% if invoice.Status != 'ชำระแล้ว' %}
+<div class="card mb-3" style="max-width: 400px;">
+    <div class="card-header">เพิ่มค่าปรับ</div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {% for field in fine_form %}
+            <div class="mb-2">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-danger btn-sm">เพิ่มค่าปรับ</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

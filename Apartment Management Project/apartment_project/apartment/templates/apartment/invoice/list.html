@@ -1,0 +1,48 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>ใบแจ้งหนี้</h2>
+    <a href="{% url 'invoice_create' %}" class="btn btn-primary">+ ออกใบแจ้งหนี้</a>
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>#</th>
+            <th>ผู้เช่า</th>
+            <th>ห้อง</th>
+            <th>วันออกบิล</th>
+            <th>ครบกำหนด</th>
+            <th>ยอดรวม</th>
+            <th>สถานะ</th>
+            <th>จัดการ</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for inv in invoices %}
+        <tr>
+            <td>{{ inv.Invoice_ID }}</td>
+            <td>{{ inv.Contract_ID.Tenant_ID }}</td>
+            <td>{{ inv.Contract_ID.Room_ID }}</td>
+            <td>{{ inv.Billing_Date }}</td>
+            <td>{{ inv.Due_Date }}</td>
+            <td>{{ inv.Grand_Total }} บาท</td>
+            <td>
+                {% if inv.Status == 'ชำระแล้ว' %}
+                    <span class="badge bg-success">{{ inv.Status }}</span>
+                {% elif inv.Status == 'เกินกำหนด' %}
+                    <span class="badge bg-danger">{{ inv.Status }}</span>
+                {% else %}
+                    <span class="badge bg-warning text-dark">{{ inv.Status }}</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'invoice_detail' inv.Invoice_ID %}" class="btn btn-sm btn-info">ดู</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted">ยังไม่มีใบแจ้งหนี้</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

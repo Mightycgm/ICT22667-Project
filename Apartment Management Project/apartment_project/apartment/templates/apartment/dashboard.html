@@ -1,0 +1,131 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+
+<h4 class="mb-3">🏢 ภาพรวมอพาร์ทเม้นต์</h4>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-2">
+        <div class="card text-white bg-secondary text-center py-2">
+            <div class="card-body p-2">
+                <div class="fs-4 fw-bold">{{ total_rooms }}</div>
+                <div class="small">ห้องทั้งหมด</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-white bg-success text-center py-2">
+            <div class="card-body p-2">
+                <div class="fs-4 fw-bold">{{ vacant }}</div>
+                <div class="small">ว่าง</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-white bg-primary text-center py-2">
+            <div class="card-body p-2">
+                <div class="fs-4 fw-bold">{{ occupied }}</div>
+                <div class="small">มีผู้เช่า</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-white bg-dark text-center py-2">
+            <div class="card-body p-2">
+                <div class="fs-4 fw-bold">{{ maintenance }}</div>
+                <div class="small">ซ่อมบำรุง</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-white bg-warning text-center py-2">
+            <div class="card-body p-2">
+                <div class="fs-4 fw-bold text-dark">{{ pending_invoices }}</div>
+                <div class="small text-dark">Invoice รอชำระ</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card text-white bg-danger text-center py-2">
+            <div class="card-body p-2">
+                <div class="fs-4 fw-bold">{{ pending_repairs }}</div>
+                <div class="small">แจ้งซ่อมค้าง</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Room Grid แบ่งตามอาคารและชั้น -->
+{% regroup rooms by Building_No as buildings %}
+{% for building in buildings %}
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white fw-bold">
+        🏗️ อาคาร {{ building.grouper }}
+    </div>
+    <div class="card-body">
+        {% regroup building.list by Floor as floors %}
+        {% for floor in floors %}
+        <div class="mb-3">
+            <div class="text-muted small mb-1 fw-bold">ชั้น {{ floor.grouper }}</div>
+            <div class="d-flex flex-wrap gap-2">
+                {% for room in floor.list %}
+                    {% comment %} กำหนดสีพื้นหลังตาม Status {% endcomment %}
+                    {% if room.Status == 'ว่าง' %}
+                        {% if room.Status_Flag == 'รอทำความสะอาด' %}
+                            {% with bg="bg-light border" txt="text-dark" %}
+                            {% include 'apartment/room_badge.html' %}
+                            {% endwith %}
+                        {% elif room.Status_Flag == 'จอง' %}
+                            {% with bg="bg-light border border-warning" txt="text-dark" %}
+                            {% include 'apartment/room_badge.html' %}
+                            {% endwith %}
+                        {% else %}
+                            {% with bg="bg-white border" txt="text-dark" %}
+                            {% include 'apartment/room_badge.html' %}
+                            {% endwith %}
+                        {% endif %}
+                    {% elif room.Status == 'มีผู้เช่า' %}
+                        {% if room.Room_ID in overdue_room_ids %}
+                            {% with bg="bg-danger" txt="text-white" %}
+                            {% include 'apartment/room_badge.html' %}
+                            {% endwith %}
+                        {% elif room.Status_Flag == 'แจ้งย้ายออก' %}
+                            {% with bg="bg-warning" txt="text-dark" %}
+                            {% include 'apartment/room_badge.html' %}
+                            {% endwith %}
+                        {% else %}
+                            {% with bg="bg-primary" txt="text-white" %}
+                            {% include 'apartment/room_badge.html' %}
+                            {% endwith %}
+                        {% endif %}
+                    {% elif room.Status == 'ซ่อมบำรุง' %}
+                        {% with bg="bg-dark" txt="text-white" %}
+                        {% include 'apartment/room_badge.html' %}
+                        {% endwith %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+<!-- Footer Legend -->
+<div class="card mt-2 mb-4">
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-3 align-items-center small">
+            <span><span class="badge border text-dark bg-white">101</span> ว่าง</span>
+            <span><span class="badge bg-primary">101</span> มีผู้เช่า</span>
+            <span><span class="badge bg-warning text-dark">101</span> แจ้งย้ายออก</span>
+            <span><span class="badge bg-danger">101</span> เกินกำหนดชำระ</span>
+            <span><span class="badge bg-dark">101</span> ซ่อมบำรุง</span>
+            <span>$ = ค้างชำระ</span>
+            <span>📌 = มีการจอง</span>
+            <span>🔧 = แจ้งซ่อม</span>
+            <span>🧹 = รอทำความสะอาด</span>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

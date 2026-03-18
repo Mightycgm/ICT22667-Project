@@ -1,0 +1,81 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<h2 class="mb-4">สรุปยอดรายเดือน</h2>
+
+<!-- ตารางสรุปรายเดือน -->
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white">ยอดรวมแต่ละเดือน</div>
+    <div class="card-body">
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>เดือน</th>
+                    <th class="text-center">จำนวนบิล</th>
+                    <th class="text-center">ชำระแล้ว</th>
+                    <th class="text-end">ยอดรวม (บาท)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in summary %}
+                <tr>
+                    <td>{{ row.month|date:"F Y" }}</td>
+                    <td class="text-center">{{ row.count }}</td>
+                    <td class="text-center">
+                        <span class="badge bg-success">{{ row.paid }}</span>
+                        / {{ row.count }}
+                    </td>
+                    <td class="text-end"><strong>{{ row.total }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- รายการ Invoice ทั้งหมด -->
+<div class="card">
+    <div class="card-header bg-dark text-white">รายการใบแจ้งหนี้ทั้งหมด</div>
+    <div class="card-body">
+        <table class="table table-bordered table-hover table-sm">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>ผู้เช่า</th>
+                    <th>ห้อง</th>
+                    <th>เดือน</th>
+                    <th class="text-end">ยอด</th>
+                    <th>สถานะ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td>{{ inv.Invoice_ID }}</td>
+                    <td>{{ inv.Contract_ID.Tenant_ID }}</td>
+                    <td>{{ inv.Contract_ID.Room_ID }}</td>
+                    <td>{{ inv.Billing_Date|date:"M Y" }}</td>
+                    <td class="text-end">{{ inv.Grand_Total }}</td>
+                    <td>
+                        {% if inv.Status == 'ชำระแล้ว' %}
+                            <span class="badge bg-success">{{ inv.Status }}</span>
+                        {% elif inv.Status == 'เกินกำหนด' %}
+                            <span class="badge bg-danger">{{ inv.Status }}</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">{{ inv.Status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'invoice_print' inv.Invoice_ID %}" class="btn btn-sm btn-outline-secondary">🖨️</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

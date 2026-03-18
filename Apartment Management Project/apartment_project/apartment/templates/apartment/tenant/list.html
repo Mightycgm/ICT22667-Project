@@ -1,0 +1,40 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>รายชื่อผู้เช่า</h2>
+    <a href="{% url 'tenant_create' %}" class="btn btn-primary">+ เพิ่มผู้เช่า</a>
+</div>
+
+<!-- ค้นหา -->
+<form method="get" class="mb-3">
+    <div class="input-group">
+        <input type="text" name="q" class="form-control" placeholder="ค้นหาชื่อ..." value="{{ query }}">
+        <button class="btn btn-outline-secondary" type="submit">ค้นหา</button>
+    </div>
+</form>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th><th>ชื่อ</th><th>นามสกุล</th><th>เลขบัตร</th><th>เบอร์โทร</th><th>จัดการ</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in tenants %}
+        <tr>
+            <td>{{ t.Tenant_ID }}</td>
+            <td>{{ t.First_Name }}</td>
+            <td>{{ t.Last_Name }}</td>
+            <td>{{ t.ID_Card }}</td>
+            <td>{{ t.Phone }}</td>
+            <td>
+                <a href="{% url 'tenant_edit' t.Tenant_ID %}" class="btn btn-sm btn-warning">แก้ไข</a>
+                <a href="{% url 'tenant_delete' t.Tenant_ID %}" class="btn btn-sm btn-danger">ลบ</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
