@@ -1,5 +1,5 @@
 from django import forms
-from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance
+from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance, Booking
 
 
 # ฟอร์มผู้เช่า
@@ -187,4 +187,31 @@ class MaintenanceForm(forms.ModelForm):
             'Status':         forms.Select(attrs={'class': 'form-select'}),
             'Resolved_Date':  forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'Repair_Cost':    forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+class BookingForm(forms.ModelForm):
+    class Meta:
+        model  = Booking
+        fields = ['Room_ID', 'First_Name', 'Last_Name', 'ID_Card', 'Phone', 'Email', 'Line_ID', 'Address', 'Note']
+        labels = {
+            'Room_ID':    'ห้องที่จอง',
+            'First_Name': 'ชื่อ',
+            'Last_Name':  'นามสกุล',
+            'ID_Card':    'เลขบัตรประชาชน',
+            'Phone':      'เบอร์โทรติดต่อ',
+            'Email':      'อีเมล์',
+            'Line_ID':    'Line ID',
+            'Address':    'ที่อยู่',
+            'Note':       'หมายเหตุ',
+        }
+        widgets = {
+            'Room_ID':    forms.Select(attrs={'class': 'form-select'}),
+            'First_Name': forms.TextInput(attrs={'class': 'form-control'}),
+            'Last_Name':  forms.TextInput(attrs={'class': 'form-control'}),
+            'ID_Card':    forms.TextInput(attrs={'class': 'form-control', 'maxlength': '13'}),
+            'Phone':      forms.TextInput(attrs={'class': 'form-control'}),
+            'Email':      forms.EmailInput(attrs={'class': 'form-control'}),
+            'Line_ID':    forms.TextInput(attrs={'class': 'form-control'}),
+            'Address':    forms.TextInput(attrs={'class': 'form-control'}),
+            'Note':       forms.TextInput(attrs={'class': 'form-control'}),
         }

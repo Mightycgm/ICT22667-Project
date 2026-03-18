@@ -1,0 +1,72 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<h4>{{ title }}</h4>
+<div class="card mt-3" style="max-width: 600px;">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">ห้องที่จอง <span class="text-danger">*</span></label>
+                {{ form.Room_ID }}
+            </div>
+
+            <hr><h6 class="text-muted">ข้อมูลผู้จอง</h6>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="form-label fw-bold">ชื่อ <span class="text-danger">*</span></label>
+                    {{ form.First_Name }}
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-bold">นามสกุล <span class="text-danger">*</span></label>
+                    {{ form.Last_Name }}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="form-label fw-bold">เลขบัตรประชาชน <span class="text-danger">*</span></label>
+                    {{ form.ID_Card }}
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-bold">เบอร์โทร <span class="text-danger">*</span></label>
+                    {{ form.Phone }}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="form-label">อีเมล์</label>
+                    {{ form.Email }}
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Line ID</label>
+                    {{ form.Line_ID }}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">ที่อยู่</label>
+                {{ form.Address }}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">หมายเหตุ</label>
+                {{ form.Note }}
+            </div>
+
+            {% if form.errors %}
+            <div class="alert alert-danger">กรุณาตรวจสอบข้อมูลให้ครบถ้วน</div>
+            {% endif %}
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-warning fw-bold">
+                    📌 บันทึกการจอง
+                </button>
+                <a href="{% url 'booking_list' %}" class="btn btn-secondary">ยกเลิก</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

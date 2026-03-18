@@ -1,0 +1,44 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>📌 รายการจองห้อง</h4>
+    <a href="{% url 'booking_create' %}" class="btn btn-primary">+ บันทึกการจอง</a>
+</div>
+
+<div class="row g-3">
+    {% for b in bookings %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card border-warning h-100">
+            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between">
+                <span>📌 ห้อง {{ b.Room_ID.Room_Number }}</span>
+                <small>{{ b.Booking_Date }}</small>
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>{{ b.First_Name }} {{ b.Last_Name }}</strong></p>
+                <p class="mb-1 text-muted small">📞 {{ b.Phone }}</p>
+                {% if b.Line_ID %}
+                <p class="mb-1 text-muted small">LINE: {{ b.Line_ID }}</p>
+                {% endif %}
+                {% if b.Note %}
+                <p class="mb-1 text-muted small">📝 {{ b.Note }}</p>
+                {% endif %}
+            </div>
+            <div class="card-footer d-flex gap-2">
+                <a href="{% url 'booking_confirm' b.Booking_ID %}"
+                   class="btn btn-success btn-sm flex-fill">
+                    ✅ ยืนยันทำสัญญา
+                </a>
+                <a href="{% url 'booking_cancel' b.Booking_ID %}"
+                   class="btn btn-outline-danger btn-sm">
+                    ยกเลิก
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">ไม่มีรายการจองที่รอยืนยัน</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

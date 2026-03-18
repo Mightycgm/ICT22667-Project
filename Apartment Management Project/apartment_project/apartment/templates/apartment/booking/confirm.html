@@ -1,0 +1,121 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<h4>✅ ยืนยันการทำสัญญา</h4>
+
+<!-- ข้อมูลจากการจอง -->
+<div class="card mb-4 border-warning">
+    <div class="card-header bg-warning text-dark fw-bold">
+        📌 ข้อมูลจากการจอง — ห้อง {{ booking.Room_ID.Room_Number }}
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-1">ชื่อ: <strong>{{ booking.First_Name }} {{ booking.Last_Name }}</strong></p>
+                <p class="mb-1">เลขบัตร: {{ booking.ID_Card }}</p>
+                <p class="mb-1">เบอร์โทร: {{ booking.Phone }}</p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-1">Line ID: {{ booking.Line_ID|default:"-" }}</p>
+                <p class="mb-1">อีเมล์: {{ booking.Email|default:"-" }}</p>
+                <p class="mb-1">ที่อยู่: {{ booking.Address|default:"-" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ฟอร์มสัญญา -->
+<div class="card">
+    <div class="card-header bg-dark text-white fw-bold">
+        📄 รายละเอียดสัญญาเช่า
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- ห้อง (fix ไม่ให้เปลี่ยน) -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ห้องพัก</label>
+                    {{ contract_form.Room_ID }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">วันที่เริ่มสัญญา <span class="text-danger">*</span></label>
+                    {{ contract_form.Start_Date }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ระยะเวลา</label>
+                    {{ contract_form.duration_months }}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">วันสิ้นสุดสัญญา <span class="text-danger">*</span></label>
+                    {{ contract_form.End_Date }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ค่าเช่า/เดือน <span class="text-danger">*</span></label>
+                    {{ contract_form.Rent_Price }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">เงินประกัน <span class="text-danger">*</span></label>
+                    {{ contract_form.Deposit }}
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">เงินมัดจำ</label>
+                    {{ contract_form.Deposit_Advance }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ค่าน้ำ/หน่วย</label>
+                    {{ contract_form.Water_Cost_Unit }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ค่าไฟ/หน่วย</label>
+                    {{ contract_form.Elec_Cost_Unit }}
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">มิเตอร์น้ำเริ่มต้น</label>
+                    {{ contract_form.Water_Meter_Start }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">มิเตอร์ไฟเริ่มต้น</label>
+                    {{ contract_form.Elec_Meter_Start }}
+                </div>
+            </div>
+
+            {% if contract_form.errors %}
+            <div class="alert alert-danger">กรุณาตรวจสอบข้อมูลให้ครบถ้วน</div>
+            {% endif %}
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-lg fw-bold">
+                    💾 ยืนยันและพิมพ์สัญญา
+                </button>
+                <a href="{% url 'booking_list' %}" class="btn btn-secondary btn-lg">กลับ</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function calcEndDate() {
+    const startVal = document.getElementById('id_start_date').value;
+    const months   = parseInt(document.getElementById('id_duration').value) || 0;
+    if (!startVal || !months) return;
+    const start = new Date(startVal);
+    start.setMonth(start.getMonth() + months);
+    const yyyy = start.getFullYear();
+    const mm   = String(start.getMonth() + 1).padStart(2, '0');
+    const dd   = String(start.getDate()).padStart(2, '0');
+    document.getElementById('id_end_date').value = `${yyyy}-${mm}-${dd}`;
+}
+document.getElementById('id_start_date')?.addEventListener('change', calcEndDate);
+document.getElementById('id_duration')?.addEventListener('change', calcEndDate);
+</script>
+{% endblock %}

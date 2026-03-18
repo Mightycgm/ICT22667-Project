@@ -39,4 +39,11 @@ urlpatterns = [
     # Print + Report
     path('invoices/<int:pk>/print/',  views.invoice_print,    name='invoice_print'),
     path('report/summary/',           views.monthly_summary,  name='monthly_summary'),
+
+    # Booking
+    path('bookings/',                       views.booking_list,    name='booking_list'),
+    path('bookings/add/',                   views.booking_create,  name='booking_create'),
+    path('bookings/add/<int:room_pk>/',     views.booking_create,  name='booking_create_room'),
+    path('bookings/<int:pk>/cancel/',       views.booking_cancel,  name='booking_cancel'),
+    path('bookings/<int:pk>/confirm/',      views.booking_confirm, name='booking_confirm'),
 ]

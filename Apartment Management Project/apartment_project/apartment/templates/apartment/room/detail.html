@@ -37,6 +37,13 @@
     </div>
 </div>
 
+{% if booking %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center mb-3">
+    <span>📌 ห้องนี้ถูกจองโดย <strong>{{ booking.First_Name }} {{ booking.Last_Name }}</strong> ({{ booking.Booking_Date }})</span>
+    <a href="{% url 'booking_list' %}" class="btn btn-warning btn-sm">ดูรายการจอง</a>
+</div>
+{% endif %}
+
 {% if contract %}
 <!-- ข้อมูลผู้เช่าปัจจุบัน -->
 <div class="card mb-4">
@@ -166,10 +173,16 @@
 </div>
 
 {% else %}
-<!-- ห้องว่าง -->
 <div class="alert alert-success d-flex justify-content-between align-items-center">
     <span>🟢 ห้องนี้ว่างอยู่ พร้อมให้เช่า</span>
-    <a href="{% url 'contract_create' %}" class="btn btn-success btn-sm">+ สร้างสัญญาใหม่</a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'booking_create_room' room.Room_ID %}" class="btn btn-warning btn-sm">
+            📌 บันทึกการจอง
+        </a>
+        <a href="{% url 'contract_create' %}" class="btn btn-success btn-sm">
+            📄 ทำสัญญาเลย
+        </a>
+    </div>
 </div>
 {% endif %}
 
