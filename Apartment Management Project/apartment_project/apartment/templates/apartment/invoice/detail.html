@@ -4,10 +4,23 @@
     <h2>ใบแจ้งหนี้ #{{ invoice.Invoice_ID }}</h2>
     <div>
         {% if invoice.Status != 'ชำระแล้ว' %}
-            <a href="{% url 'invoice_pay' invoice.Invoice_ID %}" class="btn btn-success">บันทึกชำระเงิน</a>
+            {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
+                <a href="{% url 'invoice_pay' invoice.Invoice_ID %}" class="btn btn-success">บันทึกชำระเงิน</a>
+            {% endif %}
         {% endif %}
         <a href="{% url 'invoice_list' %}" class="btn btn-secondary">กลับ</a>
         <a href="{% url 'invoice_print' invoice.Invoice_ID %}" class="btn btn-outline-secondary" target="_blank">🖨️ พิมพ์</a>
+        {% if invoice.Contract_ID.Tenant_ID.Email %}
+            {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
+                <a href="{% url 'invoice_send_email' invoice.Invoice_ID %}" class="btn btn-info">
+                📧 ส่งอีเมล์
+                </a>
+            {% endif %}
+        {% else %}
+            <span class="btn btn-outline-secondary disabled" title="ผู้เช่าไม่มีอีเมล์ในระบบ">
+            📧 ไม่มีอีเมล์
+            </span>
+        {% endif %}
     </div>
 </div>
 
@@ -83,7 +96,9 @@
                 {{ field }}
             </div>
             {% endfor %}
+            {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
             <button type="submit" class="btn btn-danger btn-sm">เพิ่มค่าปรับ</button>
+            {% endif %}
         </form>
     </div>
 </div>

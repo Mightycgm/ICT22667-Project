@@ -2,7 +2,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>รายการแจ้งซ่อม</h2>
-    <a href="{% url 'maintenance_create' %}" class="btn btn-primary">+ แจ้งซ่อม</a>
+    {% if user_role != 'READONLY' %}
+        <a href="{% url 'maintenance_create' %}" class="btn btn-primary">+ แจ้งซ่อม</a>
+    {% endif %}
 </div>
 
 <table class="table table-bordered table-hover">

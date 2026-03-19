@@ -24,11 +24,15 @@
 <div class="bg-dark py-1 px-3 d-flex justify-content-end align-items-center" style="font-size:0.85rem;">
     <span class="user-badge me-2">
         เข้าสู่ระบบโดย: <span>{{ request.user.get_full_name|default:request.user.username }}</span>
-        {% if request.user.is_superuser %}
+        {% if user_role == 'ADMIN' %}
             <span class="badge bg-danger ms-1">Admin</span>
-        {% else %}
-            <span class="badge bg-secondary ms-1">Staff</span>
-        {% endif %}
+        {% elif user_role == 'MANAGER' %}
+            <span class="badge bg-primary ms-1">Manager</span>
+        {% elif user_role == 'STAFF' %}
+            <span class="badge bg-success ms-1">Staff</span>
+{% else %}
+    <span class="badge bg-secondary ms-1">Readonly</span>
+{% endif %}
     </span>
     <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm">ออกจากระบบ</a>
 </div>

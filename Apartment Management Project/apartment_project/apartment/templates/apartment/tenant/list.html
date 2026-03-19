@@ -2,7 +2,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>รายชื่อผู้เช่า</h2>
+    {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
     <a href="{% url 'tenant_create' %}" class="btn btn-primary">+ เพิ่มผู้เช่า</a>
+    {% endif %}
 </div>
 
 <!-- ค้นหา -->
@@ -28,8 +30,12 @@
             <td>{{ t.ID_Card }}</td>
             <td>{{ t.Phone }}</td>
             <td>
+                {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
                 <a href="{% url 'tenant_edit' t.Tenant_ID %}" class="btn btn-sm btn-warning">แก้ไข</a>
+                {% endif %}
+                {% if user_role == 'ADMIN' %}
                 <a href="{% url 'tenant_delete' t.Tenant_ID %}" class="btn btn-sm btn-danger">ลบ</a>
+                {% endif %}
             </td>
         </tr>
         {% empty %}

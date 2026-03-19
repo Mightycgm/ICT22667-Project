@@ -1,0 +1,19 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div style="max-width:500px; margin: 40px auto;">
+    {% if success %}
+    <div class="alert alert-success">
+        <h5>✅ ส่งสำเร็จ!</h5>
+        <p>{{ message }}</p>
+    </div>
+    {% else %}
+    <div class="alert alert-danger">
+        <h5>❌ ส่งไม่สำเร็จ</h5>
+        <p>{{ message }}</p>
+    </div>
+    {% endif %}
+    <a href="{% url 'invoice_detail' invoice.Invoice_ID %}" class="btn btn-secondary">
+        กลับหน้าใบแจ้งหนี้
+    </a>
+</div>
+{% endblock %}

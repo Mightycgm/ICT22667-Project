@@ -32,6 +32,10 @@
         <form method="post">
             {% csrf_token %}
 
+            <!-- Hidden fields -->
+            {{ contract_form.Tenant_ID }}
+            {{ contract_form.Status }}
+
             <!-- ห้อง (fix ไม่ให้เปลี่ยน) -->
             <div class="row mb-3">
                 <div class="col-md-4">
@@ -90,7 +94,14 @@
             </div>
 
             {% if contract_form.errors %}
-            <div class="alert alert-danger">กรุณาตรวจสอบข้อมูลให้ครบถ้วน</div>
+            <div class="alert alert-danger">
+                กรุณาตรวจสอบข้อมูลให้ครบถ้วน
+                <ul class="mt-2 mb-0">
+                    {% for field, errors in contract_form.errors.items %}
+                        <li><strong>{{ field }}</strong>: {{ errors }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
             {% endif %}
 
             <div class="d-flex gap-2">

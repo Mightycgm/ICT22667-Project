@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Sarabun', Arial, sans-serif; color: #333; }
+        .header { background: #212529; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .body   { padding: 24px; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; }
+        table   { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th      { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
+        td      { padding: 10px; border-bottom: 1px solid #eee; }
+        .total  { background: #212529; color: white; font-weight: bold; }
+        .total td { padding: 12px 10px; }
+        .badge-paid    { background: #28a745; color: white; padding: 3px 10px; border-radius: 12px; }
+        .badge-pending { background: #ffc107; color: #333; padding: 3px 10px; border-radius: 12px; }
+        .footer { margin-top: 24px; color: #888; font-size: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+<div style="max-width:600px; margin:0 auto;">
+
+    <div class="header">
+        <h2 style="margin:0;">🏢 อพาร์ทเม้นต์</h2>
+        <p style="margin:4px 0 0; opacity:.8;">ใบแจ้งหนี้ประจำเดือน</p>
+    </div>
+
+    <div class="body">
+        <p>เรียน คุณ{{ tenant.First_Name }} {{ tenant.Last_Name }},</p>
+        <p>ขอแจ้งรายละเอียดค่าใช้จ่ายห้อง <strong>{{ invoice.Contract_ID.Room_ID }}</strong>
+           ประจำเดือน <strong>{{ invoice.Billing_Date|date:"F Y" }}</strong></p>
+
+        <!-- ข้อมูลใบแจ้งหนี้ -->
+        <table>
+            <tr><th colspan="2">รายละเอียด</th></tr>
+            <tr><td>เลขที่ใบแจ้งหนี้</td><td>#{{ invoice.Invoice_ID }}</td></tr>
+            <tr><td>วันออกบิล</td><td>{{ invoice.Billing_Date }}</td></tr>
+            <tr><td>ครบกำหนดชำระ</td><td><strong>{{ invoice.Due_Date }}</strong></td></tr>
+            <tr><td>สถานะ</td>
+                <td>
+                    {% if invoice.Status == 'ชำระแล้ว' %}
+                        <span class="badge-paid">{{ invoice.Status }}</span>
+                    {% else %}
+                        <span class="badge-pending">{{ invoice.Status }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+
+        <!-- รายการค่าใช้จ่าย -->
+        <table style="margin-top:20px;">
+            <tr><th>รายการ</th><th style="text-align:right;">จำนวนเงิน</th></tr>
+
+            {% if monthly_bill %}
+            <tr>
+                <td>ค่าเช่าห้องประจำเดือน</td>
+                <td style="text-align:right;">{{ monthly_bill.Amount }} บาท</td>
+            </tr>
+            {% endif %}
+
+            {% if utility %}
+            <tr>
+                <td>
+                    ค่าน้ำ<br>
+                    <small style="color:#888;">{{ utility.Water_Unit_Before }} → {{ utility.Water_Unit_After }}
+                    = {{ utility.Water_Unit_Used }} หน่วย × {{ utility.Water_Cost_Unit }} บาท</small>
+                </td>
+                <td style="text-align:right;">{{ utility.Water_Total }} บาท</td>
+            </tr>
+            <tr>
+                <td>
+                    ค่าไฟฟ้า<br>
+                    <small style="color:#888;">{{ utility.Elec_Unit_Used }} หน่วย × {{ utility.Elec_Cost_Unit }} บาท</small>
+                </td>
+                <td style="text-align:right;">{{ utility.Elec_Total }} บาท</td>
+            </tr>
+            {% endif %}
+
+            {% for fine in fines %}
+            <tr>
+                <td style="color:#dc3545;">ค่าปรับ: {{ fine.Reason }}</td>
+                <td style="text-align:right; color:#dc3545;">{{ fine.Amount }} บาท</td>
+            </tr>
+            {% endfor %}
+
+            <tr class="total">
+                <td>ยอดรวมทั้งหมด</td>
+                <td style="text-align:right;">{{ invoice.Grand_Total }} บาท</td>
+            </tr>
+        </table>
+
+        <div style="margin-top:24px; padding:16px; background:#fff8e1; border-radius:8px; border-left:4px solid #ffc107;">
+            <strong>กรุณาชำระภายใน {{ invoice.Due_Date }}</strong><br>
+            <small>หากมีข้อสงสัยกรุณาติดต่อเจ้าหน้าที่</small>
+        </div>
+
+        <div class="footer">
+            <p>อีเมล์นี้ส่งจากระบบอพาร์ทเม้นต์อัตโนมัติ กรุณาอย่าตอบกลับ</p>
+        </div>
+    </div>
+</div>
+</body>
+</html>
