@@ -58,13 +58,13 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'tenant_list' %}">👤 ลูกค้า</a>
                 </li>
-                {% if user_role != 'READONLY' %}
+                {% if user_role != 'METER' %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'meter_input' %}">⚡ จดมิเตอร์</a>
+                    <a class="nav-link" href="{% url 'meter_index' %}">⚡ จดมิเตอร์</a>
                 </li>
                 {% else %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'meter_index' %}">⚡ มิเตอร์</a>
+                    <a class="nav-link" href="{% url 'meter_input' %}">⚡ มิเตอร์</a>
                 </li>
                 {% endif %}
                 <li class="nav-item">
