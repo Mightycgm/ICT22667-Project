@@ -47,3 +47,11 @@ readonly_group.permissions.set(readonly_perms)
 print("สร้าง Groups เรียบร้อย:")
 for g in Group.objects.all():
     print(f"  {g.name}: {g.permissions.count()} permissions")
+
+meter_group, _ = Group.objects.get_or_create(name='METER')
+# กรอกมิเตอร์ได้อย่างเดียว ไม่เห็นข้อมูลอื่น
+meter_perms = Permission.objects.filter(
+    content_type__app_label='apartment',
+    codename__in=['view_room', 'view_utility', 'add_utility', 'change_utility']
+)
+meter_group.permissions.set(meter_perms)

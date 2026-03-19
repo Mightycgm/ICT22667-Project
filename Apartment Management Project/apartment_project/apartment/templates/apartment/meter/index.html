@@ -43,6 +43,12 @@
         💾 บันทึกรอบจดมิเตอร์
     </button>
     {% endif %}
+    
+    <a href="{% url 'meter_input' %}" 
+    class="btn btn-outline-info btn-sm no-print" 
+    target="_blank">
+    📱 เปิดหน้าจดมิเตอร์มือถือ
+    </a>
 </div>
 
 {% if request.GET.saved %}

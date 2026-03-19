@@ -15,6 +15,9 @@ from .decorators import role_required, not_readonly
 @login_required
 @role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
 def dashboard(request):
+    from .middleware import get_user_role
+    if get_user_role(request.user) == 'METER':
+        return redirect('meter_input')
     import datetime
     today = datetime.date.today()
     rooms = Room.objects.all().order_by('Building_No', 'Floor', 'Room_Number')
@@ -527,6 +530,9 @@ def booking_confirm(request, pk):
 @login_required
 @role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
 def meter_index(request):
+    from .middleware import get_user_role
+    if get_user_role(request.user) == 'METER':
+        return redirect('meter_input')
     import datetime
     today = datetime.date.today()
 
@@ -706,6 +712,51 @@ def meter_save(request):
         saved += 1
 
     return redirect(f"/meter/?month={month}&year={year}&saved={saved}")
+
+@login_required
+@role_required('ADMIN', 'MANAGER', 'STAFF', 'METER')
+def meter_input(request):
+    import datetime
+    today = datetime.date.today()
+    month = today.month
+    year  = today.year
+    bill_month = datetime.date(year, month, 1)
+
+    if month == 1:
+        prev_month = datetime.date(year - 1, 12, 1)
+    else:
+        prev_month = datetime.date(year, month - 1, 1)
+
+    rooms        = Room.objects.filter(Status='มีผู้เช่า').order_by('Building_No', 'Floor', 'Room_Number')
+    contract_map = {c.Room_ID_id: c for c in Contract.objects.filter(Status='ใช้งาน')}
+    prev_map     = {u.Room_ID_id: u for u in Utility.objects.filter(Bill_Month=prev_month)}
+    curr_map     = {u.Room_ID_id: u for u in Utility.objects.filter(Bill_Month=bill_month)}
+
+    # จัดกลุ่มตามอาคาร
+    buildings = {}
+    for room in rooms:
+        b = room.Building_No
+        if b not in buildings:
+            buildings[b] = []
+        contract = contract_map.get(room.Room_ID)
+        prev_u   = prev_map.get(room.Room_ID)
+        curr_u   = curr_map.get(room.Room_ID)
+        buildings[b].append({
+            'room':       room,
+            'curr_u':     curr_u,
+            'water_prev': prev_u.Water_Unit_After if prev_u else (contract.Water_Meter_Start if contract else 0),
+            'elec_prev':  (prev_u.Elec_Unit_Used + prev_u.Water_Unit_Before) if prev_u else (contract.Elec_Meter_Start if contract else 0),
+        })
+
+    if request.method == 'POST':
+        return redirect('meter_save_input')
+
+    return render(request, 'apartment/meter/input.html', {
+        'buildings': buildings,
+        'month':     month,
+        'year':      year,
+        'today':     today,
+    })
 
 # ==================== ROOM ACTIONS ====================
 
