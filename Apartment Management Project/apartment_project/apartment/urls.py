@@ -51,6 +51,7 @@ urlpatterns = [
     # Meter
     path('meter/',       views.meter_index, name='meter_index'),
     path('meter/save/',  views.meter_save,  name='meter_save'),
+    path('meter/input/', views.meter_input, name='meter_input'),
 
     # Room Actions
     path('rooms/<int:pk>/moveout/',     views.room_action_moveout,     name='room_moveout'),

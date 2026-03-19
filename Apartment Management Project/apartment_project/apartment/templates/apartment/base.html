@@ -30,9 +30,9 @@
             <span class="badge bg-primary ms-1">Manager</span>
         {% elif user_role == 'STAFF' %}
             <span class="badge bg-success ms-1">Staff</span>
-{% else %}
-    <span class="badge bg-secondary ms-1">Readonly</span>
-{% endif %}
+        {% else %}
+            <span class="badge bg-secondary ms-1">Readonly</span>
+        {% endif %}
     </span>
     <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm">ออกจากระบบ</a>
 </div>
@@ -58,9 +58,15 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'tenant_list' %}">👤 ลูกค้า</a>
                 </li>
+                {% if user_role != 'READONLY' %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'meter_input' %}">⚡ จดมิเตอร์</a>
+                </li>
+                {% else %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'meter_index' %}">⚡ มิเตอร์</a>
                 </li>
+                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'maintenance_list' %}">🔧 แจ้งซ่อม</a>
                 </li>
