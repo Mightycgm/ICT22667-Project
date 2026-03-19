@@ -30,6 +30,7 @@ urlpatterns = [
     path('invoices/add/',               views.invoice_create, name='invoice_create'),
     path('invoices/<int:pk>/',          views.invoice_detail, name='invoice_detail'),
     path('invoices/<int:pk>/pay/',      views.invoice_pay,    name='invoice_pay'),
+    path('invoices/<int:pk>/send-email/', views.invoice_send_email, name='invoice_send_email'),
 
     # Maintenance
     path('maintenance/',                views.maintenance_list,   name='maintenance_list'),

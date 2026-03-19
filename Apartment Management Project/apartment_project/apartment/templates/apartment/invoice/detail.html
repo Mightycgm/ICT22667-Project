@@ -8,6 +8,15 @@
         {% endif %}
         <a href="{% url 'invoice_list' %}" class="btn btn-secondary">กลับ</a>
         <a href="{% url 'invoice_print' invoice.Invoice_ID %}" class="btn btn-outline-secondary" target="_blank">🖨️ พิมพ์</a>
+        {% if invoice.Contract_ID.Tenant_ID.Email %}
+            <a href="{% url 'invoice_send_email' invoice.Invoice_ID %}" class="btn btn-info">
+            📧 ส่งอีเมล์
+            </a>
+        {% else %}
+            <span class="btn btn-outline-secondary disabled" title="ผู้เช่าไม่มีอีเมล์ในระบบ">
+            📧 ไม่มีอีเมล์
+</span>
+{% endif %}
     </div>
 </div>
 

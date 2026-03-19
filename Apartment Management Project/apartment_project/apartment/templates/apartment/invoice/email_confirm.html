@@ -1,0 +1,25 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div style="max-width:500px; margin: 40px auto;">
+    <div class="card">
+        <div class="card-header bg-dark text-white fw-bold">
+            📧 ส่งใบแจ้งหนี้ทางอีเมล์
+        </div>
+        <div class="card-body">
+            <p>ยืนยันส่งใบแจ้งหนี้ <strong>#{{ invoice.Invoice_ID }}</strong></p>
+            <p>ถึง: <strong>{{ tenant.First_Name }} {{ tenant.Last_Name }}</strong></p>
+            <p>อีเมล์: <strong class="text-primary">{{ tenant.Email }}</strong></p>
+            <p>ยอดรวม: <strong class="text-danger">{{ invoice.Grand_Total }} บาท</strong></p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                    📤 ยืนยันส่งอีเมล์
+                </button>
+                <a href="{% url 'invoice_detail' invoice.Invoice_ID %}" class="btn btn-secondary">
+                    ยกเลิก
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
