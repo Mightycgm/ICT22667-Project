@@ -2,7 +2,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>รายการสัญญาเช่า</h2>
+    {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
     <a href="{% url 'contract_create' %}" class="btn btn-primary">+ สร้างสัญญาเช่า</a>
+    {% endif %}
 </div>
 
 <table class="table table-bordered table-hover">
@@ -22,8 +24,12 @@
             <td>{{ c.Rent_Price }}</td>
             <td>{{ c.Status }}</td>
             <td>
+                {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
                 <a href="{% url 'contract_edit' c.Contract_ID %}" class="btn btn-sm btn-warning">แก้ไข</a>
+                {% endif %}
+                {% if user_role == 'ADMIN' %}
                 <a href="{% url 'contract_delete' c.Contract_ID %}" class="btn btn-sm btn-danger">ลบ</a>
+                {% endif %}
             </td>
         </tr>
         {% empty %}

@@ -2,7 +2,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4>📌 รายการจองห้อง</h4>
-    <a href="{% url 'booking_create' %}" class="btn btn-primary">+ บันทึกการจอง</a>
+    {% if user_role != 'READONLY' %}
+        <a href="{% url 'booking_create' %}" class="btn btn-primary">+ บันทึกการจอง</a>
+    {% endif %}
 </div>
 
 <div class="row g-3">
@@ -24,14 +26,18 @@
                 {% endif %}
             </div>
             <div class="card-footer d-flex gap-2">
+                {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
                 <a href="{% url 'booking_confirm' b.Booking_ID %}"
                    class="btn btn-success btn-sm flex-fill">
                     ✅ ยืนยันทำสัญญา
                 </a>
+                {% endif %}
+                {% if user_role != 'READONLY' %}
                 <a href="{% url 'booking_cancel' b.Booking_ID %}"
                    class="btn btn-outline-danger btn-sm">
                     ยกเลิก
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>

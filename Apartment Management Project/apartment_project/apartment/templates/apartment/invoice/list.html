@@ -2,7 +2,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>ใบแจ้งหนี้</h2>
+    {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
     <a href="{% url 'invoice_create' %}" class="btn btn-primary">+ ออกใบแจ้งหนี้</a>
+    {% endif %}
 </div>
 
 <table class="table table-bordered table-hover">

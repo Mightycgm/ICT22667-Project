@@ -222,62 +222,78 @@
             <div class="list-group list-group-flush">
 
                 {% if room.Status == 'ว่าง' %}
-                    <!-- ห้องว่าง: จอง หรือ ทำสัญญาเลย -->
-                    <a href="{% url 'booking_create_room' room.Room_ID %}"
-                       class="list-group-item list-group-item-action text-warning fw-bold">
-                        📌 จองห้อง
-                    </a>
-                    <a href="{% url 'contract_create' %}"
-                       class="list-group-item list-group-item-action text-success fw-bold">
-                        📄 ทำสัญญาเลย
-                    </a>
-                    {% if room.Status_Flag == 'รอทำความสะอาด' %}
-                    <a href="{% url 'room_done_clean' room.Room_ID %}"
-                       class="list-group-item list-group-item-action text-info fw-bold">
-                        ✅ ทำความสะอาดเสร็จ
-                    </a>
-                    {% else %}
-                    <a href="{% url 'room_clean' room.Room_ID %}"
-                       class="list-group-item list-group-item-action">
-                        🧹 แจ้งทำความสะอาด
-                    </a>
-                    {% endif %}
+
+                {% if user_role == 'ADMIN' or user_role == 'MANAGER' %}
+                <a href="{% url 'contract_create' %}"
+                   class="list-group-item list-group-item-action text-success fw-bold">
+                    📄 ทำสัญญาเลย
+                </a>
+                {% endif %}
+
+                {% if user_role != 'READONLY' %}
+                <a href="{% url 'booking_create_room' room.Room_ID %}"
+                   class="list-group-item list-group-item-action text-warning fw-bold">
+                    📌 จองห้อง
+                </a>
+                {% if room.Status_Flag == 'รอทำความสะอาด' %}
+                <a href="{% url 'room_done_clean' room.Room_ID %}"
+                   class="list-group-item list-group-item-action text-info fw-bold">
+                    ✅ ทำความสะอาดเสร็จ
+                </a>
+                {% else %}
+                <a href="{% url 'room_clean' room.Room_ID %}"
+                   class="list-group-item list-group-item-action">
+                    🧹 แจ้งทำความสะอาด
+                </a>
+                {% endif %}
+                {% endif %}
 
                 {% elif room.Status == 'มีผู้เช่า' %}
-                    <!-- มีผู้เช่า -->
-                    {% if room.Status_Flag != 'แจ้งย้ายออก' %}
-                    <a href="{% url 'room_notify_out' room.Room_ID %}"
-                       class="list-group-item list-group-item-action text-warning">
-                        🔔 แจ้งย้ายออก
-                    </a>
-                    {% endif %}
-                    <a href="{% url 'room_moveout' room.Room_ID %}"
-                       class="list-group-item list-group-item-action text-danger fw-bold">
-                        📦 ย้ายออก (ปิดสัญญา)
-                    </a>
-                    <a href="{% url 'invoice_create' %}"
-                       class="list-group-item list-group-item-action text-success">
-                        📄 ออกใบแจ้งหนี้
-                    </a>
-                    <a href="{% url 'maintenance_create' %}"
-                       class="list-group-item list-group-item-action text-danger">
-                        🔧 แจ้งซ่อม
-                    </a>
-                    <a href="{% url 'room_clean' room.Room_ID %}"
-                       class="list-group-item list-group-item-action">
-                        🧹 แจ้งทำความสะอาด
-                    </a>
+
+                {% if user_role == 'ADMIN' or user_role == 'MANAGER' %}
+                <a href="{% url 'invoice_create' %}"
+                   class="list-group-item list-group-item-action text-success">
+                    📄 ออกใบแจ้งหนี้
+                </a>
+                <a href="{% url 'room_moveout' room.Room_ID %}"
+                   class="list-group-item list-group-item-action text-danger fw-bold">
+                    📦 ย้ายออก (ปิดสัญญา)
+                </a>
+                {% endif %}
+
+                {% if user_role != 'READONLY' %}
+                {% if room.Status_Flag != 'แจ้งย้ายออก' %}
+                <a href="{% url 'room_notify_out' room.Room_ID %}"
+                   class="list-group-item list-group-item-action text-warning">
+                    🔔 แจ้งย้ายออก
+                </a>
+                {% endif %}
+                <a href="{% url 'maintenance_create' %}"
+                   class="list-group-item list-group-item-action text-danger">
+                    🔧 แจ้งซ่อม
+                </a>
+                <a href="{% url 'room_clean' room.Room_ID %}"
+                   class="list-group-item list-group-item-action">
+                    🧹 แจ้งทำความสะอาด
+                </a>
+                {% endif %}
 
                 {% elif room.Status == 'ซ่อมบำรุง' %}
-                    <!-- ซ่อมบำรุง -->
-                    <a href="{% url 'maintenance_create' %}"
-                       class="list-group-item list-group-item-action text-danger">
-                        🔧 เพิ่มรายการซ่อม
-                    </a>
-                    <a href="{% url 'room_edit' room.Room_ID %}"
-                       class="list-group-item list-group-item-action text-success">
-                        ✅ ซ่อมเสร็จ (เปลี่ยนสถานะ)
-                    </a>
+
+                {% if user_role == 'ADMIN' or user_role == 'MANAGER' %}
+                <a href="{% url 'room_edit' room.Room_ID %}"
+                   class="list-group-item list-group-item-action text-success">
+                    ✅ ซ่อมเสร็จ (เปลี่ยนสถานะ)
+                </a>
+                {% endif %}
+
+                {% if user_role != 'READONLY' %}
+                <a href="{% url 'maintenance_create' %}"
+                   class="list-group-item list-group-item-action text-danger">
+                    🔧 เพิ่มรายการซ่อม
+                </a>
+                {% endif %}
+
                 {% endif %}
 
                 <!-- ปุ่มทั่วไปทุกสถานะ -->
