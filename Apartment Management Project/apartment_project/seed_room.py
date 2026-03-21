@@ -1,150 +1,275 @@
-import os
-import django
-import random
+import os, django, random, datetime
+from decimal import Decimal
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'apartment_project.settings')
 django.setup()
 
-from apartment.models import Fine, Utility, MonthlyBill, Maintenance, Invoice, Contract, Tenant, Room
-import datetime
+from apartment.models import Fine, Utility, MonthlyBill, Maintenance, Invoice, Contract, Tenant, Room, Booking
 
-print("กำลังลบข้อมูลเดิมทั้งหมด...")
+print("ลบข้อมูลเดิม...")
 Fine.objects.all().delete()
 Utility.objects.all().delete()
 MonthlyBill.objects.all().delete()
 Maintenance.objects.all().delete()
 Invoice.objects.all().delete()
 Contract.objects.all().delete()
+Booking.objects.all().delete()
 Tenant.objects.all().delete()
 Room.objects.all().delete()
-print("  ลบข้อมูลเดิมเรียบร้อย")
-
-print("\nเริ่มสร้างห้องใหม่...")
-
-# --- กำหนดสัดส่วนการสุ่ม ---
-# (status_หลัก, status_flag, น้ำหนัก)
-ROOM_PROFILES = [
-    ('ว่าง',      'ปกติ',           25),   # ว่างธรรมดา
-    ('ว่าง',      'รอทำความสะอาด',   8),   # ว่าง + รอทำความสะอาด
-    ('ว่าง',      'จอง',             5),   # จองแล้ว
-    ('มีผู้เช่า', 'ปกติ',           35),   # มีผู้เช่าปกติ
-    ('มีผู้เช่า', 'แจ้งย้ายออก',    10),   # แจ้งย้ายออก
-    ('ซ่อมบำรุง', 'ปกติ',           10),   # ซ่อมบำรุง
-    ('ว่าง',      'ปกติ',            7),   # เผื่อกระจาย
-]
-
-weights  = [p[2] for p in ROOM_PROFILES]
-profiles = [(p[0], p[1]) for p in ROOM_PROFILES]
-
-rooms_to_create = []
-
-for building in range(1, 5):
-    for floor in range(1, 8):
-        if floor == 1:
-            continue
-        for room_num in range(1, 16):
-            room_number        = f"{building}{floor}{room_num:02d}"
-            status, status_flag = random.choices(profiles, weights=weights, k=1)[0]
-            rooms_to_create.append(Room(
-                Room_Number = room_number,
-                Building_No = str(building),
-                Floor       = str(floor),
-                Status      = status,
-                Status_Flag = status_flag,
-            ))
-
-Room.objects.bulk_create(rooms_to_create)
-print(f"  สร้างห้องทั้งหมด {len(rooms_to_create)} ห้องเรียบร้อย")
-
-# --- สร้าง Tenant + Contract ปลอมสำหรับห้อง "มีผู้เช่า" ---
-# เพื่อให้มีข้อมูล invoice เกินกำหนด ($) และ invoice รอชำระ
-print("\nสร้างข้อมูลผู้เช่าตัวอย่าง...")
-
-occupied_rooms = list(Room.objects.filter(Status='มีผู้เช่า'))
-sample_rooms   = random.sample(occupied_rooms, min(30, len(occupied_rooms)))
-
-first_names = ['สมชาย','สมหญิง','วิชัย','นภา','ประเสริฐ','มาลี','สุรชัย','นงลักษณ์','อนุชา','พิมพ์ใจ',
-               'ธนกร','ชลิตา','วรวิทย์','สุภาพร','ณัฐพล','กนกวรรณ','ภานุวัฒน์','ศิริพร','จักรพงษ์','ลลิตา']
-last_names  = ['ใจดี','รักไทย','สุขสม','มีทรัพย์','ทองคำ','ศรีสุข','บุญมาก','พันธุ์ดี','วงศ์งาม','ชัยมงคล']
+print("  เรียบร้อย")
 
 today = datetime.date.today()
 
-tenants_created  = 0
-contracts_created = 0
-overdue_created  = 0
-repair_created   = 0
+# ========== สร้างห้อง ==========
+print("สร้างห้อง...")
+rooms_to_create = []
+for building in range(1, 5):
+    for floor in range(2, 8):
+        for room_num in range(1, 16):
+            rooms_to_create.append(Room(
+                Room_Number = f"{building}{floor}{room_num:02d}",
+                Building_No = str(building),
+                Floor       = str(floor),
+                Status      = 'มีผู้เช่า',
+                Status_Flag = 'ปกติ',
+            ))
+Room.objects.bulk_create(rooms_to_create)
+all_rooms = list(Room.objects.all().order_by('Building_No', 'Floor', 'Room_Number'))
+print(f"  สร้างห้อง {len(all_rooms)} ห้อง")
 
-for i, room in enumerate(sample_rooms):
-    fn = random.choice(first_names)
-    ln = random.choice(last_names)
+# ========== กำหนดสถานะห้อง ==========
+print("กำหนดสถานะห้อง...")
+vacant_rooms      = []
+repair_rooms      = []
+notify_out_rooms  = []
+clean_rooms       = []
+maintenance_rooms = []
 
-    # สร้าง Tenant
+for building in range(1, 5):
+    b_rooms = [r for r in all_rooms if r.Building_No == str(building)]
+
+    chosen = random.sample(b_rooms, 5)
+    for r in chosen:
+        r.Status = 'ว่าง'
+        r.Status_Flag = 'ปกติ'
+        vacant_rooms.append(r)
+    b_rooms = [r for r in b_rooms if r not in chosen]
+
+    chosen = random.sample(b_rooms, 3)
+    for r in chosen:
+        r.Status = 'ซ่อมบำรุง'
+        r.Status_Flag = 'ปกติ'
+        repair_rooms.append(r)
+    b_rooms = [r for r in b_rooms if r not in chosen]
+
+    chosen = random.sample(b_rooms, random.randint(2, 3))
+    for r in chosen:
+        r.Status_Flag = 'แจ้งย้ายออก'
+        notify_out_rooms.append(r)
+    b_rooms = [r for r in b_rooms if r not in chosen]
+
+    chosen = random.sample(b_rooms, random.randint(2, 3))
+    for r in chosen:
+        r.Status_Flag = 'รอทำความสะอาด'
+        clean_rooms.append(r)
+    b_rooms = [r for r in b_rooms if r not in chosen]
+
+    chosen = random.sample(b_rooms, 5)
+    maintenance_rooms.extend(chosen)
+
+for r in all_rooms:
+    r.save()
+print(f"  ว่าง:{len(vacant_rooms)} ซ่อมบำรุง:{len(repair_rooms)} แจ้งย้ายออก:{len(notify_out_rooms)}")
+
+# ========== สร้าง Tenant + Contract ==========
+print("สร้างผู้เช่าและสัญญา...")
+first_names = ['สมชาย','สมหญิง','วิชัย','นภา','ประเสริฐ','มาลี','สุรชัย','นงลักษณ์',
+               'อนุชา','พิมพ์ใจ','ธนกร','ชลิตา','วรวิทย์','สุภาพร','ณัฐพล',
+               'กนกวรรณ','ภานุวัฒน์','ศิริพร','จักรพงษ์','ลลิตา']
+last_names  = ['ใจดี','รักไทย','สุขสม','มีทรัพย์','ทองคำ','ศรีสุข','บุญมาก',
+               'พันธุ์ดี','วงศ์งาม','ชัยมงคล','ทองอินคำ','บุญช่วย']
+
+occupied_rooms = [r for r in all_rooms if r.Status == 'มีผู้เช่า']
+contract_map   = {}
+
+for i, room in enumerate(occupied_rooms):
     tenant = Tenant.objects.create(
-        First_Name = fn,
-        Last_Name  = ln,
+        First_Name = random.choice(first_names),
+        Last_Name  = random.choice(last_names),
         ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
         Phone      = f"08{random.randint(10000000, 99999999)}",
-        Email      = f"{fn.lower()}{i}@example.com",
+        Email      = f"tenant{i}@example.com",
+        Line_ID    = f"line_{i}",
     )
-    tenants_created += 1
-
-    # วันเริ่มสัญญา 6-18 เดือนที่แล้ว
-    months_ago  = random.randint(6, 18)
-    start_date  = today.replace(day=1) - datetime.timedelta(days=months_ago * 30)
-    end_date    = start_date + datetime.timedelta(days=365)
+    duration    = random.choices([12, 6, 3], weights=[75, 15, 10])[0]
+    months_ago  = random.randint(1, 10)
+    start_date  = (today.replace(day=1) - datetime.timedelta(days=months_ago * 30)).replace(day=1)
+    end_date    = (start_date + datetime.timedelta(days=duration * 30)).replace(day=1)
 
     contract = Contract.objects.create(
-        Tenant_ID        = tenant,
-        Room_ID          = room,
-        Start_Date       = start_date,
-        End_Date         = end_date,
-        Deposit          = 3000,
-        Deposit_Advance  = 1000,
-        Rent_Price       = 3000,
-        Water_Cost_Unit  = 18,
-        Elec_Cost_Unit   = 8,
-        Water_Meter_Start = random.randint(100, 500),
-        Elec_Meter_Start  = random.randint(100, 500),
-        Status           = 'ใช้งาน',
+        Tenant_ID         = tenant,
+        Room_ID           = room,
+        Start_Date        = start_date,
+        End_Date          = end_date,
+        Deposit           = Decimal('4000'),   # แก้เป็น 4000
+        Deposit_Advance   = Decimal('2000'),   # แก้เป็น 2000
+        Rent_Price        = Decimal('4000'),   # แก้เป็น 4000
+        Water_Cost_Unit   = 18,
+        Elec_Cost_Unit    = 8,
+        Water_Meter_Start = Decimal(str(random.randint(100, 500))),
+        Elec_Meter_Start  = Decimal(str(random.randint(100, 500))),
+        Status            = 'ใช้งาน',
     )
-    contracts_created += 1
+    contract_map[room.Room_ID] = contract
 
-    # 30% ของห้องมีผู้เช่า → invoice เกินกำหนด (สีแดง + $)
-    if random.random() < 0.30:
-        overdue_date = today - datetime.timedelta(days=random.randint(5, 30))
-        Invoice.objects.create(
+print(f"  สร้าง {len(occupied_rooms)} สัญญา")
+
+# ========== คำนวณวันที่ตาม logic จริง ==========
+# วันนี้คือวันที่เท่าไหร่ในเดือน
+# - ถ้าวันที่ 1-24   → ยังไม่ออกบิลเดือนนี้ → invoice ล่าสุดคือเดือนก่อน (ชำระแล้ว)
+# - ถ้าวันที่ 25-31  → ออกบิลเดือนนี้แล้ว → invoice เดือนนี้ = รอชำระ
+
+# เดือนก่อน (2 เดือนที่แล้ว) → ชำระแล้วทุกคน
+# เดือนก่อน (1 เดือนที่แล้ว) → ชำระแล้วทุกคน ยกเว้น 10% ที่เกินกำหนด
+# เดือนปัจจุบัน → ออกบิลแล้วถ้าวันที่ >= 25, รอชำระ (due = วันที่ 5 เดือนหน้า)
+
+print("สร้าง invoice และมิเตอร์...")
+
+# 10% ห้องที่เกินกำหนดจาก invoice เดือนก่อน
+overdue_room_ids = set(random.sample(
+    [r.Room_ID for r in occupied_rooms],
+    max(1, int(len(occupied_rooms) * 0.10))
+))
+
+# กำหนดรอบที่จะสร้าง invoice
+# รอบ 1: 2 เดือนที่แล้ว → ชำระแล้วทุกห้อง
+# รอบ 2: เดือนที่แล้ว   → ส่วนใหญ่ชำระแล้ว, 10% เกินกำหนด
+
+water_running = {r.Room_ID: float(contract_map[r.Room_ID].Water_Meter_Start)
+                 for r in occupied_rooms}
+elec_running  = {r.Room_ID: float(contract_map[r.Room_ID].Elec_Meter_Start)
+                 for r in occupied_rooms}
+
+for months_back in [2, 1]:
+    # bill_date = วันที่ 25 ของเดือนนั้น
+    ref_date  = today.replace(day=1) - datetime.timedelta(days=months_back * 30)
+    bill_date = ref_date.replace(day=25)
+    # base_due = วันที่ 5 ของเดือนถัดจาก bill_date
+    next_m    = (bill_date + datetime.timedelta(days=10)).replace(day=1)
+    base_due  = next_m.replace(day=5)
+
+    for room in occupied_rooms:
+        contract = contract_map[room.Room_ID]
+
+        water_before = water_running[room.Room_ID]
+        elec_before  = elec_running[room.Room_ID]
+        water_after  = water_before + random.randint(8, 25)
+        elec_after   = elec_before  + random.randint(50, 200)
+        water_used   = water_after  - water_before
+        elec_used    = elec_after   - elec_before
+        water_total  = Decimal(str(water_used)) * Decimal(str(contract.Water_Cost_Unit))
+        elec_total   = Decimal(str(elec_used))  * Decimal(str(contract.Elec_Cost_Unit))
+        grand_total  = contract.Rent_Price + water_total + elec_total
+
+        water_running[room.Room_ID] = water_after
+        elec_running[room.Room_ID]  = elec_after
+
+        if months_back == 2:
+            # 2 เดือนที่แล้ว → ชำระแล้วทุกห้อง
+            status    = 'ชำระแล้ว'
+            paid_date = bill_date + datetime.timedelta(days=random.randint(1, 9))
+            due_date  = base_due
+
+        else:
+            # เดือนที่แล้ว
+            if room.Room_ID in overdue_room_ids:
+                # เกินกำหนด → due_date อยู่ในอดีต (ก่อน today)
+                due_date  = base_due - datetime.timedelta(days=random.randint(10, 20))
+                status    = 'รอชำระ'   # จะ update เป็น เกินกำหนด ทีหลัง
+                paid_date = None
+            else:
+                # ชำระแล้ว → จ่ายก่อนครบกำหนด
+                due_date  = base_due
+                status    = 'ชำระแล้ว'
+                paid_date = bill_date + datetime.timedelta(days=random.randint(1, 9))
+
+        invoice = Invoice.objects.create(
             Contract_ID  = contract,
-            Billing_Date = overdue_date - datetime.timedelta(days=30),
-            Due_Date     = overdue_date,
-            Grand_Total  = 3000 + random.randint(0, 500),
-            Status       = 'รอชำระ',
+            Billing_Date = bill_date,
+            Due_Date     = due_date,
+            Grand_Total  = grand_total,
+            Status       = status,
+            Paid_Date    = paid_date if status == 'ชำระแล้ว' else None,
         )
-        overdue_created += 1
-
-    # 20% ของห้องมีผู้เช่า → แจ้งซ่อมค้างอยู่ (🔧)
-    if random.random() < 0.20:
-        problems = ['ก๊อกน้ำรั่ว', 'แอร์ไม่เย็น', 'ไฟฟ้าขัดข้อง', 'ประตูล็อคไม่ได้', 'ท่อน้ำตัน']
-        Maintenance.objects.create(
-            Room_ID        = room,
-            Problem_Detail = random.choice(problems),
-            Report_Date    = today - datetime.timedelta(days=random.randint(1, 14)),
-            Status         = random.choice(['รอดำเนินการ', 'กำลังซ่อม']),
-            Repair_Cost    = 0,
+        bill_month = bill_date.replace(day=1)
+        MonthlyBill.objects.create(
+            Invoice_ID = invoice,
+            Bill_Month = bill_month,
+            Amount     = contract.Rent_Price,
         )
-        repair_created += 1
+        Utility.objects.create(
+            Invoice_ID        = invoice,
+            Room_ID           = room,
+            Bill_Month        = bill_month,
+            Water_Unit_Before = Decimal(str(water_before)),
+            Water_Unit_After  = Decimal(str(water_after)),
+            Water_Unit_Used   = Decimal(str(water_used)),
+            Elec_Unit_Used    = Decimal(str(elec_used)),
+            Water_Cost_Unit   = contract.Water_Cost_Unit,
+            Elec_Cost_Unit    = contract.Elec_Cost_Unit,
+            Water_Total       = water_total,
+            Elec_Total        = elec_total,
+        )
 
-print(f"  สร้าง Tenant    : {tenants_created} คน")
-print(f"  สร้าง Contract  : {contracts_created} สัญญา")
-print(f"  Invoice เกินกำหนด: {overdue_created} ใบ")
-print(f"  แจ้งซ่อมค้าง    : {repair_created} รายการ")
+print(f"  สร้าง {Invoice.objects.count()} invoices")
 
-# --- สรุปสุดท้าย ---
-print(f"\n{'='*40}")
-print(f"สรุปห้องทั้งหมด {Room.objects.count()} ห้อง")
-print(f"  ขาว  (ว่าง)           : {Room.objects.filter(Status='ว่าง', Status_Flag='ปกติ').count()}")
-print(f"  ขาว🧹 (รอทำความสะอาด) : {Room.objects.filter(Status='ว่าง', Status_Flag='รอทำความสะอาด').count()}")
-print(f"  ขาว📌 (จอง)            : {Room.objects.filter(Status='ว่าง', Status_Flag='จอง').count()}")
-print(f"  น้ำเงิน (มีผู้เช่า)   : {Room.objects.filter(Status='มีผู้เช่า', Status_Flag='ปกติ').count()}")
-print(f"  เหลือง (แจ้งย้ายออก)  : {Room.objects.filter(Status='มีผู้เช่า', Status_Flag='แจ้งย้ายออก').count()}")
-print(f"  ดำ  (ซ่อมบำรุง)       : {Room.objects.filter(Status='ซ่อมบำรุง').count()}")
-print(f"{'='*40}")
+# อัปเดต invoice ที่เลย due_date → เกินกำหนด
+updated = Invoice.objects.filter(
+    Status='รอชำระ', Due_Date__lt=today
+).update(Status='เกินกำหนด')
+print(f"  อัปเดต {updated} invoices เป็น เกินกำหนด")
+
+# ========== Booking ==========
+print("สร้างการจอง...")
+booking_rooms = random.sample(vacant_rooms, min(4, len(vacant_rooms)))
+for room in booking_rooms:
+    Booking.objects.create(
+        Room_ID    = room,
+        First_Name = random.choice(first_names),
+        Last_Name  = random.choice(last_names),
+        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
+        Phone      = f"08{random.randint(10000000, 99999999)}",
+        Status     = 'รอยืนยัน',
+    )
+    room.Status_Flag = 'จอง'
+    room.save()
+print(f"  สร้าง {Booking.objects.count()} การจอง")
+
+# ========== Maintenance ==========
+print("สร้างแจ้งซ่อม...")
+problems = ['ก๊อกน้ำรั่ว','แอร์ไม่เย็น','ไฟฟ้าขัดข้อง','ประตูล็อคไม่ได้',
+            'ท่อน้ำตัน','หลอดไฟขาด','หน้าต่างปิดไม่สนิท','ฝักบัวชำรุด']
+for room in maintenance_rooms:
+    Maintenance.objects.create(
+        Room_ID        = room,
+        Problem_Detail = random.choice(problems),
+        Report_Date    = today - datetime.timedelta(days=random.randint(1, 14)),
+        Status         = random.choice(['รอดำเนินการ', 'กำลังซ่อม']),
+        Repair_Cost    = 0,
+    )
+print(f"  สร้าง {Maintenance.objects.count()} รายการแจ้งซ่อม")
+
+# ========== สรุป ==========
+print(f"\n{'='*50}")
+print(f"ห้องทั้งหมด        : {Room.objects.count()}")
+print(f"ว่าง               : {Room.objects.filter(Status='ว่าง').count()}")
+print(f"มีผู้เช่า (ปกติ)   : {Room.objects.filter(Status='มีผู้เช่า', Status_Flag='ปกติ').count()}")
+print(f"แจ้งย้ายออก        : {Room.objects.filter(Status_Flag='แจ้งย้ายออก').count()}")
+print(f"รอทำความสะอาด      : {Room.objects.filter(Status_Flag='รอทำความสะอาด').count()}")
+print(f"ซ่อมบำรุง          : {Room.objects.filter(Status='ซ่อมบำรุง').count()}")
+print(f"การจอง             : {Booking.objects.filter(Status='รอยืนยัน').count()}")
+print(f"Invoice ชำระแล้ว   : {Invoice.objects.filter(Status='ชำระแล้ว').count()}")
+print(f"Invoice รอชำระ     : {Invoice.objects.filter(Status='รอชำระ').count()}")
+print(f"Invoice เกินกำหนด  : {Invoice.objects.filter(Status='เกินกำหนด').count()}")
+print(f"แจ้งซ่อม           : {Maintenance.objects.count()}")
+print(f"{'='*50}")

@@ -1,13 +1,105 @@
 {% extends 'apartment/base.html' %}
+{% load humanize %}
 {% block content %}
+
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>ใบแจ้งหนี้</h2>
-    {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-    <a href="{% url 'invoice_create' %}" class="btn btn-primary">+ ออกใบแจ้งหนี้</a>
+    <h4>📄 ใบแจ้งหนี้</h4>
+    {% if user_role == 'ADMIN' or user_role == 'MANAGER' %}
+    <div class="d-flex gap-2">
+        <a href="{% url 'invoice_create' %}" class="btn btn-primary">+ ออกใบแจ้งหนี้</a>
+        <a href="{% url 'invoice_send_all' %}" class="btn btn-info">📧 ส่งอีเมล์ทุกคน</a>
+    </div>
     {% endif %}
 </div>
 
-<table class="table table-bordered table-hover">
+<!-- Filter Bar -->
+<form method="get" class="card mb-4">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+
+            <!-- ค้นหา -->
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">ค้นหา</label>
+                <input type="text" name="q" class="form-control form-control-sm"
+                       placeholder="ชื่อผู้เช่า หรือ เลขห้อง"
+                       value="{{ q }}">
+            </div>
+
+            <!-- เดือน -->
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">เดือน</label>
+                <select name="month" class="form-select form-select-sm">
+                    <option value="">ทุกเดือน</option>
+                    {% for num, mname in months_th %}
+                    <option value="{{ num }}" {% if num == month %}selected{% endif %}>
+                        {{ mname }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- ปี -->
+            <div class="col-md-1">
+                <label class="form-label small fw-bold">ปี</label>
+                <select name="year" class="form-select form-select-sm">
+                    <option value="">ทุกปี</option>
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- สถานะ -->
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">สถานะ</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">ทุกสถานะ</option>
+                    <option value="รอชำระ"    {% if status == 'รอชำระ' %}selected{% endif %}>รอชำระ</option>
+                    <option value="เกินกำหนด" {% if status == 'เกินกำหนด' %}selected{% endif %}>เกินกำหนด</option>
+                    <option value="ชำระแล้ว"  {% if status == 'ชำระแล้ว' %}selected{% endif %}>ชำระแล้ว</option>
+                </select>
+            </div>
+
+            <!-- อาคาร -->
+            <div class="col-md-1">
+                <label class="form-label small fw-bold">อาคาร</label>
+                <select name="building" class="form-select form-select-sm">
+                    <option value="">ทั้งหมด</option>
+                    {% for b in '1234' %}
+                    <option value="{{ b }}" {% if building == b %}selected{% endif %}>{{ b }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- เรียงตาม -->
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">เรียงตาม</label>
+                <select name="sort" class="form-select form-select-sm">
+                    <option value="room"        {% if sort == 'room' %}selected{% endif %}>เลขห้อง</option>
+                    <option value="amount_desc" {% if sort == 'amount_desc' %}selected{% endif %}>ยอดมาก → น้อย</option>
+                    <option value="amount_asc"  {% if sort == 'amount_asc' %}selected{% endif %}>ยอดน้อย → มาก</option>
+                    <option value="paid_date"   {% if sort == 'paid_date' %}selected{% endif %}>วันที่ชำระ</option>
+                </select>
+            </div>
+
+            <!-- ปุ่ม -->
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-dark btn-sm w-100">กรอง</button>
+            </div>
+        </div>
+
+        <!-- ล้าง filter -->
+        {% if q or month or status or building or sort != 'room' %}
+        <div class="mt-2">
+            <a href="{% url 'invoice_list' %}" class="text-muted small">✕ ล้างตัวกรอง</a>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<!-- ตาราง -->
+<div class="card">
+<table class="table table-bordered table-hover mb-0">
     <thead class="table-dark">
         <tr>
             <th>#</th>
@@ -15,7 +107,7 @@
             <th>ห้อง</th>
             <th>วันออกบิล</th>
             <th>ครบกำหนด</th>
-            <th>ยอดรวม</th>
+            <th class="text-end">ยอดรวม</th>
             <th>สถานะ</th>
             <th>จัดการ</th>
         </tr>
@@ -28,7 +120,7 @@
             <td>{{ inv.Contract_ID.Room_ID }}</td>
             <td>{{ inv.Billing_Date }}</td>
             <td>{{ inv.Due_Date }}</td>
-            <td>{{ inv.Grand_Total }} บาท</td>
+            <td class="text-end">{{ inv.Grand_Total|floatformat:2|intcomma }} บาท</td>
             <td>
                 {% if inv.Status == 'ชำระแล้ว' %}
                     <span class="badge bg-success">{{ inv.Status }}</span>
@@ -40,11 +132,14 @@
             </td>
             <td>
                 <a href="{% url 'invoice_detail' inv.Invoice_ID %}" class="btn btn-sm btn-info">ดู</a>
+                <a href="{% url 'invoice_print' inv.Invoice_ID %}"  class="btn btn-sm btn-outline-secondary">🖨️</a>
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="text-center text-muted">ยังไม่มีใบแจ้งหนี้</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-3">ไม่พบข้อมูล</td></tr>
         {% endfor %}
     </tbody>
 </table>
+</div>
+
 {% endblock %}

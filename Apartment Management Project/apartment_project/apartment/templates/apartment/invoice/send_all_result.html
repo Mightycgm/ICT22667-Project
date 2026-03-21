@@ -1,0 +1,18 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div style="max-width:500px; margin:40px auto;">
+<div class="card">
+    <div class="card-header bg-success text-white fw-bold">
+        ✅ ส่งอีเมล์เสร็จสิ้น
+    </div>
+    <div class="card-body">
+        <table class="table table-borderless">
+            <tr><td>ส่งสำเร็จ</td><td><strong class="text-success">{{ sent }} ฉบับ</strong></td></tr>
+            <tr><td>ส่งไม่สำเร็จ</td><td><strong class="text-danger">{{ failed }} ฉบับ</strong></td></tr>
+            <tr><td>ไม่มีอีเมล์</td><td><strong class="text-muted">{{ no_mail }} ห้อง</strong></td></tr>
+        </table>
+        <a href="{% url 'invoice_list' %}" class="btn btn-dark w-100">กลับหน้าใบแจ้งหนี้</a>
+    </div>
+</div>
+</div>
+{% endblock %}
