@@ -91,6 +91,7 @@ class Invoice(models.Model):
 
     class Meta:
         db_table = 'INVOICE'
+        unique_together = [['Contract_ID', 'Billing_Date']]
 
     def __str__(self):
         return f"Invoice #{self.Invoice_ID}"

@@ -98,19 +98,14 @@ class ContractForm(forms.ModelForm):
         }
 # ฟอร์มสร้างใบแจ้งหนี้
 class InvoiceForm(forms.ModelForm):
-    class Meta:
-        model  = Invoice
-        fields = ['Contract_ID', 'Billing_Date', 'Due_Date']
-        labels = {
-            'Contract_ID':  'สัญญาเช่า',
-            'Billing_Date': 'วันออกบิล',
-            'Due_Date':     'วันครบกำหนด',
-        }
-        widgets = {
-            'Contract_ID':  forms.Select(attrs={'class': 'form-select'}),
-            'Billing_Date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'Due_Date':     forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-        }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        import datetime
+        today      = datetime.date.today()
+        next_month = (today.replace(day=1) + datetime.timedelta(days=32)).replace(day=1)
+        # วันออกบิล = 25 ของเดือนนี้, ครบกำหนด = 5 ของเดือนถัดไป
+        self.fields['Billing_Date'].initial = today.replace(day=25)
+        self.fields['Due_Date'].initial     = next_month.replace(day=5)
 
 
 # ฟอร์มกรอกค่าน้ำ/ไฟ

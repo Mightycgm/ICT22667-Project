@@ -7,6 +7,11 @@
         </div>
         <div class="card-body">
             <p>{{ message }}</p>
+            {% if warning %}
+                <div class="alert alert-warning mt-3">
+                    {{ warning }}
+                </div>
+            {% endif %}
             <form method="post">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-{{ btn_color }}">ยืนยัน</button>

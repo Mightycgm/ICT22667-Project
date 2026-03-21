@@ -8,6 +8,7 @@ from decimal import Decimal
 from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance, Booking
 from .forms  import TenantForm, RoomForm, ContractForm, InvoiceForm, UtilityForm, PaymentForm, FineForm, MaintenanceForm, BookingForm
 from .decorators import role_required, not_readonly
+import datetime
 
 
 # ==================== DASHBOARD ====================
@@ -22,9 +23,14 @@ def dashboard(request):
     today = datetime.date.today()
     rooms = Room.objects.all().order_by('Building_No', 'Floor', 'Room_Number')
 
+    Invoice.objects.filter(
+        Status='รอชำระ',
+        Due_Date__lt=today
+    ).update(Status='เกินกำหนด')
+
     # ห้องที่มี invoice เกินกำหนด → สีแดง
     overdue_room_ids = list(Invoice.objects.filter(
-        Status='รอชำระ', Due_Date__lt=today
+        Status='เกินกำหนด'
     ).values_list('Contract_ID__Room_ID', flat=True))
 
     # ห้องที่มี invoice รอชำระ (ยังไม่เกิน) → แสดง $
@@ -36,6 +42,10 @@ def dashboard(request):
     repair_room_ids = list(Maintenance.objects.exclude(
         Status='ซ่อมเสร็จ'
     ).values_list('Room_ID', flat=True))
+
+    # Auto-generate invoice ถ้าวันที่ >= 25
+    if today.day >= 25:
+        auto_generate_invoices()
 
     # --- นับตาม "สีจริง" ที่แสดงใน badge ---
     count_white    = rooms.filter(Status='ว่าง', Status_Flag='ปกติ').count()
@@ -242,11 +252,70 @@ def contract_delete(request, pk):
 @login_required
 @role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
 def invoice_list(request):
-    # ดึง invoice ทั้งหมด พร้อม contract และ tenant
+    import datetime
+    today = datetime.date.today()
+
+    # อัปเดตสถานะเกินกำหนดอัตโนมัติ
+    Invoice.objects.filter(
+        Status='รอชำระ', Due_Date__lt=today
+    ).update(Status='เกินกำหนด')
+
     invoices = Invoice.objects.select_related(
         'Contract_ID__Tenant_ID', 'Contract_ID__Room_ID'
-    ).all().order_by('-Invoice_ID')
-    return render(request, 'apartment/invoice/list.html', {'invoices': invoices})
+    ).all()
+
+    # --- Filter ---
+    q        = request.GET.get('q', '')
+    month    = request.GET.get('month', '')
+    year     = request.GET.get('year', str(today.year))
+    status   = request.GET.get('status', '')
+    building = request.GET.get('building', '')
+    sort     = request.GET.get('sort', 'room')
+
+    if q:
+        invoices = invoices.filter(
+            Q(Contract_ID__Tenant_ID__First_Name__icontains=q) |
+            Q(Contract_ID__Tenant_ID__Last_Name__icontains=q)  |
+            Q(Contract_ID__Room_ID__Room_Number__icontains=q)
+        )
+    if month:
+        invoices = invoices.filter(Billing_Date__month=month)
+    if year:
+        invoices = invoices.filter(Billing_Date__year=year)
+    if status:
+        invoices = invoices.filter(Status=status)
+    if building:
+        invoices = invoices.filter(Contract_ID__Room_ID__Building_No=building)
+
+    # --- Sort ---
+    if sort == 'amount_desc':
+        invoices = invoices.order_by('-Grand_Total')
+    elif sort == 'amount_asc':
+        invoices = invoices.order_by('Grand_Total')
+    elif sort == 'paid_date':
+        invoices = invoices.order_by('-Paid_Date')
+    else:
+        invoices = invoices.order_by('Contract_ID__Room_ID__Room_Number')
+
+    # dropdown เดือน/ปี
+    months_th = [
+        (1,'มกราคม'),(2,'กุมภาพันธ์'),(3,'มีนาคม'),(4,'เมษายน'),
+        (5,'พฤษภาคม'),(6,'มิถุนายน'),(7,'กรกฎาคม'),(8,'สิงหาคม'),
+        (9,'กันยายน'),(10,'ตุลาคม'),(11,'พฤศจิกายน'),(12,'ธันวาคม'),
+    ]
+    years = Invoice.objects.dates('Billing_Date', 'year', order='DESC')
+
+    return render(request, 'apartment/invoice/list.html', {
+        'invoices':   invoices,
+        'q':          q,
+        'month':      int(month) if month else '',
+        'year':       int(year)  if year  else '',
+        'status':     status,
+        'building':   building,
+        'sort':       sort,
+        'months_th':  months_th,
+        'years':      [y.year for y in years],
+    })
 
 
 @login_required
@@ -254,6 +323,12 @@ def invoice_list(request):
 def invoice_create(request):
     invoice_form = InvoiceForm(request.POST or None)
     utility_form = UtilityForm(request.POST or None)
+
+    # คำนวณ Due_Date อัตโนมัติ = วันที่ 5 ของเดือนถัดไป
+    today         = datetime.date.today()
+    billing_date  = today.replace(day=25)  # วันที่ 25 ของเดือนนี้
+    next_month    = (today.replace(day=1) + datetime.timedelta(days=32)).replace(day=1)
+    due_date      = next_month.replace(day=5)
 
     if request.method == 'POST':
         if invoice_form.is_valid() and utility_form.is_valid():
@@ -342,6 +417,234 @@ def invoice_pay(request, pk):
         'title':   'บันทึกชำระเงิน',
     })
 
+@login_required
+@role_required('ADMIN', 'MANAGER')
+def invoice_extend(request, pk):
+    invoice  = get_object_or_404(Invoice, pk=pk)
+    contract = invoice.Contract_ID
+    tenant   = contract.Tenant_ID
+
+    if request.method == 'POST':
+        use_deposit = request.POST.get('use_deposit')
+
+        if use_deposit == 'deposit':
+            # ใช้เงินประกัน
+            amount = contract.Deposit
+            note   = 'โปะด้วยเงินประกันห้อง'
+        else:
+            # ใช้เงินมัดจำ
+            amount = contract.Deposit_Advance
+            note   = 'โปะด้วยเงินมัดจำ'
+
+        # บันทึกเป็น Fine ติดลบ (ลดยอด)
+        Fine.objects.create(
+            Invoice_ID = invoice,
+            Reason     = note,
+            Amount     = -amount,
+            Fine_Date  = datetime.date.today(),
+        )
+
+        # อัปเดต Grand_Total
+        fine_total = Fine.objects.filter(
+            Invoice_ID=invoice
+        ).aggregate(t=Sum('Amount'))['t'] or 0
+
+        monthly_bill = MonthlyBill.objects.filter(Invoice_ID=invoice).first()
+        utility      = Utility.objects.filter(Invoice_ID=invoice).first()
+        invoice.Grand_Total = (
+            (monthly_bill.Amount if monthly_bill else 0) +
+            (utility.Water_Total + utility.Elec_Total if utility else 0) +
+            fine_total
+        )
+
+        # ขยายวันครบกำหนดออก 1 เดือน
+        invoice.Due_Date = (invoice.Due_Date + datetime.timedelta(days=32)).replace(day=5)
+        invoice.Status   = 'รอชำระ'
+        invoice.save()
+
+        return redirect('invoice_detail', pk=pk)
+
+    return render(request, 'apartment/invoice/extend.html', {
+        'invoice':  invoice,
+        'contract': contract,
+        'tenant':   tenant,
+    })
+
+from django.core.mail import send_mass_mail
+import time
+
+@login_required
+@role_required('ADMIN', 'MANAGER')
+def invoice_send_all_email(request):
+    import datetime
+    today = datetime.date.today()
+
+    if request.method == 'POST':
+        month = int(request.POST.get('month', today.month))
+        year  = int(request.POST.get('year',  today.year))
+
+        # ดึง invoice เดือนที่เลือก ที่มีอีเมล์
+        invoices = Invoice.objects.filter(
+            Billing_Date__month = month,
+            Billing_Date__year  = year,
+        ).select_related(
+            'Contract_ID__Tenant_ID',
+            'Contract_ID__Room_ID'
+        ).exclude(Contract_ID__Tenant_ID__Email='')
+
+        sent    = 0
+        failed  = 0
+        no_mail = 0
+
+        # ส่งเป็น batch ครั้งละ 10 ฉบับ เพื่อไม่ให้ Gmail block
+        BATCH_SIZE = 10
+        batch      = []
+
+        for invoice in invoices:
+            tenant = invoice.Contract_ID.Tenant_ID
+            if not tenant.Email:
+                no_mail += 1
+                continue
+
+            monthly_bill = MonthlyBill.objects.filter(Invoice_ID=invoice).first()
+            utility      = Utility.objects.filter(Invoice_ID=invoice).first()
+            fines        = Fine.objects.filter(Invoice_ID=invoice)
+
+            try:
+                email_body = render_to_string('apartment/invoice/email_body.html', {
+                    'invoice':      invoice,
+                    'monthly_bill': monthly_bill,
+                    'utility':      utility,
+                    'fines':        fines,
+                    'tenant':       tenant,
+                })
+
+                # เพิ่มเข้า batch
+                batch.append((
+                    f'ใบแจ้งหนี้ห้อง {invoice.Contract_ID.Room_ID} — {invoice.Billing_Date.strftime("%B %Y")}',
+                    '',
+                    None,
+                    [tenant.Email],
+                ))
+
+                # ส่ง batch ทีละ 10
+                if len(batch) >= BATCH_SIZE:
+                    _send_batch_html(batch, invoices, monthly_bill, utility, fines)
+                    batch = []
+                    sent += BATCH_SIZE
+                    time.sleep(1)  # พัก 1 วิ ระหว่าง batch
+
+            except Exception:
+                failed += 1
+
+        # ส่ง batch ที่เหลือ
+        if batch:
+            sent += len(batch)
+            # ส่ง HTML email แบบ loop
+            for invoice in invoices[sent - len(batch):sent]:
+                tenant       = invoice.Contract_ID.Tenant_ID
+                monthly_bill = MonthlyBill.objects.filter(Invoice_ID=invoice).first()
+                utility      = Utility.objects.filter(Invoice_ID=invoice).first()
+                fines        = Fine.objects.filter(Invoice_ID=invoice)
+                email_body   = render_to_string('apartment/invoice/email_body.html', {
+                    'invoice': invoice, 'monthly_bill': monthly_bill,
+                    'utility': utility, 'fines': fines, 'tenant': tenant,
+                })
+                try:
+                    send_mail(
+                        subject        = f'ใบแจ้งหนี้ห้อง {invoice.Contract_ID.Room_ID}',
+                        message        = '',
+                        from_email     = None,
+                        recipient_list = [tenant.Email],
+                        html_message   = email_body,
+                        fail_silently  = True,
+                    )
+                except Exception:
+                    pass
+
+        return render(request, 'apartment/invoice/send_all_result.html', {
+            'sent':    sent,
+            'failed':  failed,
+            'no_mail': no_mail,
+            'month':   month,
+            'year':    year,
+        })
+
+    # GET: หน้าเลือกเดือน
+    months_th = [
+        (1,'มกราคม'),(2,'กุมภาพันธ์'),(3,'มีนาคม'),(4,'เมษายน'),
+        (5,'พฤษภาคม'),(6,'มิถุนายน'),(7,'กรกฎาคม'),(8,'สิงหาคม'),
+        (9,'กันยายน'),(10,'ตุลาคม'),(11,'พฤศจิกายน'),(12,'ธันวาคม'),
+    ]
+    return render(request, 'apartment/invoice/send_all_confirm.html', {
+        'months_th': months_th,
+        'month':     today.month,
+        'year':      today.year,
+    })
+
+def auto_generate_invoices():
+    import datetime
+    today = datetime.date.today()
+
+    # เงื่อนไข: วันที่ 25 ขึ้นไป และยังไม่ถึงสิ้นเดือน
+    if today.day < 25:
+        return 0
+
+    bill_month = today.replace(day=1)
+    bill_date  = today.replace(day=25)
+    next_m     = (today + datetime.timedelta(days=10)).replace(day=1)
+    due_date   = next_m.replace(day=5)
+
+    contracts = Contract.objects.filter(
+        Status='ใช้งาน'
+    ).select_related('Room_ID', 'Tenant_ID')
+
+    created = 0
+    for contract in contracts:
+        # ข้ามถ้ามี invoice เดือนนี้แล้ว
+        if Invoice.objects.filter(
+            Contract_ID  = contract,
+            Billing_Date = bill_date
+        ).exists():
+            continue
+
+        # ดึงข้อมูล utility ที่จดไว้แล้ว
+        utility = Utility.objects.filter(
+            Room_ID    = contract.Room_ID,
+            Bill_Month = bill_month
+        ).first()
+
+        # ถ้ายังไม่ได้จดมิเตอร์ → ข้ามห้องนี้ไปก่อน
+        if not utility:
+            continue
+
+        # ดึงค่าปรับของเดือนนี้ (ถ้ามี)
+        # fine จะผูกกับ invoice ที่จะสร้าง ยังไม่มีตอนนี้ → fine = 0
+        water_total = utility.Water_Total
+        elec_total  = utility.Elec_Total
+        grand_total = contract.Rent_Price + water_total + elec_total
+
+        invoice = Invoice.objects.create(
+            Contract_ID  = contract,
+            Billing_Date = bill_date,
+            Due_Date     = due_date,
+            Grand_Total  = grand_total,
+            Status       = 'รอชำระ',
+        )
+        MonthlyBill.objects.get_or_create(
+            Invoice_ID = invoice,
+            defaults={
+                'Bill_Month': bill_month,
+                'Amount':     contract.Rent_Price,
+            }
+        )
+        # ผูก utility เข้ากับ invoice ที่เพิ่งสร้าง
+        utility.Invoice_ID = invoice
+        utility.save()
+
+        created += 1
+
+    return created
 # ==================== MAINTENANCE ====================
 
 @login_required
@@ -577,18 +880,17 @@ def meter_index(request):
         if f not in buildings[b]:
             buildings[b][f] = []
 
-        prev_u    = prev_map.get(room.Room_ID)
+        latest_u  = Utility.objects.filter(Room_ID=room).order_by('-Bill_Month').first()
         curr_u    = curr_map.get(room.Room_ID)
         contract  = contract_map.get(room.Room_ID)
 
         buildings[b][f].append({
             'room':     room,
             'contract': contract,
-            'prev_u':   prev_u,
+            'prev_u':   latest_u,
             'curr_u':   curr_u,
-            # เลขก่อนหน้า: ถ้ามี utility เดือนก่อน ใช้ Water_Unit_After, ถ้าไม่มีใช้ Water_Meter_Start จาก contract
-            'water_prev': prev_u.Water_Unit_After if prev_u else (contract.Water_Meter_Start if contract else 0),
-            'elec_prev':  prev_u.Elec_Unit_Used + (prev_u.Water_Unit_Before if prev_u else 0) if prev_u else (contract.Elec_Meter_Start if contract else 0),
+            'water_prev': latest_u.Water_Unit_After if latest_u else (contract.Water_Meter_Start if contract else 0),
+            'elec_prev':  (latest_u.Elec_Unit_Used + latest_u.Water_Unit_Before) if latest_u else (contract.Elec_Meter_Start if contract else 0),
         })
 
     # dropdown ตัวเลือก
@@ -660,6 +962,8 @@ def meter_save(request):
         water_after_f = float(water_after)
         elec_after_f  = float(elec_after)
         water_used    = water_after_f - water_before
+        if water_used < 0:
+            continue
         elec_used     = elec_after_f  - elec_before
 
         water_total = water_used * contract.Water_Cost_Unit
@@ -739,13 +1043,13 @@ def meter_input(request):
         if b not in buildings:
             buildings[b] = []
         contract = contract_map.get(room.Room_ID)
-        prev_u   = prev_map.get(room.Room_ID)
+        latest_u = Utility.objects.filter(Room_ID=room).order_by('-Bill_Month').first()
         curr_u   = curr_map.get(room.Room_ID)
         buildings[b].append({
             'room':       room,
             'curr_u':     curr_u,
-            'water_prev': prev_u.Water_Unit_After if prev_u else (contract.Water_Meter_Start if contract else 0),
-            'elec_prev':  (prev_u.Elec_Unit_Used + prev_u.Water_Unit_Before) if prev_u else (contract.Elec_Meter_Start if contract else 0),
+            'water_prev': latest_u.Water_Unit_After if latest_u else (contract.Water_Meter_Start if contract else 0),
+            'elec_prev':  (latest_u.Elec_Unit_Used + latest_u.Water_Unit_Before) if latest_u else (contract.Elec_Meter_Start if contract else 0),
         })
 
     if request.method == 'POST':
@@ -763,25 +1067,30 @@ def meter_input(request):
 @login_required
 @role_required('ADMIN', 'MANAGER', 'STAFF')
 def room_action_moveout(request, pk):
-    # ย้ายออก: ปิดสัญญา + เปลี่ยนสถานะห้อง
     room     = get_object_or_404(Room, pk=pk)
     contract = Contract.objects.filter(Room_ID=room, Status='ใช้งาน').first()
+
+    # เช็ค invoice ค้างชำระ
+    unpaid_count = Invoice.objects.filter(
+        Contract_ID=contract, Status='รอชำระ'
+    ).count() if contract else 0
 
     if request.method == 'POST':
         if contract:
             contract.Status = 'หมดอายุ'
             contract.save()
         room.Status      = 'ว่าง'
-        room.Status_Flag = 'รอทำความสะอาด'  # ย้ายออกแล้วรอทำความสะอาด
+        room.Status_Flag = 'รอทำความสะอาด'
         room.save()
         return redirect('room_detail', pk=pk)
 
     return render(request, 'apartment/room/action_confirm.html', {
-        'room':    room,
-        'action':  'moveout',
-        'title':   f'ยืนยันย้ายออก — ห้อง {room.Room_Number}',
-        'message': f'ยืนยันการย้ายออกของห้อง {room.Room_Number} ? สัญญาจะถูกปิด และห้องจะเปลี่ยนเป็น "รอทำความสะอาด"',
+        'room':      room,
+        'action':    'moveout',
+        'title':     f'ยืนยันย้ายออก — ห้อง {room.Room_Number}',
+        'message':   f'ยืนยันการย้ายออกของห้อง {room.Room_Number} ? สัญญาจะถูกปิด และห้องจะเปลี่ยนเป็น "รอทำความสะอาด"',
         'btn_color': 'danger',
+        'warning':   f'ระวัง! มีใบแจ้งหนี้ค้างชำระ {unpaid_count} ใบ กรุณาตรวจสอบก่อนย้ายออก' if unpaid_count > 0 else None,
     })
 
 

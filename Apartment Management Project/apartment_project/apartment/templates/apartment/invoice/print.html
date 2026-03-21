@@ -1,3 +1,4 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -58,7 +59,7 @@
             {% if monthly_bill %}
             <tr>
                 <td>ค่าเช่าประจำเดือน</td>
-                <td class="text-end">{{ monthly_bill.Amount }} บาท</td>
+                <td class="text-end">{{ monthly_bill.Amount|floatformat:2|intcomma }} บาท</td>
             </tr>
             {% endif %}
 
@@ -71,7 +72,7 @@
                         = {{ utility.Water_Unit_Used }} หน่วย × {{ utility.Water_Cost_Unit }} บาท
                     </small>
                 </td>
-                <td class="text-end">{{ utility.Water_Total }} บาท</td>
+                <td class="text-end">{{ utility.Water_Total|floatformat:2|intcomma }} บาท</td>
             </tr>
             <tr>
                 <td>
@@ -80,25 +81,74 @@
                         {{ utility.Elec_Unit_Used }} หน่วย × {{ utility.Elec_Cost_Unit }} บาท
                     </small>
                 </td>
-                <td class="text-end">{{ utility.Elec_Total }} บาท</td>
+                <td class="text-end">{{ utility.Elec_Total|floatformat:2|intcomma }} บาท</td>
             </tr>
             {% endif %}
 
             {% for fine in fines %}
             <tr>
                 <td>ค่าปรับ: {{ fine.Reason }}</td>
-                <td class="text-end text-danger">{{ fine.Amount }} บาท</td>
+                <td class="text-end text-danger">{{ fine.Amount|floatformat:2|intcomma }} บาท</td>
             </tr>
             {% endfor %}
         </tbody>
         <tfoot>
             <tr class="table-dark">
                 <th>ยอดรวมทั้งหมด</th>
-                <th class="text-end">{{ invoice.Grand_Total }} บาท</th>
+                <th class="text-end">{{ invoice.Grand_Total|floatformat:2|intcomma }} บาท</th>
             </tr>
         </tfoot>
     </table>
 
+    <!-- ข้อมูลการชำระเงิน -->
+<div class="row mt-4">
+    <div class="col-7">
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px;">
+            <h6 class="fw-bold mb-3">💳 ช่องทางการชำระเงิน</h6>
+            <table style="width:100%; font-size:14px;">
+                <tr>
+                    <td style="color:#666; width:140px;">ธนาคาร</td>
+                    <td><strong>{{ bank_info.bank_name }}</strong></td>
+                </tr>
+                <tr>
+                    <td style="color:#666;">ชื่อบัญชี</td>
+                    <td><strong>{{ bank_info.account_name }}</strong></td>
+                </tr>
+                <tr>
+                    <td style="color:#666;">เลขบัญชี</td>
+                    <td><strong style="font-size:16px; letter-spacing:1px;">{{ bank_info.account_no }}</strong></td>
+                </tr>
+                <tr>
+                    <td style="color:#666;">PromptPay</td>
+                    <td><strong>{{ bank_info.promptpay_no }}</strong></td>
+                </tr>
+            </table>
+            <div style="margin-top:12px; padding:10px; background:#fff8e1; border-radius:6px; font-size:13px;">
+                ⚠️ กรุณาชำระภายใน <strong>{{ invoice.Due_Date }}</strong>
+                และแจ้งหลักฐานการโอนให้นิติบุคคล
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code PromptPay -->
+    <div class="col-5 text-center">
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px;">
+            <h6 class="fw-bold mb-2">QR Code ชำระเงิน</h6>
+            <img src="https://promptpay.io/{{ bank_info.promptpay_no }}/{{ invoice.Grand_Total }}.png"
+                 alt="QR PromptPay"
+                 style="width: 160px; height: 160px;"
+                 onerror="this.style.display='none'; document.getElementById('qr-fallback').style.display='block'">
+            <div id="qr-fallback" style="display:none; padding:20px; border:1px dashed #ccc; border-radius:8px;">
+                <small class="text-muted">สแกน PromptPay<br>{{ bank_info.promptpay_no }}</small>
+            </div>
+            <div style="font-size:12px; color:#666; margin-top:8px;">
+                ยอด <strong>{{ invoice.Grand_Total }} บาท</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signature Box -->
     <div class="row mt-5">
         <div class="col-6 text-center">
             <p>____________________</p>

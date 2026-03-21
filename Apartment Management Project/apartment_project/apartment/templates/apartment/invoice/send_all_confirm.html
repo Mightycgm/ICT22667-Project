@@ -1,0 +1,39 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+<div style="max-width:500px; margin:40px auto;">
+<div class="card">
+    <div class="card-header bg-dark text-white fw-bold">
+        📧 ส่งใบแจ้งหนี้ทุกคน
+    </div>
+    <div class="card-body">
+        <p class="text-muted">เลือกเดือนที่ต้องการส่ง</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-2 mb-3">
+                <div class="col-7">
+                    <select name="month" class="form-select">
+                        {% for num, mname in months_th %}
+                        <option value="{{ num }}" {% if num == month %}selected{% endif %}>
+                            {{ mname }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-5">
+                    <input type="number" name="year" class="form-control"
+                           value="{{ year }}" min="2020" max="2030">
+                </div>
+            </div>
+            <div class="alert alert-warning small">
+                ⚠️ ระบบจะส่งอีเมล์ทีละ 10 ฉบับ เพื่อป้องกัน Gmail บล็อก
+                อาจใช้เวลาสักครู่
+            </div>
+            <button type="submit" class="btn btn-primary fw-bold w-100">
+                📤 ส่งอีเมล์ทุกคน
+            </button>
+            <a href="{% url 'invoice_list' %}" class="btn btn-secondary w-100 mt-2">ยกเลิก</a>
+        </form>
+    </div>
+</div>
+</div>
+{% endblock %}
