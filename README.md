@@ -29,8 +29,8 @@
 ### 📥 ขั้นตอนที่ 1 — Clone โปรเจค
 
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
-cd <repo-name>
+git clone https://github.com/Mightycgm/ICT22667-Project/
+cd Apartment Management Project
 ```
 
 ---
@@ -72,8 +72,25 @@ EMAIL_HOST_USER=your_gmail@gmail.com
 EMAIL_HOST_PASSWORD=xxxx xxxx xxxx xxxx
 ```
 
-> 💡 **EMAIL_HOST_PASSWORD** คือ Google App Password (16 หลัก)  
-> สร้างได้ที่ Google Account → Security → App passwords
+### วิธีหาค่าแต่ละตัว
+
+**`SECRET_KEY`**
+> copy มาจาก `settings.py` บรรทัดที่ขึ้นต้นด้วย `SECRET_KEY = '...'`  
+> หรือสร้างใหม่ได้ด้วยคำสั่ง:
+> ```bash
+> python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+> ```
+
+**`EMAIL_HOST_USER`**
+> ใส่ Gmail ที่จะใช้ส่งใบแจ้งหนี้ เช่น `myapartment@gmail.com`
+
+**`EMAIL_HOST_PASSWORD`**
+> ไม่ใช่รหัสผ่าน Gmail ปกติ แต่เป็น **Google App Password** (16 หลัก)  
+> สร้างได้ดังนี้:
+> 1. เข้า [myaccount.google.com](https://myaccount.google.com) → **Security**
+> 2. เปิด **2-Step Verification** ก่อน (ถ้ายังไม่ได้เปิด)
+> 3. ค้นหา **App passwords** → กด Create
+> 4. เลือก **Mail** + **Windows Computer** → Copy password 16 หลักมาใส่
 
 ---
 
