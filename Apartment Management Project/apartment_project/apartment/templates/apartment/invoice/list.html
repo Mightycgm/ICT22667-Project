@@ -54,9 +54,11 @@
                 <label class="form-label small fw-bold">สถานะ</label>
                 <select name="status" class="form-select form-select-sm">
                     <option value="">ทุกสถานะ</option>
-                    <option value="รอชำระ"    {% if status == 'รอชำระ' %}selected{% endif %}>รอชำระ</option>
-                    <option value="เกินกำหนด" {% if status == 'เกินกำหนด' %}selected{% endif %}>เกินกำหนด</option>
-                    <option value="ชำระแล้ว"  {% if status == 'ชำระแล้ว' %}selected{% endif %}>ชำระแล้ว</option>
+                    <option value="รอชำระ"     {% if status == 'รอชำระ' %}selected{% endif %}>รอชำระ</option>
+                    <option value="เกินกำหนด"  {% if status == 'เกินกำหนด' %}selected{% endif %}>เกินกำหนด</option>
+                    <option value="จ่ายล่าช้า" {% if status == 'จ่ายล่าช้า' %}selected{% endif %}>จ่ายล่าช้า</option>
+                    <option value="ต่อเวลาชำระ"{% if status == 'ต่อเวลาชำระ' %}selected{% endif %}>ต่อเวลาชำระ</option>
+                    <option value="ชำระแล้ว"   {% if status == 'ชำระแล้ว' %}selected{% endif %}>ชำระแล้ว</option>
                 </select>
             </div>
 
@@ -101,44 +103,70 @@
 <div class="card">
 <table class="table table-bordered table-hover mb-0">
     <thead class="table-dark">
-        <tr>
-            <th>#</th>
-            <th>ผู้เช่า</th>
-            <th>ห้อง</th>
-            <th>วันออกบิล</th>
-            <th>ครบกำหนด</th>
-            <th class="text-end">ยอดรวม</th>
-            <th>สถานะ</th>
-            <th>จัดการ</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for inv in invoices %}
-        <tr>
-            <td>{{ inv.Invoice_ID }}</td>
-            <td>{{ inv.Contract_ID.Tenant_ID }}</td>
-            <td>{{ inv.Contract_ID.Room_ID }}</td>
-            <td>{{ inv.Billing_Date }}</td>
-            <td>{{ inv.Due_Date }}</td>
-            <td class="text-end">{{ inv.Grand_Total|floatformat:2|intcomma }} บาท</td>
-            <td>
-                {% if inv.Status == 'ชำระแล้ว' %}
-                    <span class="badge bg-success">{{ inv.Status }}</span>
-                {% elif inv.Status == 'เกินกำหนด' %}
-                    <span class="badge bg-danger">{{ inv.Status }}</span>
-                {% else %}
-                    <span class="badge bg-warning text-dark">{{ inv.Status }}</span>
-                {% endif %}
-            </td>
-            <td>
-                <a href="{% url 'invoice_detail' inv.Invoice_ID %}" class="btn btn-sm btn-info">ดู</a>
-                <a href="{% url 'invoice_print' inv.Invoice_ID %}"  class="btn btn-sm btn-outline-secondary">🖨️</a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="8" class="text-center text-muted py-3">ไม่พบข้อมูล</td></tr>
-        {% endfor %}
-    </tbody>
+    <tr>
+        <th>#</th>
+        <th>ผู้เช่า</th>
+        <th>ห้อง</th>
+        <th>วันออกบิล</th>
+        <th>ครบกำหนด</th>
+        <th>วันที่ชำระ</th>        <!-- เพิ่มใหม่ -->
+        <th class="text-end">ยอดรวม</th>
+        <th>สถานะ</th>
+        <th>จัดการ</th>
+    </tr>
+</thead>
+<tbody>
+    {% for inv in invoices %}
+    <tr>
+        <td>{{ inv.Invoice_ID }}</td>
+        <td>{{ inv.Contract_ID.Tenant_ID }}</td>
+        <td>{{ inv.Contract_ID.Room_ID }}</td>
+        <td>{{ inv.Billing_Date }}</td>
+
+        <!-- ครบกำหนด -->
+        <td>
+            {% if inv.Due_Date %}
+                {{ inv.Due_Date }}
+            {% else %}
+                <span class="text-muted">—</span>
+            {% endif %}
+        </td>
+
+        <!-- วันที่ชำระ -->
+        <td>
+            {% if inv.Paid_Date %}
+                {{ inv.Paid_Date }}
+            {% else %}
+                <span class="text-muted">—</span>
+            {% endif %}
+        </td>
+
+        <td class="text-end">{{ inv.Grand_Total|floatformat:2|intcomma }} บาท</td>
+
+        <!-- สถานะ badge -->
+        <td>
+            {% if inv.Status == 'ชำระแล้ว' %}
+                <span class="badge bg-success">{{ inv.Status }}</span>
+            {% elif inv.Status == 'จ่ายล่าช้า' %}
+                <span class="badge bg-warning text-dark">{{ inv.Status }}</span>
+            {% elif inv.Status == 'ต่อเวลาชำระ' %}
+                <span class="badge bg-info text-dark">{{ inv.Status }}</span>
+            {% elif inv.Status == 'เกินกำหนด' %}
+                <span class="badge bg-danger">{{ inv.Status }}</span>
+            {% else %}
+                <span class="badge bg-secondary">{{ inv.Status }}</span>
+            {% endif %}
+        </td>
+
+        <td>
+            <a href="{% url 'invoice_detail' inv.Invoice_ID %}" class="btn btn-sm btn-info">ดู</a>
+            <a href="{% url 'invoice_print' inv.Invoice_ID %}"  class="btn btn-sm btn-outline-secondary">🖨️</a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="9" class="text-center text-muted py-3">ไม่พบข้อมูล</td></tr>
+    {% endfor %}
+</tbody>
 </table>
 </div>
 
