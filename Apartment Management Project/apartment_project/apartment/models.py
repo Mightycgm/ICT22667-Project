@@ -77,17 +77,20 @@ class Contract(models.Model):
 # ตาราง 4: ใบแจ้งหนี้
 class Invoice(models.Model):
     STATUS_CHOICES = [
-        ('รอชำระ', 'รอชำระ'),
-        ('ชำระแล้ว', 'ชำระแล้ว'),
-        ('เกินกำหนด', 'เกินกำหนด'),
+        ('รอชำระ',     'รอชำระ'),
+        ('ชำระแล้ว',   'ชำระแล้ว'),
+        ('เกินกำหนด',  'เกินกำหนด'),
+        ('จ่ายล่าช้า', 'จ่ายล่าช้า'),
+        ('ต่อเวลาชำระ','ต่อเวลาชำระ'),
     ]
     Invoice_ID   = models.AutoField(primary_key=True)
     Contract_ID  = models.ForeignKey(Contract, on_delete=models.PROTECT, db_column='Contract_ID')
     Billing_Date = models.DateField()
-    Due_Date     = models.DateField()
+    Due_Date     = models.DateField(null=True, blank=True)  # null ได้ กรณียังไม่ตกลง
     Grand_Total  = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     Status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default='รอชำระ')
     Paid_Date    = models.DateField(null=True, blank=True)
+    Extended_Due_Date = models.DateField(null=True, blank=True)  # วันครบกำหนดใหม่หลังต่อเวลา
 
     class Meta:
         db_table = 'INVOICE'

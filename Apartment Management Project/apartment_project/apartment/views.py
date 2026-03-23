@@ -9,12 +9,14 @@ from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine,
 from .forms  import TenantForm, RoomForm, ContractForm, InvoiceForm, UtilityForm, PaymentForm, FineForm, MaintenanceForm, BookingForm
 from .decorators import role_required, not_readonly
 import datetime
+from django.core.mail import send_mass_mail
+import time
 
 
 # ==================== DASHBOARD ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY', 'METER')
 def dashboard(request):
     from .middleware import get_user_role
     if get_user_role(request.user) == 'METER':
@@ -403,14 +405,23 @@ def invoice_detail(request, pk):
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def invoice_pay(request, pk):
-    # บันทึกการชำระเงิน
+    today   = datetime.date.today()
     invoice = get_object_or_404(Invoice, pk=pk)
     form    = PaymentForm(request.POST or None, instance=invoice)
+
     if form.is_valid():
-        invoice         = form.save(commit=False)
-        invoice.Status  = 'ชำระแล้ว'
+        invoice           = form.save(commit=False)
+        invoice.Paid_Date = today
+
+        # ถ้าจ่ายหลัง due_date → จ่ายล่าช้า, ปกติ → ชำระแล้ว
+        if invoice.Due_Date and today > invoice.Due_Date:
+            invoice.Status = 'จ่ายล่าช้า'
+        else:
+            invoice.Status = 'ชำระแล้ว'
+
         invoice.save()
         return redirect('invoice_detail', pk=pk)
+
     return render(request, 'apartment/invoice/pay.html', {
         'form':    form,
         'invoice': invoice,
@@ -420,6 +431,7 @@ def invoice_pay(request, pk):
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def invoice_extend(request, pk):
+    today    = datetime.date.today()
     invoice  = get_object_or_404(Invoice, pk=pk)
     contract = invoice.Contract_ID
     tenant   = contract.Tenant_ID
@@ -428,24 +440,20 @@ def invoice_extend(request, pk):
         use_deposit = request.POST.get('use_deposit')
 
         if use_deposit == 'deposit':
-            # ใช้เงินประกัน
             amount = contract.Deposit
             note   = 'โปะด้วยเงินประกันห้อง'
         else:
-            # ใช้เงินมัดจำ
             amount = contract.Deposit_Advance
             note   = 'โปะด้วยเงินมัดจำ'
 
-        # บันทึกเป็น Fine ติดลบ (ลดยอด)
         Fine.objects.create(
             Invoice_ID = invoice,
             Reason     = note,
             Amount     = -amount,
-            Fine_Date  = datetime.date.today(),
+            Fine_Date  = today,
         )
 
-        # อัปเดต Grand_Total
-        fine_total = Fine.objects.filter(
+        fine_total   = Fine.objects.filter(
             Invoice_ID=invoice
         ).aggregate(t=Sum('Amount'))['t'] or 0
 
@@ -457,9 +465,12 @@ def invoice_extend(request, pk):
             fine_total
         )
 
-        # ขยายวันครบกำหนดออก 1 เดือน
-        invoice.Due_Date = (invoice.Due_Date + datetime.timedelta(days=32)).replace(day=5)
-        invoice.Status   = 'รอชำระ'
+        # วันครบกำหนดใหม่ = วันที่ 5 ของเดือนถัดไปจากวันนี้
+        next_m                    = (today + datetime.timedelta(days=10)).replace(day=1)
+        invoice.Due_Date          = next_m.replace(day=5)
+        invoice.Extended_Due_Date = invoice.Due_Date  # เก็บไว้ว่าเคยต่อเวลา
+        invoice.Status            = 'ต่อเวลาชำระ'
+        invoice.Paid_Date         = today              # บันทึกวันที่กดปุ่ม
         invoice.save()
 
         return redirect('invoice_detail', pk=pk)
@@ -470,38 +481,31 @@ def invoice_extend(request, pk):
         'tenant':   tenant,
     })
 
-from django.core.mail import send_mass_mail
-import time
 
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def invoice_send_all_email(request):
-    import datetime
     today = datetime.date.today()
 
     if request.method == 'POST':
         month = int(request.POST.get('month', today.month))
         year  = int(request.POST.get('year',  today.year))
 
-        # ดึง invoice เดือนที่เลือก ที่มีอีเมล์
         invoices = Invoice.objects.filter(
             Billing_Date__month = month,
             Billing_Date__year  = year,
         ).select_related(
             'Contract_ID__Tenant_ID',
             'Contract_ID__Room_ID'
-        ).exclude(Contract_ID__Tenant_ID__Email='')
+        )
 
         sent    = 0
         failed  = 0
         no_mail = 0
 
-        # ส่งเป็น batch ครั้งละ 10 ฉบับ เพื่อไม่ให้ Gmail block
-        BATCH_SIZE = 10
-        batch      = []
-
-        for invoice in invoices:
+        for i, invoice in enumerate(invoices):
             tenant = invoice.Contract_ID.Tenant_ID
+
             if not tenant.Email:
                 no_mail += 1
                 continue
@@ -518,49 +522,23 @@ def invoice_send_all_email(request):
                     'fines':        fines,
                     'tenant':       tenant,
                 })
+                send_mail(
+                    subject        = f'ใบแจ้งหนี้ห้อง {invoice.Contract_ID.Room_ID} — {invoice.Billing_Date.strftime("%B %Y")}',
+                    message        = '',
+                    from_email     = None,
+                    recipient_list = [tenant.Email],
+                    html_message   = email_body,
+                    fail_silently  = False,
+                )
+                sent += 1
 
-                # เพิ่มเข้า batch
-                batch.append((
-                    f'ใบแจ้งหนี้ห้อง {invoice.Contract_ID.Room_ID} — {invoice.Billing_Date.strftime("%B %Y")}',
-                    '',
-                    None,
-                    [tenant.Email],
-                ))
-
-                # ส่ง batch ทีละ 10
-                if len(batch) >= BATCH_SIZE:
-                    _send_batch_html(batch, invoices, monthly_bill, utility, fines)
-                    batch = []
-                    sent += BATCH_SIZE
-                    time.sleep(1)  # พัก 1 วิ ระหว่าง batch
+                # พัก 0.5 วิทุก 10 ฉบับ ป้องกัน Gmail rate limit
+                if sent % 10 == 0:
+                    import time
+                    time.sleep(0.5)
 
             except Exception:
                 failed += 1
-
-        # ส่ง batch ที่เหลือ
-        if batch:
-            sent += len(batch)
-            # ส่ง HTML email แบบ loop
-            for invoice in invoices[sent - len(batch):sent]:
-                tenant       = invoice.Contract_ID.Tenant_ID
-                monthly_bill = MonthlyBill.objects.filter(Invoice_ID=invoice).first()
-                utility      = Utility.objects.filter(Invoice_ID=invoice).first()
-                fines        = Fine.objects.filter(Invoice_ID=invoice)
-                email_body   = render_to_string('apartment/invoice/email_body.html', {
-                    'invoice': invoice, 'monthly_bill': monthly_bill,
-                    'utility': utility, 'fines': fines, 'tenant': tenant,
-                })
-                try:
-                    send_mail(
-                        subject        = f'ใบแจ้งหนี้ห้อง {invoice.Contract_ID.Room_ID}',
-                        message        = '',
-                        from_email     = None,
-                        recipient_list = [tenant.Email],
-                        html_message   = email_body,
-                        fail_silently  = True,
-                    )
-                except Exception:
-                    pass
 
         return render(request, 'apartment/invoice/send_all_result.html', {
             'sent':    sent,
@@ -831,7 +809,7 @@ def booking_confirm(request, pk):
 # ==================== METER ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY', 'METER')
 def meter_index(request):
     from .middleware import get_user_role
     if get_user_role(request.user) == 'METER':

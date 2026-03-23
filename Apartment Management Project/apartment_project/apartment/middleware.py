@@ -17,7 +17,7 @@ def get_user_role(user):
     if user.is_superuser:
         return 'ADMIN'
     groups = user.groups.values_list('name', flat=True)
-    for role in ['ADMIN', 'MANAGER', 'STAFF', 'READONLY']:
+    for role in ['ADMIN', 'MANAGER', 'STAFF', 'READONLY', 'METER']:
         if role in groups:
             return role
     return 'READONLY'  # default ถ้าไม่มี group

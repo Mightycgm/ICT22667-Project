@@ -180,15 +180,15 @@ for months_back in [2, 1]:
             paid_date = bill_date + datetime.timedelta(days=random.randint(1, 9))
             due_date  = base_due
 
-        else:
-            # เดือนที่แล้ว
+        else:  # months_back == 1
             if room.Room_ID in overdue_room_ids:
-                # เกินกำหนด → due_date อยู่ในอดีต (ก่อน today)
-                due_date  = base_due - datetime.timedelta(days=random.randint(10, 20))
-                status    = 'รอชำระ'   # จะ update เป็น เกินกำหนด ทีหลัง
+                # เกินกำหนด → due_date อยู่ในอดีต ไม่แตะ base_due เลย
+                days_past = random.randint(10, 20)
+                due_date  = base_due - datetime.timedelta(days=days_past)
+                status    = 'รอชำระ'
                 paid_date = None
             else:
-                # ชำระแล้ว → จ่ายก่อนครบกำหนด
+                # ชำระแล้วก่อนครบกำหนด
                 due_date  = base_due
                 status    = 'ชำระแล้ว'
                 paid_date = bill_date + datetime.timedelta(days=random.randint(1, 9))

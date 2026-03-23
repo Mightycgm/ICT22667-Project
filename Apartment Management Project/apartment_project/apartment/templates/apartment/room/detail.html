@@ -209,6 +209,42 @@
                     </table>
                 </div>
 
+                <!-- ข้อมูลผู้จอง (แสดงเมื่อห้องถูกจอง) -->
+                {% if booking %}
+                <div class="alert alert-warning border-warning mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>📌 ข้อมูลผู้จอง</strong>
+                        <small class="text-muted">จองเมื่อ {{ booking.Booking_Date }}</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm mb-0">
+                                <tr><td class="text-muted" width="130">ชื่อ-นามสกุล</td>
+                                    <td><strong>{{ booking.First_Name }} {{ booking.Last_Name }}</strong></td></tr>
+                                <tr><td class="text-muted">เลขบัตร</td><td>{{ booking.ID_Card }}</td></tr>
+                                <tr><td class="text-muted">เบอร์โทร</td><td>{{ booking.Phone }}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm mb-0">
+                                <tr><td class="text-muted" width="130">Line ID</td>
+                                    <td>{{ booking.Line_ID|default:"-" }}</td></tr>
+                                <tr><td class="text-muted">อีเมล์</td>
+                                    <td>{{ booking.Email|default:"-" }}</td></tr>
+                                <tr><td class="text-muted">หมายเหตุ</td>
+                                    <td>{{ booking.Note|default:"-" }}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="mt-2 d-flex gap-2">
+                        <a href="{% url 'booking_confirm' booking.Booking_ID %}"
+                           class="btn btn-success btn-sm">✅ ยืนยันทำสัญญา</a>
+                        <a href="{% url 'booking_cancel' booking.Booking_ID %}"
+                           class="btn btn-outline-danger btn-sm">❌ ยกเลิกการจอง</a>
+                    </div>
+                </div>
+                {% endif %}
+
             </div><!-- end tab-content -->
         </div><!-- end card -->
     </div>
