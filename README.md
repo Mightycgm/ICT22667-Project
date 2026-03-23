@@ -29,7 +29,7 @@
 ### 📥 ขั้นตอนที่ 1 — Clone โปรเจค
 
 ```bash
-git clone https://github.com/Mightycgm/ICT22667-Project/
+git clone https://github.com/Mightycgm/ICT22667-Project.git
 cd Apartment Management Project
 ```
 
