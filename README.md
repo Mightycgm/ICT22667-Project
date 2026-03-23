@@ -60,6 +60,12 @@ pip install django==4.2.29 mysqlclient python-dotenv
 
 ### 🔐 ขั้นตอนที่ 4 — ตั้งค่าไฟล์ .env
 
+**Windows:**
+```cmd
+copy .env.example .env
+```
+
+**Mac/Linux:**
 ```bash
 cp .env.example .env
 ```
