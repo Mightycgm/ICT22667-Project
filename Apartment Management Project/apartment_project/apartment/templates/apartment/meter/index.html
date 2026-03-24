@@ -139,9 +139,7 @@
                         </td>
                         <td class="table-warning p-1">
                             {% if item.curr_u %}
-                                <span class="text-success fw-bold">
-                                    {{ item.curr_u.Elec_Unit_Used|add:item.curr_u.Water_Unit_Before }}
-                                </span>
+                                <span class="text-success fw-bold">{{ item.curr_u.Elec_Unit_After }}</span>
                             {% elif user_role == 'READONLY' %}
                                 <span class="text-muted">-</span>
                             {% else %}
