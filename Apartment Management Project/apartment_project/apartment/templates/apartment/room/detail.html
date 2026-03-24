@@ -300,7 +300,7 @@
                                     <tr><td class="text-muted">เลขบัตร</td><td>{{ contract.Tenant_ID.ID_Card }}</td></tr>
                                     <tr><td class="text-muted">เบอร์โทร</td><td>{{ contract.Tenant_ID.Phone }}</td></tr>
                                     <tr><td class="text-muted">Line ID</td><td>{{ contract.Tenant_ID.Line_ID|default:"-" }}</td></tr>
-                                    <tr><td class="text-muted">อีเมล์</td><td>{{ contract.Tenant_ID.Email|default:"-" }}</td></tr>
+                                    <tr><td class="text-muted">อีเมล</td><td>{{ contract.Tenant_ID.Email|default:"-" }}</td></tr>
                                     <tr><td class="text-muted">ที่อยู่</td><td>{{ contract.Tenant_ID.Address|default:"-" }}</td></tr>
                                 </table>
                             </div>
@@ -529,7 +529,7 @@
                     <table class="table table-borderless table-sm mb-0">
                         <tr><td class="text-muted" width="130">Line ID</td>
                             <td>{{ booking.Line_ID|default:"-" }}</td></tr>
-                        <tr><td class="text-muted">อีเมล์</td>
+                        <tr><td class="text-muted">อีเมล</td>
                             <td>{{ booking.Email|default:"-" }}</td></tr>
                         <tr><td class="text-muted">หมายเหตุ</td>
                             <td>{{ booking.Note|default:"-" }}</td></tr>

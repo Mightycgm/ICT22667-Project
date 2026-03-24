@@ -7,12 +7,12 @@
 
 ## 📋 Tech Stack
 
-| ส่วน | เทคโนโลยี |
-|---|---|
-| Backend | Django 4.2 (Python) |
-| Database | MySQL ผ่าน XAMPP |
-| Frontend | Django Templates + Bootstrap 5 |
-| DB Connector | mysqlclient |
+| ส่วน         | เทคโนโลยี                      |
+| ------------ | ------------------------------ |
+| Backend      | Django 4.2 (Python)            |
+| Database     | MySQL ผ่าน XAMPP               |
+| Frontend     | Django Templates + Bootstrap 5 |
+| DB Connector | mysqlclient                    |
 
 ---
 
@@ -49,10 +49,10 @@ pip install django==4.2.29 mysqlclient python-dotenv
 2. เปิดเบราว์เซอร์ไปที่ `http://localhost/phpmyadmin`
 3. คลิก **New** แล้วตั้งค่าดังนี้
 
-| ค่า | รายละเอียด |
-|---|---|
-| Database name | `apartment_db` |
-| Collation | `utf8mb4_unicode_ci` |
+| ค่า           | รายละเอียด           |
+| ------------- | -------------------- |
+| Database name | `apartment_db`       |
+| Collation     | `utf8mb4_unicode_ci` |
 
 4. กด **Create**
 
@@ -61,11 +61,13 @@ pip install django==4.2.29 mysqlclient python-dotenv
 ### 🔐 ขั้นตอนที่ 4 — ตั้งค่าไฟล์ .env
 
 **Windows:**
+
 ```cmd
 copy .env.example .env
 ```
 
 **Mac/Linux:**
+
 ```bash
 cp .env.example .env
 ```
@@ -81,18 +83,23 @@ EMAIL_HOST_PASSWORD=xxxx xxxx xxxx xxxx
 ### วิธีหาค่าแต่ละตัว
 
 **`SECRET_KEY`**
+
 > copy มาจาก `settings.py` บรรทัดที่ขึ้นต้นด้วย `SECRET_KEY = '...'`  
 > หรือสร้างใหม่ได้ด้วยคำสั่ง:
+>
 > ```bash
 > python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 > ```
 
 **`EMAIL_HOST_USER`**
+
 > ใส่ Gmail ที่จะใช้ส่งใบแจ้งหนี้ เช่น `myapartment@gmail.com`
 
 **`EMAIL_HOST_PASSWORD`**
+
 > ไม่ใช่รหัสผ่าน Gmail ปกติ แต่เป็น **Google App Password** (16 หลัก)  
 > สร้างได้ดังนี้:
+>
 > 1. เข้า [myaccount.google.com](https://myaccount.google.com) → **Security**
 > 2. เปิด **2-Step Verification** ก่อน (ถ้ายังไม่ได้เปิด)
 > 3. ค้นหา **App passwords** → กด Create
@@ -138,13 +145,13 @@ python manage.py runserver
 
 ## 👤 Account สำหรับ Login
 
-| Username | Password | Role | สิทธิ์ |
-|---|---|---|---|
-| *(ตั้งใน createsuperuser)* | *(ตั้งเอง)* | ADMIN | ทุกอย่าง |
-| `manager01` | `pass1234` | MANAGER | จัดการสัญญา/ใบแจ้งหนี้ |
-| `staff01` | `pass1234` | STAFF | จอง/แจ้งซ่อม/จดมิเตอร์ |
-| `readonly01` | `pass1234` | READONLY | ดูข้อมูลอย่างเดียว |
-| `meter01` | `pass1234` | METER | จดมิเตอร์ (หน้ามือถือ) |
+| Username                   | Password    | Role     | สิทธิ์                 |
+| -------------------------- | ----------- | -------- | ---------------------- |
+| _(ตั้งใน createsuperuser)_ | _(ตั้งเอง)_ | ADMIN    | ทุกอย่าง               |
+| `manager01`                | `pass1234`  | MANAGER  | จัดการสัญญา/ใบแจ้งหนี้ |
+| `staff01`                  | `pass1234`  | STAFF    | จอง/แจ้งซ่อม/จดมิเตอร์ |
+| `readonly01`               | `pass1234`  | READONLY | ดูข้อมูลอย่างเดียว     |
+| `meter01`                  | `pass1234`  | METER    | จดมิเตอร์ (หน้ามือถือ) |
 
 ---
 
@@ -181,7 +188,7 @@ apartment_project/
 - 📋 **สัญญาเช่า** — สร้าง/แก้ไข/พิมพ์สัญญา
 - 📌 **ระบบจอง** — จองห้อง → ยืนยันสัญญา
 - ⚡ **จดมิเตอร์** — หน้า Desktop (นิติ) + หน้ามือถือ (แม่บ้าน)
-- 📄 **ใบแจ้งหนี้** — Auto-generate วันที่ 25 + ส่งอีเมล์
+- 📄 **ใบแจ้งหนี้** — Auto-generate วันที่ 25 + ส่งอีเมล
 - 🔧 **แจ้งซ่อม** — บันทึก/อัปเดตสถานะ
 - 📊 **รายงานสรุป** — สรุปยอดรายเดือน
 - 🖨️ **พิมพ์** — ใบแจ้งหนี้ + สัญญา พร้อม QR Code PromptPay
@@ -191,11 +198,11 @@ apartment_project/
 
 ## 📅 Business Rules
 
-| กิจกรรม | วันที่ |
-|---|---|
-| จดมิเตอร์ | 22-23 ของทุกเดือน |
-| ออกใบแจ้งหนี้ (Auto) | 25 ของทุกเดือน |
-| ครบกำหนดชำระ | 5 ของเดือนถัดไป |
+| กิจกรรม                     | วันที่                    |
+| --------------------------- | ------------------------- |
+| จดมิเตอร์                   | 22-23 ของทุกเดือน         |
+| ออกใบแจ้งหนี้ (Auto)        | 25 ของทุกเดือน            |
+| ครบกำหนดชำระ                | 5 ของเดือนถัดไป           |
 | เกินกำหนด → อัปเดตอัตโนมัติ | ทุกครั้งที่เปิด Dashboard |
 
 ---

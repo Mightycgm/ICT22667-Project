@@ -7,7 +7,7 @@
     {% if user_role == 'ADMIN' or user_role == 'MANAGER' %}
     <div class="d-flex gap-2">
         <a href="{% url 'invoice_create' %}" class="btn btn-primary">+ ออกใบแจ้งหนี้</a>
-        <a href="{% url 'invoice_send_all' %}" class="btn btn-info">📧 ส่งอีเมล์ทุกคน</a>
+        <a href="{% url 'invoice_send_all' %}" class="btn btn-info">📧 ส่งอีเมลทุกคน</a>
     </div>
     {% endif %}
 </div>

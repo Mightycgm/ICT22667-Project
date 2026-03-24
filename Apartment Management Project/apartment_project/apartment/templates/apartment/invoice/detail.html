@@ -14,12 +14,12 @@
         {% if invoice.Contract_ID.Tenant_ID.Email %}
             {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
                 <a href="{% url 'invoice_send_email' invoice.Invoice_ID %}" class="btn btn-info">
-                📧 ส่งอีเมล์
+                📧 ส่งอีเมล
                 </a>
             {% endif %}
         {% else %}
-            <span class="btn btn-outline-secondary disabled" title="ผู้เช่าไม่มีอีเมล์ในระบบ">
-            📧 ไม่มีอีเมล์
+            <span class="btn btn-outline-secondary disabled" title="ผู้เช่าไม่มีอีเมลในระบบ">
+            📧 ไม่มีอีเมล
             </span>
         {% endif %}
         {% if invoice.Status == 'เกินกำหนด' %}

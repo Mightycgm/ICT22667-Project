@@ -1184,11 +1184,11 @@ def invoice_send_email(request, pk):
     fines        = Fine.objects.filter(Invoice_ID=invoice)
     tenant       = invoice.Contract_ID.Tenant_ID
 
-    # ตรวจสอบว่ามีอีเมล์ไหม
+    # ตรวจสอบว่ามีอีเมลไหม
     if not tenant.Email:
         return render(request, 'apartment/invoice/email_result.html', {
             'success': False,
-            'message': f'ผู้เช่า {tenant.First_Name} {tenant.Last_Name} ไม่มีอีเมล์ในระบบ',
+            'message': f'ผู้เช่า {tenant.First_Name} {tenant.Last_Name} ไม่มีอีเมลในระบบ',
             'invoice': invoice,
         })
 
@@ -1213,13 +1213,13 @@ def invoice_send_email(request, pk):
             )
             return render(request, 'apartment/invoice/email_result.html', {
                 'success': True,
-                'message': f'ส่งอีเมล์ไปที่ {tenant.Email} เรียบร้อยแล้ว',
+                'message': f'ส่งอีเมลไปที่ {tenant.Email} เรียบร้อยแล้ว',
                 'invoice': invoice,
             })
         except Exception as e:
             return render(request, 'apartment/invoice/email_result.html', {
                 'success': False,
-                'message': f'ส่งอีเมล์ไม่สำเร็จ: {str(e)}',
+                'message': f'ส่งอีเมลไม่สำเร็จ: {str(e)}',
                 'invoice': invoice,
             })
 

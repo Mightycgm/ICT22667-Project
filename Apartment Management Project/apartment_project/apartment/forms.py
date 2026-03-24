@@ -12,7 +12,7 @@ class TenantForm(forms.ModelForm):
             'Last_Name':  'นามสกุล',
             'ID_Card':    'เลขบัตรประชาชน',
             'Phone':      'เบอร์โทรติดต่อ',
-            'Email':      'อีเมล์',
+            'Email':      'อีเมล',
             'Line_ID':    'Line ID',
             'Address':    'ที่อยู่',
         }
@@ -209,7 +209,7 @@ class BookingForm(forms.ModelForm):
             'Last_Name':  'นามสกุล',
             'ID_Card':    'เลขบัตรประชาชน',
             'Phone':      'เบอร์โทรติดต่อ',
-            'Email':      'อีเมล์',
+            'Email':      'อีเมล',
             'Line_ID':    'Line ID',
             'Address':    'ที่อยู่',
             'Note':       'หมายเหตุ',
