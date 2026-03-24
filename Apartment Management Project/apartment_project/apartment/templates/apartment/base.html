@@ -322,10 +322,8 @@
                         <span class="badge bg-danger ms-2">Admin</span>
                     {% elif user_role == 'MANAGER' %}
                         <span class="badge bg-primary ms-2">Manager</span>
-                    {% elif user_role == 'STAFF' %}
-                        <span class="badge bg-success ms-2">Staff</span>
-                    {% else %}
-                        <span class="badge bg-secondary ms-2">Readonly</span>
+                    {% elif user_role == 'METER' %}
+                        <span class="badge bg-success ms-2">Meter</span>
                     {% endif %}
                 </span>
                 <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-none fw-bold">

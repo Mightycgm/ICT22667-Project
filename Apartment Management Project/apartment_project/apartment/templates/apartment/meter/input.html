@@ -4,36 +4,144 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>จดมิเตอร์</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body { background: #f5f5f5; font-size: 16px; }
-        .meter-card { border-radius: 12px; margin-bottom: 12px; }
-        .room-num { font-size: 1.3rem; font-weight: bold; }
-        .prev-val { color: #888; font-size: 0.85rem; }
-        input[type=number] { font-size: 1.1rem; text-align: center; }
-        .used-badge { font-size: 1rem; font-weight: bold; }
-        .section-header { background: #212529; color: white; padding: 10px 16px;
-                          border-radius: 8px; margin: 16px 0 8px; }
+        * { font-family: 'Sarabun', sans-serif; }
+        body { background: #f0f2f5; font-size: 16px; }
+        .filter-bar {
+            background: #fff;
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 60px;
+            z-index: 10;
+        }
+        .meter-card {
+            border-radius: 14px;
+            margin-bottom: 10px;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: box-shadow 0.2s;
+        }
+        .meter-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+        .room-num { font-size: 1.2rem; font-weight: 700; color: #1e1e2d; }
+        .prev-val { color: #8c8ea0; font-size: 0.82rem; }
+        input[type=number] {
+            font-size: 1.05rem;
+            text-align: center;
+            border-radius: 10px !important;
+            border: 2px solid #e4e6ef;
+            transition: border-color 0.2s;
+        }
+        input[type=number]:focus {
+            border-color: #377dff;
+            box-shadow: 0 0 0 3px rgba(55,125,255,0.1);
+        }
+        .used-badge { font-size: 1rem; font-weight: 700; }
+        .section-header {
+            background: linear-gradient(135deg, #1e1e2d 0%, #2d2d44 100%);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 10px;
+            margin: 16px 0 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+        .floor-header {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 6px 14px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .submit-bar {
+            position: sticky;
+            bottom: 0;
+            background: linear-gradient(180deg, rgba(240,242,245,0) 0%, #f0f2f5 20%);
+            padding: 16px 0 12px;
+            z-index: 10;
+        }
+        .submit-bar .btn {
+            border-radius: 14px;
+            font-size: 1.1rem;
+            padding: 14px;
+            box-shadow: 0 4px 16px rgba(255,193,7,0.3);
+        }
+        .count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
     </style>
 </head>
 <body>
 
 <!-- Header -->
-<div class="bg-dark text-white px-3 py-3 d-flex justify-content-between align-items-center">
+<div class="bg-dark text-white px-3 py-3 d-flex justify-content-between align-items-center"
+     style="position:sticky; top:0; z-index:20;">
     <div>
-        <div class="fw-bold">จดมิเตอร์</div>
+        <div class="fw-bold"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>จดมิเตอร์</div>
         <div style="font-size:0.8rem; opacity:.7;">
             {{ today|date:"d/m/Y" }} — {{ request.user.get_full_name|default:request.user.username }}
         </div>
     </div>
-    <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm">ออก</a>
+    <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm rounded-pill px-3">
+        <i class="bi bi-box-arrow-right me-1"></i>ออก
+    </a>
 </div>
 
 <div class="px-3 py-3">
 
 {% if request.GET.saved %}
-<div class="alert alert-success">✅ บันทึกสำเร็จ {{ request.GET.saved }} ห้อง</div>
+<div class="alert alert-success d-flex align-items-center" style="border-radius:12px;">
+    <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+    <span>บันทึกสำเร็จ <strong>{{ request.GET.saved }}</strong> ห้อง</span>
+</div>
 {% endif %}
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="bi bi-funnel-fill text-primary"></i>
+        <span class="fw-bold" style="font-size:0.9rem;">กรองห้อง</span>
+    </div>
+    <div class="row g-2">
+        <div class="col-6">
+            <select id="filterBuilding" class="form-select form-select-sm" style="border-radius:10px;">
+                <option value="all">ทุกอาคาร</option>
+                {% for b in buildings_list %}
+                <option value="{{ b }}">อาคาร {{ b }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6">
+            <select id="filterFloor" class="form-select form-select-sm" style="border-radius:10px;">
+                <option value="all">ทุกชั้น</option>
+            </select>
+        </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-2">
+        <div>
+            <span class="count-badge bg-warning text-dark" id="countPending">
+                <i class="bi bi-pencil-square"></i> <span>0</span> รอกรอก
+            </span>
+            <span class="count-badge bg-success text-white ms-1" id="countDone">
+                <i class="bi bi-check-circle"></i> <span>0</span> บันทึกแล้ว
+            </span>
+        </div>
+    </div>
+</div>
 
 <form method="post" action="{% url 'meter_save' %}" id="meterForm">
     {% csrf_token %}
@@ -42,27 +150,39 @@
     <input type="hidden" name="record_date" value="{{ today|date:'Y-m-d' }}">
 
     {% for building_no, room_list in buildings.items %}
-    <div class="section-header">อาคาร {{ building_no }}</div>
+    <div class="section-header building-section" data-building="{{ building_no }}">
+        <i class="bi bi-building me-1"></i> อาคาร {{ building_no }}
+    </div>
 
     {% for item in room_list %}
-    <div class="card meter-card shadow-sm">
-        <div class="card-body pb-2">
+    <div class="card meter-card room-card"
+         data-building="{{ building_no }}"
+         data-floor="{{ item.room.Floor }}"
+         data-status="{% if item.curr_u %}done{% else %}pending{% endif %}">
+        <div class="card-body py-2 px-3">
 
             <!-- ชื่อห้อง -->
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="room-num">ห้อง {{ item.room.Room_Number }}</span>
+                <div>
+                    <span class="room-num">{{ item.room.Room_Number }}</span>
+                    <span class="text-muted" style="font-size:0.75rem;">(ชั้น {{ item.room.Floor }})</span>
+                </div>
                 {% if item.curr_u %}
-                <span class="badge bg-success">บันทึกแล้ว</span>
+                <span class="badge bg-success" style="border-radius:8px; font-size:0.7rem;">
+                    <i class="bi bi-check-circle me-1"></i>บันทึกแล้ว
+                </span>
                 {% else %}
-                <span class="badge bg-warning text-dark">รอกรอก</span>
+                <span class="badge bg-warning text-dark" style="border-radius:8px; font-size:0.7rem;">
+                    <i class="bi bi-pencil me-1"></i>รอกรอก
+                </span>
                 {% endif %}
             </div>
 
             <div class="row g-2">
                 <!-- น้ำ -->
                 <div class="col-6">
-                    <div class="bg-info bg-opacity-10 rounded p-2">
-                        <div class="fw-bold mb-1" style="color:#0c7a9e;">💧 น้ำ</div>
+                    <div class="rounded p-2" style="background:#e3f2fd;">
+                        <div class="fw-bold mb-1" style="color:#0c7a9e; font-size:0.85rem;">💧 น้ำ</div>
                         <div class="prev-val mb-1">ก่อนหน้า: {{ item.water_prev }}</div>
                         {% if item.curr_u %}
                             <div class="used-badge text-success">{{ item.curr_u.Water_Unit_After }}</div>
@@ -84,13 +204,11 @@
 
                 <!-- ไฟ -->
                 <div class="col-6">
-                    <div class="bg-warning bg-opacity-10 rounded p-2">
-                        <div class="fw-bold mb-1" style="color:#856404;">⚡ ไฟ</div>
+                    <div class="rounded p-2" style="background:#fff8e1;">
+                        <div class="fw-bold mb-1" style="color:#856404; font-size:0.85rem;">⚡ ไฟ</div>
                         <div class="prev-val mb-1">ก่อนหน้า: {{ item.elec_prev }}</div>
                         {% if item.curr_u %}
-                            <div class="used-badge text-success">
-                                {{ item.curr_u.Elec_Unit_Used|add:item.curr_u.Water_Unit_Before }}
-                            </div>
+                            <div class="used-badge text-success">{{ item.curr_u.Elec_Unit_After }}</div>
                             <div class="prev-val">ใช้: {{ item.curr_u.Elec_Unit_Used }} หน่วย</div>
                         {% else %}
                             <input type="number"
@@ -114,10 +232,10 @@
     {% endfor %}
 
     <!-- ปุ่ม submit ติดล่าง -->
-    <div style="position:sticky; bottom:0; background:#f5f5f5; padding:12px 0;">
+    <div class="submit-bar">
         <button type="button" onclick="submitForm()"
                 class="btn btn-warning w-100 btn-lg fw-bold">
-            💾 บันทึกรอบจดมิเตอร์
+            <i class="bi bi-save me-1"></i> บันทึกรอบจดมิเตอร์
         </button>
     </div>
 
@@ -125,6 +243,63 @@
 </div>
 
 <script>
+// Floor data from server
+const floorsData = JSON.parse('{{ floors_map_json|escapejs }}');
+
+const filterBuilding = document.getElementById('filterBuilding');
+const filterFloor    = document.getElementById('filterFloor');
+
+function updateFloorOptions() {
+    const building = filterBuilding.value;
+    filterFloor.innerHTML = '<option value="all">ทุกชั้น</option>';
+    if (building !== 'all' && floorsData[building]) {
+        floorsData[building].forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = 'ชั้น ' + f;
+            filterFloor.appendChild(opt);
+        });
+    }
+    applyFilter();
+}
+
+function applyFilter() {
+    const building = filterBuilding.value;
+    const floor    = filterFloor.value;
+
+    // Show/hide sections
+    document.querySelectorAll('.building-section').forEach(el => {
+        if (building === 'all' || el.dataset.building === building) {
+            el.style.display = '';
+        } else {
+            el.style.display = 'none';
+        }
+    });
+
+    // Show/hide cards
+    let pending = 0, done = 0;
+    document.querySelectorAll('.room-card').forEach(card => {
+        const matchB = building === 'all' || card.dataset.building === building;
+        const matchF = floor === 'all' || card.dataset.floor === floor;
+        if (matchB && matchF) {
+            card.style.display = '';
+            if (card.dataset.status === 'done') done++;
+            else pending++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    document.querySelector('#countPending span').textContent = pending;
+    document.querySelector('#countDone span').textContent = done;
+}
+
+filterBuilding.addEventListener('change', updateFloorOptions);
+filterFloor.addEventListener('change', applyFilter);
+
+// Initial count
+applyFilter();
+
 function calc(input, type) {
     const id   = input.dataset.room;
     const prev = parseFloat(input.dataset.prev) || 0;
@@ -133,6 +308,7 @@ function calc(input, type) {
     const el   = document.getElementById((type === 'w' ? 'wu_' : 'eu_') + id);
     if (el) el.textContent = 'ใช้: ' + (used % 1 === 0 ? used : used.toFixed(2)) + ' หน่วย';
 }
+
 function submitForm() {
     if (confirm('ยืนยันบันทึกมิเตอร์เดือนนี้?')) {
         document.getElementById('meterForm').submit();

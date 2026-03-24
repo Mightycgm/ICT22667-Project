@@ -16,15 +16,3 @@ def role_required(*allowed_roles):
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
-
-
-def not_readonly(view_func):
-    # ป้องกัน READONLY จากการแก้ไขข้อมูล
-    @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        role = get_user_role(request.user)
-        if role == 'READONLY':
-            messages.error(request, 'คุณมีสิทธิ์ดูข้อมูลเท่านั้น')
-            return redirect('dashboard')
-        return view_func(request, *args, **kwargs)
-    return wrapper

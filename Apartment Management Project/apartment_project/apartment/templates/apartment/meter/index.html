@@ -38,11 +38,9 @@
     <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print">
         🖨️ พิมพ์ใบจดมิเตอร์
     </button>
-    {% if user_role != 'READONLY' %}
     <button onclick="submitMeter()" class="btn btn-warning btn-sm no-print fw-bold">
         💾 บันทึกรอบจดมิเตอร์
     </button>
-    {% endif %}
     
     <a href="{% url 'meter_input' %}" 
     class="btn btn-outline-info btn-sm no-print" 
@@ -111,8 +109,6 @@
                         <td class="table-info p-1">
                             {% if item.curr_u %}
                                 <span class="text-success fw-bold">{{ item.curr_u.Water_Unit_After }}</span>
-                            {% elif user_role == 'READONLY' %}
-                                <span class="text-muted">-</span>
                             {% else %}
                                 <input type="number"
                                        name="water_after_{{ item.room.Room_ID }}"
@@ -140,8 +136,6 @@
                         <td class="table-warning p-1">
                             {% if item.curr_u %}
                                 <span class="text-success fw-bold">{{ item.curr_u.Elec_Unit_After }}</span>
-                            {% elif user_role == 'READONLY' %}
-                                <span class="text-muted">-</span>
                             {% else %}
                                 <input type="number"
                                        name="elec_after_{{ item.room.Room_ID }}"
