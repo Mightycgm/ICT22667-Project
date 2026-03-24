@@ -30,14 +30,16 @@ def dashboard(request):
         Due_Date__lt=today
     ).update(Status='เกินกำหนด')
 
-    # ห้องที่มี invoice เกินกำหนด → สีแดง
+    # ห้องที่มี invoice เกินกำหนด (เฉพาะสัญญาที่ยัง active) → สีแดง
     overdue_room_ids = list(Invoice.objects.filter(
-        Status='เกินกำหนด'
+        Status='เกินกำหนด',
+        Contract_ID__Status='ใช้งาน'
     ).values_list('Contract_ID__Room_ID', flat=True))
 
-    # ห้องที่มี invoice รอชำระ (ยังไม่เกิน) → แสดง $
+    # ห้องที่มี invoice รอชำระ (ยังไม่เกิน, เฉพาะสัญญา active) → แสดง $
     unpaid_room_ids = list(Invoice.objects.filter(
-        Status='รอชำระ'
+        Status='รอชำระ',
+        Contract_ID__Status='ใช้งาน'
     ).values_list('Contract_ID__Room_ID', flat=True))
 
     # ห้องที่มีแจ้งซ่อมค้าง → แสดง 🔧
