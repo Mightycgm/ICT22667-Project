@@ -587,10 +587,11 @@ def auto_generate_invoices():
 
     created = 0
     for contract in contracts:
-        # ข้ามถ้ามี invoice เดือนนี้แล้ว
+        # ข้ามถ้ามี invoice ในเดือนนี้แล้ว (ป้องกันการกดปุ่มซ้ำแล้วเบิ้ลบิล)
         if Invoice.objects.filter(
             Contract_ID  = contract,
-            Billing_Date = bill_date
+            Billing_Date__year = bill_date.year,
+            Billing_Date__month = bill_date.month
         ).exists():
             continue
 

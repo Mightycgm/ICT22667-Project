@@ -9,8 +9,7 @@ from django.contrib.auth.models import User, Group
 users_to_create = [
     ('admin',      'pass1234', 'ADMIN'),
     ('manager01',  'pass1234', 'MANAGER'),
-    ('staff01',    'pass1234', 'STAFF'),
-    ('readonly01', 'pass1234', 'READONLY'),
+
     ('meter01',    'pass1234', 'METER'),
 ]
 
