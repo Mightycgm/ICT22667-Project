@@ -111,9 +111,9 @@ for i, room in enumerate(occupied_rooms):
         Room_ID           = room,
         Start_Date        = start_date,
         End_Date          = end_date,
-        Deposit           = Decimal('4000'),   # แก้เป็น 4000
-        Deposit_Advance   = Decimal('2000'),   # แก้เป็น 2000
-        Rent_Price        = Decimal('4000'),   # แก้เป็น 4000
+        Deposit           = Decimal('4000'),
+        Deposit_Advance   = Decimal('2000'),
+        Rent_Price        = Decimal('4000'),
         Water_Cost_Unit   = 18,
         Elec_Cost_Unit    = 8,
         Water_Meter_Start = Decimal(str(random.randint(100, 500))),
@@ -124,39 +124,55 @@ for i, room in enumerate(occupied_rooms):
 
 print(f"  สร้าง {len(occupied_rooms)} สัญญา")
 
-# ========== คำนวณวันที่ตาม logic จริง ==========
-# วันนี้คือวันที่เท่าไหร่ในเดือน
-# - ถ้าวันที่ 1-24   → ยังไม่ออกบิลเดือนนี้ → invoice ล่าสุดคือเดือนก่อน (ชำระแล้ว)
-# - ถ้าวันที่ 25-31  → ออกบิลเดือนนี้แล้ว → invoice เดือนนี้ = รอชำระ
+# ========== สร้าง Invoice ตั้งแต่ มิถุนายน 2567 – มีนาคม 2569 ==========
+# กำหนดช่วงที่ต้องการ: มิ.ย. 2024 → มี.ค. 2026
+print("สร้าง invoice และมิเตอร์ (มิ.ย. 2024 – มี.ค. 2026)...")
 
-# เดือนก่อน (2 เดือนที่แล้ว) → ชำระแล้วทุกคน
-# เดือนก่อน (1 เดือนที่แล้ว) → ชำระแล้วทุกคน ยกเว้น 10% ที่เกินกำหนด
-# เดือนปัจจุบัน → ออกบิลแล้วถ้าวันที่ >= 25, รอชำระ (due = วันที่ 5 เดือนหน้า)
+# รายชื่อเดือนที่จะสร้าง (bill_date = วันที่ 25 ของแต่ละเดือน)
+bill_months = []
+current = datetime.date(2024, 6, 1)
+end     = datetime.date(2026, 3, 1)
+while current <= end:
+    bill_months.append(current)
+    # ไปเดือนถัดไป
+    if current.month == 12:
+        current = datetime.date(current.year + 1, 1, 1)
+    else:
+        current = datetime.date(current.year, current.month + 1, 1)
 
-print("สร้าง invoice และมิเตอร์...")
+# เดือนปัจจุบัน (วันที่ 1)
+this_month = today.replace(day=1)
 
-# 10% ห้องที่เกินกำหนดจาก invoice เดือนก่อน
-overdue_room_ids = set(random.sample(
-    [r.Room_ID for r in occupied_rooms],
-    max(1, int(len(occupied_rooms) * 0.10))
-))
-
-# กำหนดรอบที่จะสร้าง invoice
-# รอบ 1: 2 เดือนที่แล้ว → ชำระแล้วทุกห้อง
-# รอบ 2: เดือนที่แล้ว   → ส่วนใหญ่ชำระแล้ว, 10% เกินกำหนด
-
+# เตรียม running meter ต่อห้อง
 water_running = {r.Room_ID: float(contract_map[r.Room_ID].Water_Meter_Start)
                  for r in occupied_rooms}
 elec_running  = {r.Room_ID: float(contract_map[r.Room_ID].Elec_Meter_Start)
                  for r in occupied_rooms}
 
-for months_back in [2, 1]:
-    # bill_date = วันที่ 25 ของเดือนนั้น
-    ref_date  = today.replace(day=1) - datetime.timedelta(days=months_back * 30)
-    bill_date = ref_date.replace(day=25)
-    # base_due = วันที่ 5 ของเดือนถัดจาก bill_date
+# เดือนที่เกินกำหนด (10% จากเดือนล่าสุดที่ผ่านมาแล้ว)
+overdue_room_ids = set(random.sample(
+    [r.Room_ID for r in occupied_rooms],
+    max(1, int(len(occupied_rooms) * 0.10))
+))
+
+for bill_month_start in bill_months:
+    bill_date = bill_month_start.replace(day=25)
     next_m    = (bill_date + datetime.timedelta(days=10)).replace(day=1)
     base_due  = next_m.replace(day=5)
+
+    # เดือนในอนาคต → ข้าม (ยังไม่ถึงวันออกบิล)
+    if bill_date > today:
+        break
+
+    # เดือนนี้ (วันปัจจุบัน < 25) → ยังไม่ถึงรอบออกบิล → ข้าม
+    if bill_month_start == this_month and today.day < 25:
+        break
+
+    is_last_closed_month = (bill_month_start == this_month and today.day >= 25)
+    is_prev_month        = (
+        bill_month_start.year == (this_month - datetime.timedelta(days=1)).replace(day=1).year and
+        bill_month_start.month == (this_month - datetime.timedelta(days=1)).replace(day=1).month
+    )
 
     for room in occupied_rooms:
         contract = contract_map[room.Room_ID]
@@ -174,24 +190,28 @@ for months_back in [2, 1]:
         water_running[room.Room_ID] = water_after
         elec_running[room.Room_ID]  = elec_after
 
-        if months_back == 2:
-            # 2 เดือนที่แล้ว → ชำระแล้วทุกห้อง
-            status    = 'ชำระแล้ว'
-            paid_date = bill_date + datetime.timedelta(days=random.randint(1, 9))
+        # กำหนดสถานะ
+        if is_last_closed_month:
+            # เดือนปัจจุบัน (วันนี้ >= 25) → รอชำระ
+            status    = 'รอชำระ'
+            paid_date = None
             due_date  = base_due
-
-        else:  # months_back == 1
+        elif is_prev_month:
+            # เดือนก่อนหน้า → 10% เกินกำหนด, ที่เหลือชำระแล้ว
             if room.Room_ID in overdue_room_ids:
-                # เกินกำหนด → due_date อยู่ในอดีต ไม่แตะ base_due เลย
                 days_past = random.randint(10, 20)
                 due_date  = base_due - datetime.timedelta(days=days_past)
-                status    = 'รอชำระ'
+                status    = 'รอชำระ'   # จะถูก update เป็นเกินกำหนดทีหลัง
                 paid_date = None
             else:
-                # ชำระแล้วก่อนครบกำหนด
                 due_date  = base_due
                 status    = 'ชำระแล้ว'
                 paid_date = bill_date + datetime.timedelta(days=random.randint(1, 9))
+        else:
+            # เดือนย้อนหลัง → ชำระแล้วทั้งหมด
+            due_date  = base_due
+            status    = 'ชำระแล้ว'
+            paid_date = bill_date + datetime.timedelta(days=random.randint(1, 9))
 
         invoice = Invoice.objects.create(
             Contract_ID  = contract,
@@ -201,7 +221,7 @@ for months_back in [2, 1]:
             Status       = status,
             Paid_Date    = paid_date if status == 'ชำระแล้ว' else None,
         )
-        bill_month = bill_date.replace(day=1)
+        bill_month = bill_month_start
         MonthlyBill.objects.create(
             Invoice_ID = invoice,
             Bill_Month = bill_month,

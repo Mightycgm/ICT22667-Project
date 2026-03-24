@@ -45,9 +45,6 @@ def dashboard(request):
         Status='ซ่อมเสร็จ'
     ).values_list('Room_ID', flat=True))
 
-    # Auto-generate invoice ถ้าวันที่ >= 25
-    if today.day >= 25:
-        auto_generate_invoices()
 
     # --- นับตาม "สีจริง" ที่แสดงใน badge ---
     count_white    = rooms.filter(Status='ว่าง', Status_Flag='ปกติ').count()
@@ -577,10 +574,6 @@ def auto_generate_invoices():
     import datetime
     today = datetime.date.today()
 
-    # เงื่อนไข: วันที่ 25 ขึ้นไป และยังไม่ถึงสิ้นเดือน
-    if today.day < 25:
-        return 0
-
     bill_month = today.replace(day=1)
     bill_date  = today.replace(day=25)
     next_m     = (today + datetime.timedelta(days=10)).replace(day=1)
@@ -609,8 +602,6 @@ def auto_generate_invoices():
         if not utility:
             continue
 
-        # ดึงค่าปรับของเดือนนี้ (ถ้ามี)
-        # fine จะผูกกับ invoice ที่จะสร้าง ยังไม่มีตอนนี้ → fine = 0
         water_total = utility.Water_Total
         elec_total  = utility.Elec_Total
         grand_total = contract.Rent_Price + water_total + elec_total
@@ -636,6 +627,34 @@ def auto_generate_invoices():
         created += 1
 
     return created
+
+
+@login_required
+@role_required('ADMIN', 'MANAGER')
+def invoice_generate(request):
+    """สร้างใบแจ้งหนี้ประจำเดือนด้วยปุ่มmanual (POST เท่านั้น)"""
+    import datetime
+    today = datetime.date.today()
+
+    if request.method == 'POST':
+        created = auto_generate_invoices()
+        bill_date = today.replace(day=25)
+        month_name = [
+            '','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน',
+            'พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม',
+            'กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม',
+        ][today.month]
+        message = f'สร้างใบแจ้งหนี้เดือน{month_name} {today.year} เรียบร้อย {created} ฉบับ'
+        if created == 0:
+            message = f'ไม่มีใบแจ้งหนี้ที่ต้องสร้างเพิ่ม (ยังไม่จดมิเตอร์ หรือสร้างไปแล้ว)'
+        return render(request, 'apartment/invoice/generate_result.html', {
+            'created': created,
+            'message': message,
+            'today':   today,
+        })
+
+    # GET → redirect กลับหน้า list
+    return redirect('invoice_list')
 # ==================== MAINTENANCE ====================
 
 @login_required

@@ -33,6 +33,7 @@ urlpatterns = [
     path('invoices/<int:pk>/send-email/', views.invoice_send_email, name='invoice_send_email'),
     path('invoices/<int:pk>/extend/',   views.invoice_extend, name='invoice_extend'),
     path('invoices/send-all/',          views.invoice_send_all_email, name='invoice_send_all'),
+    path('invoices/generate/',          views.invoice_generate,       name='invoice_generate'),
 
     # Maintenance
     path('maintenance/',                views.maintenance_list,   name='maintenance_list'),

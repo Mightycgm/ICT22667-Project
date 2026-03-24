@@ -7,6 +7,11 @@
     {% if user_role == 'ADMIN' or user_role == 'MANAGER' %}
     <div class="d-flex gap-2">
         <a href="{% url 'invoice_create' %}" class="btn btn-primary">+ ออกใบแจ้งหนี้</a>
+        <form method="post" action="{% url 'invoice_generate' %}" style="display:inline"
+              onsubmit="return confirm('สร้างใบแจ้งหนี้ประจำเดือนนี้ทุกห้องที่จดมิเตอร์แล้ว?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">⚡ สร้างใบแจ้งหนี้เดือนนี้</button>
+        </form>
         <a href="{% url 'invoice_send_all' %}" class="btn btn-info">📧 ส่งอีเมลทุกคน</a>
     </div>
     {% endif %}
