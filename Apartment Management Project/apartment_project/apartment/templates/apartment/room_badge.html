@@ -19,5 +19,8 @@
         {% if room.Room_ID in clean_room_ids %}
         <span class="badge bg-info text-white border border-white shadow-sm rounded-circle d-flex align-items-center justify-content-center" title="รอทำความสะอาด" style="width: 20px; height: 20px; padding: 0;"><i class="bi bi-stars" style="font-size: 0.65rem;"></i></span>
         {% endif %}
+        {% if room.Status_Flag == 'แจ้งย้ายออก' and theme != 'room-theme-moving' %}
+        <span class="badge border border-white shadow-sm rounded-circle d-flex align-items-center justify-content-center" title="แจ้งย้ายออก" style="background-color: #fdf3e6; color: #d08c3f; border-color: #d08c3f !important; width: 20px; height: 20px; padding: 0;"><i class="bi bi-box-arrow-right" style="font-size: 0.65rem;"></i></span>
+        {% endif %}
     </div>
 </a>
