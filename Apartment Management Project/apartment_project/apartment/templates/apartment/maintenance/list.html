@@ -40,6 +40,9 @@
             <td>{{ item.Resolved_Date|default:"-" }}</td>
             <td>
                 <a href="{% url 'maintenance_edit' item.Maintenance_ID %}" class="btn btn-sm btn-warning">อัปเดต</a>
+                {% if user_role == 'ADMIN' %}
+                <a href="{% url 'maintenance_delete' item.Maintenance_ID %}" class="btn btn-sm btn-danger">ลบ</a>
+                {% endif %}
             </td>
         </tr>
         {% empty %}

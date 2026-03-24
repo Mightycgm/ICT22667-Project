@@ -52,8 +52,8 @@ def dashboard(request):
     # --- นับตาม "สีจริง" ที่แสดงใน badge ---
     count_white    = rooms.filter(Status='ว่าง', Status_Flag='ปกติ').count()
     count_pin      = rooms.filter(Status='ว่าง', Status_Flag='จอง').count()
-    count_broom    = rooms.filter(Status='ว่าง', Status_Flag='รอทำความสะอาด').count()
-    count_blue     = rooms.filter(Status='มีผู้เช่า', Status_Flag='ปกติ').exclude(
+    count_broom    = rooms.filter(Status_Flag='รอทำความสะอาด').count()
+    count_blue     = rooms.filter(Status='มีผู้เช่า', Status_Flag__in=['ปกติ', 'รอทำความสะอาด']).exclude(
                          Room_ID__in=overdue_room_ids).count()
     count_yellow   = rooms.filter(Status='มีผู้เช่า', Status_Flag='แจ้งย้ายออก').count()
     count_red      = rooms.filter(Room_ID__in=overdue_room_ids).count()
@@ -61,11 +61,17 @@ def dashboard(request):
     count_repair   = len(set(repair_room_ids))
     count_unpaid   = len(set(unpaid_room_ids))
 
+    # ห้องที่รอทำความสะอาด (ใช้แสดง icon บน badge)
+    clean_room_ids = list(rooms.filter(
+        Status_Flag='รอทำความสะอาด'
+    ).values_list('Room_ID', flat=True))
+
     context = {
         'rooms':            rooms,
         'overdue_room_ids': overdue_room_ids,
         'unpaid_room_ids':  unpaid_room_ids,
         'repair_room_ids':  repair_room_ids,
+        'clean_room_ids':   clean_room_ids,
         # summary cards
         'total_rooms':   rooms.count(),
         'count_white':   count_white,
@@ -649,6 +655,15 @@ def maintenance_edit(request, pk):
         form.save()
         return redirect('maintenance_list')
     return render(request, 'apartment/maintenance/form.html', {'form': form, 'title': 'อัปเดตการซ่อม'})
+
+@login_required
+@role_required('ADMIN')
+def maintenance_delete(request, pk):
+    item = get_object_or_404(Maintenance, pk=pk)
+    if request.method == 'POST':
+        item.delete()
+        return redirect('maintenance_list')
+    return render(request, 'apartment/maintenance/confirm_delete.html', {'object': item, 'title': 'ลบรายการแจ้งซ่อม'})
 # ==================== รายงาน ====================
 
 @login_required
@@ -692,6 +707,36 @@ def monthly_summary(request):
         'invoices': invoices,
         'summary':  summary,
     })
+
+# ==================== API ====================
+
+from django.http import JsonResponse
+
+@login_required
+def api_rooms_available(request):
+    """JSON API สำหรับ cascading filter อาคาร → ชั้น → ห้อง"""
+    rooms = Room.objects.filter(Status='ว่าง')
+    building = request.GET.get('building')
+    floor = request.GET.get('floor')
+
+    if building:
+        rooms = rooms.filter(Building_No=building)
+    if floor:
+        rooms = rooms.filter(Floor=floor)
+
+    # ถ้าขอแค่ buildings
+    if request.GET.get('type') == 'buildings':
+        buildings = Room.objects.filter(Status='ว่าง').values_list('Building_No', flat=True).distinct().order_by('Building_No')
+        return JsonResponse({'buildings': list(buildings)})
+
+    # ถ้าขอ floors ของ building
+    if request.GET.get('type') == 'floors' and building:
+        floors = rooms.values_list('Floor', flat=True).distinct().order_by('Floor')
+        return JsonResponse({'floors': list(floors)})
+
+    # ถ้าขอ rooms
+    data = list(rooms.values('Room_ID', 'Room_Number', 'Building_No', 'Floor').order_by('Room_Number'))
+    return JsonResponse({'rooms': data})
 
 # ==================== BOOKING ====================
 

@@ -1,12 +1,23 @@
 <a href="{% url 'room_detail' room.Room_ID %}"
-   class="badge {{ bg }} {{ txt }} p-2 position-relative text-decoration-none"
-   style="width:58px; height:42px; font-size:0.75rem; cursor:pointer;"
+   class="room-badge-card text-decoration-none shadow-sm {{ theme }}"
+   style="flex: 1 1 0%; min-width: 50px; height: 55px; border-radius: 8px; border-width: 1px; border-style: solid; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;"
    title="ห้อง {{ room.Room_Number }} — {{ room.Status }}">
-    {{ room.Room_Number }}
-    <span style="font-size:0.65rem; display:block; line-height:1;">
-        {% if room.Room_ID in unpaid_room_ids %}${% endif %}
-        {% if room.Status_Flag == 'จอง' %}📌{% endif %}
-        {% if room.Room_ID in repair_room_ids %}🔧{% endif %}
-        {% if room.Status_Flag == 'รอทำความสะอาด' %}🧹{% endif %}
-    </span>
+    
+    <div style="font-size: 1.1rem; font-weight: 800; line-height: 1; color: #181c32;">{{ room.Room_Number }}</div>
+    <div style="font-size: 1rem; margin-top: 2px;">
+        <i class="bi {{ icon }}"></i>
+    </div>
+
+    <!-- Extra Flags (Floating Notifications) -->
+    <div style="position: absolute; top: -6px; right: -6px; display: flex; gap: 4px; z-index: 2;">
+        {% if room.Room_ID in unpaid_room_ids %}
+        <span class="badge bg-warning text-dark border border-white shadow-sm rounded-circle d-flex align-items-center justify-content-center" title="ค้างชำระจากงวดก่อน" style="width: 20px; height: 20px; padding: 0;"><i class="bi bi-wallet2" style="font-size: 0.65rem;"></i></span>
+        {% endif %}
+        {% if room.Room_ID in repair_room_ids %}
+        <span class="badge bg-danger text-white border border-white shadow-sm rounded-circle d-flex align-items-center justify-content-center" title="มีการแจ้งซ่อม" style="width: 20px; height: 20px; padding: 0;"><i class="bi bi-tools" style="font-size: 0.65rem;"></i></span>
+        {% endif %}
+        {% if room.Room_ID in clean_room_ids %}
+        <span class="badge bg-info text-white border border-white shadow-sm rounded-circle d-flex align-items-center justify-content-center" title="รอทำความสะอาด" style="width: 20px; height: 20px; padding: 0;"><i class="bi bi-stars" style="font-size: 0.65rem;"></i></span>
+        {% endif %}
+    </div>
 </a>
