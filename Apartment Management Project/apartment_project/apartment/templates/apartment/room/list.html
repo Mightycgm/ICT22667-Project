@@ -2,7 +2,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>รายการห้องพัก</h2>
-    {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
+    {% if user_role == 'ADMIN' %}
     <a href="{% url 'room_create' %}" class="btn btn-primary">+ เพิ่มห้องพัก</a>
     {% endif %}
 </div>
@@ -22,7 +22,7 @@
             <td>{{ r.Floor }}</td>
             <td>{{ r.Status }}</td>
             <td>
-                {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
+                {% if user_role == 'ADMIN' %}
                 <a href="{% url 'room_edit' r.Room_ID %}" class="btn btn-sm btn-warning">แก้ไข</a>
                 {% endif %}
                 {% if user_role == 'ADMIN' %}

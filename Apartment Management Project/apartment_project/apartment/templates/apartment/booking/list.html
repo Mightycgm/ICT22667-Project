@@ -2,9 +2,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4>📌 รายการจองห้อง</h4>
-    {% if user_role != 'READONLY' %}
         <a href="{% url 'booking_create' %}" class="btn btn-primary">+ บันทึกการจอง</a>
-    {% endif %}
 </div>
 
 <div class="row g-3">

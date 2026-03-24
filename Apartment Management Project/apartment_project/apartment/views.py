@@ -7,7 +7,7 @@ from django.template.loader import render_to_string
 from decimal import Decimal
 from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance, Booking
 from .forms  import TenantForm, RoomForm, ContractForm, InvoiceForm, UtilityForm, PaymentForm, FineForm, MaintenanceForm, BookingForm
-from .decorators import role_required, not_readonly
+from .decorators import role_required
 import datetime
 from django.core.mail import send_mass_mail
 import time
@@ -16,7 +16,7 @@ import time
 # ==================== DASHBOARD ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY', 'METER')
+@role_required('ADMIN', 'MANAGER', 'METER')
 def dashboard(request):
     from .middleware import get_user_role
     if get_user_role(request.user) == 'METER':
@@ -90,7 +90,7 @@ def dashboard(request):
 # ==================== TENANT ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def tenant_list(request):
     # ค้นหาผู้เช่าด้วยชื่อหรือนามสกุล
     query   = request.GET.get('q', '')
@@ -131,13 +131,13 @@ def tenant_delete(request, pk):
 # ==================== ROOM ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def room_list(request):
     rooms = Room.objects.all().order_by('Room_Number')
     return render(request, 'apartment/room/list.html', {'rooms': rooms})
 
 @login_required
-@role_required('ADMIN', 'MANAGER')
+@role_required('ADMIN')
 def room_create(request):
     form = RoomForm(request.POST or None)
     if form.is_valid():
@@ -146,7 +146,7 @@ def room_create(request):
     return render(request, 'apartment/room/form.html', {'form': form, 'title': 'เพิ่มห้องพัก'})
 
 @login_required
-@role_required('ADMIN', 'MANAGER')
+@role_required('ADMIN')
 def room_edit(request, pk):
     room = get_object_or_404(Room, pk=pk)
     form = RoomForm(request.POST or None, instance=room)
@@ -165,7 +165,7 @@ def room_delete(request, pk):
     return render(request, 'apartment/room/confirm_delete.html', {'object': room, 'title': 'ลบห้องพัก'})
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def room_detail(request, pk):
     room     = get_object_or_404(Room, pk=pk)
 
@@ -199,7 +199,7 @@ def room_detail(request, pk):
 # ==================== CONTRACT ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def contract_list(request):
     contracts = Contract.objects.select_related('Tenant_ID', 'Room_ID').all()
     return render(request, 'apartment/contract/list.html', {'contracts': contracts})
@@ -208,7 +208,14 @@ def contract_list(request):
 @role_required('ADMIN', 'MANAGER')
 def contract_create(request):
     # ดึงห้องว่างเท่านั้น
-    form = ContractForm(request.POST or None)
+    form = ContractForm(request.POST or None, initial={
+        'Rent_Price':       4000,
+        'Deposit':          4000,
+        'Deposit_Advance':  2000,
+        'Water_Cost_Unit':  18,
+        'Elec_Cost_Unit':   8,
+        'Status':           'ใช้งาน',
+    })
     form.fields['Room_ID'].queryset = Room.objects.filter(Status='ว่าง')
 
     if form.is_valid():
@@ -241,7 +248,7 @@ def contract_edit(request, pk):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def contract_print(request, pk):
     # หน้าพิมพ์สัญญา
     contract = get_object_or_404(Contract, pk=pk)
@@ -258,7 +265,7 @@ def contract_delete(request, pk):
 # ==================== INVOICE ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def invoice_list(request):
     import datetime
     today = datetime.date.today()
@@ -378,7 +385,7 @@ def invoice_create(request):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def invoice_detail(request, pk):
     invoice      = get_object_or_404(Invoice, pk=pk)
     monthly_bill = MonthlyBill.objects.filter(Invoice_ID=invoice).first()
@@ -632,13 +639,13 @@ def auto_generate_invoices():
 # ==================== MAINTENANCE ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def maintenance_list(request):
     items = Maintenance.objects.select_related('Room_ID').all().order_by('-Report_Date')
     return render(request, 'apartment/maintenance/list.html', {'items': items})
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF')
+@role_required('ADMIN', 'MANAGER')
 def maintenance_create(request):
     form = MaintenanceForm(request.POST or None)
     if form.is_valid():
@@ -647,7 +654,7 @@ def maintenance_create(request):
     return render(request, 'apartment/maintenance/form.html', {'form': form, 'title': 'เพิ่มรายการแจ้งซ่อม'})
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF')
+@role_required('ADMIN', 'MANAGER')
 def maintenance_edit(request, pk):
     item = get_object_or_404(Maintenance, pk=pk)
     form = MaintenanceForm(request.POST or None, instance=item)
@@ -667,7 +674,7 @@ def maintenance_delete(request, pk):
 # ==================== รายงาน ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def invoice_print(request, pk):
     # หน้าพิมพ์ใบแจ้งหนี้ (print-friendly)
     invoice      = get_object_or_404(Invoice, pk=pk)
@@ -683,7 +690,7 @@ def invoice_print(request, pk):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def monthly_summary(request):
     from django.db.models.functions import TruncMonth
 
@@ -741,7 +748,7 @@ def api_rooms_available(request):
 # ==================== BOOKING ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY')
+@role_required('ADMIN', 'MANAGER')
 def booking_list(request):
     bookings = Booking.objects.select_related('Room_ID').filter(
         Status='รอยืนยัน'
@@ -750,7 +757,7 @@ def booking_list(request):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF')
+@role_required('ADMIN', 'MANAGER')
 def booking_create(request, room_pk=None):
     initial = {}
     if room_pk:
@@ -778,7 +785,7 @@ def booking_create(request, room_pk=None):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF')
+@role_required('ADMIN', 'MANAGER')
 def booking_cancel(request, pk):
     booking = get_object_or_404(Booking, pk=pk)
     if request.method == 'POST':
@@ -832,9 +839,11 @@ def booking_confirm(request, pk):
     else:
         contract_form = ContractForm(initial={
             'Room_ID':          booking.Room_ID,
+            'Rent_Price':       4000,
+            'Deposit':          4000,
+            'Deposit_Advance':  2000,
             'Water_Cost_Unit':  18,
             'Elec_Cost_Unit':   8,
-            'Deposit_Advance':  2000,
             'Status':           'ใช้งาน',
         })
         contract_form.fields['Room_ID'].queryset = Room.objects.filter(
@@ -854,7 +863,7 @@ def booking_confirm(request, pk):
 # ==================== METER ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'READONLY', 'METER')
+@role_required('ADMIN', 'MANAGER', 'METER')
 def meter_index(request):
     from .middleware import get_user_role
     if get_user_role(request.user) == 'METER':
@@ -941,7 +950,7 @@ def meter_index(request):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF')
+@role_required('ADMIN', 'MANAGER')
 def meter_save(request):
     import datetime
     if request.method != 'POST':
@@ -1048,7 +1057,7 @@ def meter_save(request):
     return redirect(f"/meter/?month={month}&year={year}&saved={saved}")
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF', 'METER')
+@role_required('ADMIN', 'MANAGER', 'METER')
 def meter_input(request):
     import datetime
     today = datetime.date.today()
@@ -1089,17 +1098,26 @@ def meter_input(request):
     if request.method == 'POST':
         return redirect('meter_save_input')
 
+    # ดึงรายการตึก/ชั้นสำหรับ filter dropdown
+    buildings_list = sorted(buildings.keys())
+    floors_map = {}
+    for b, room_list in buildings.items():
+        floors_map[b] = sorted(set(item['room'].Floor for item in room_list))
+
+    import json
     return render(request, 'apartment/meter/input.html', {
-        'buildings': buildings,
-        'month':     month,
-        'year':      year,
-        'today':     today,
+        'buildings':      buildings,
+        'buildings_list': buildings_list,
+        'floors_map_json': json.dumps(floors_map),
+        'month':          month,
+        'year':           year,
+        'today':          today,
     })
 
 # ==================== ROOM ACTIONS ====================
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF')
+@role_required('ADMIN', 'MANAGER')
 def room_action_moveout(request, pk):
     room     = get_object_or_404(Room, pk=pk)
     contract = Contract.objects.filter(Room_ID=room, Status='ใช้งาน').first()
@@ -1129,7 +1147,7 @@ def room_action_moveout(request, pk):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF')
+@role_required('ADMIN', 'MANAGER')
 def room_action_notify_out(request, pk):
     # แจ้งย้ายออก: เปลี่ยน Status_Flag เป็น แจ้งย้ายออก
     room = get_object_or_404(Room, pk=pk)
@@ -1149,7 +1167,7 @@ def room_action_notify_out(request, pk):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF')
+@role_required('ADMIN', 'MANAGER')
 def room_action_clean(request, pk):
     # แจ้งทำความสะอาด
     room = get_object_or_404(Room, pk=pk)
@@ -1169,7 +1187,7 @@ def room_action_clean(request, pk):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER', 'STAFF')
+@role_required('ADMIN', 'MANAGER')
 def room_action_done_clean(request, pk):
     # ทำความสะอาดเสร็จ → คืนสถานะปกติ
     room = get_object_or_404(Room, pk=pk)

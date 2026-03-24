@@ -565,7 +565,6 @@
                 </a>
                 {% endif %}
 
-                {% if user_role != 'READONLY' %}
                 <a href="{% url 'booking_create_room' room.Room_ID %}" class="action-btn">
                     <div class="action-icon" style="background:#fff3e0; color:#e65100;"><i class="bi bi-bookmark-star"></i></div>
                     จองห้อง
@@ -581,7 +580,6 @@
                     แจ้งทำความสะอาด
                 </a>
                 {% endif %}
-                {% endif %}
 
             {% elif room.Status == 'มีผู้เช่า' %}
 
@@ -596,7 +594,6 @@
                 </a>
                 {% endif %}
 
-                {% if user_role != 'READONLY' %}
                 {% if room.Status_Flag != 'แจ้งย้ายออก' %}
                 <a href="{% url 'room_notify_out' room.Room_ID %}" class="action-btn">
                     <div class="action-icon" style="background:#fff3e0; color:#e65100;"><i class="bi bi-bell"></i></div>
@@ -618,7 +615,6 @@
                     แจ้งทำความสะอาด
                 </a>
                 {% endif %}
-                {% endif %}
 
             {% elif room.Status == 'ซ่อมบำรุง' %}
 
@@ -629,21 +625,21 @@
                 </a>
                 {% endif %}
 
-                {% if user_role != 'READONLY' %}
                 <a href="{% url 'maintenance_create' %}" class="action-btn">
                     <div class="action-icon" style="background:#fce4ec; color:#c62828;"><i class="bi bi-tools"></i></div>
                     เพิ่มรายการซ่อม
                 </a>
-                {% endif %}
 
             {% endif %}
 
             <!-- ปุ่มทั่วไป -->
             <div style="border-top: 2px solid #f1f1f4;"></div>
+            {% if user_role == 'ADMIN' %}
             <a href="{% url 'room_edit' room.Room_ID %}" class="action-btn">
                 <div class="action-icon" style="background:#f3f0ff; color:#5e60ce;"><i class="bi bi-pencil"></i></div>
                 แก้ไขข้อมูลห้อง
             </a>
+            {% endif %}
             <a href="{% url 'dashboard' %}" class="action-btn">
                 <div class="action-icon" style="background:#f0f2f5; color:#6c757d;"><i class="bi bi-arrow-left"></i></div>
                 กลับ Dashboard
