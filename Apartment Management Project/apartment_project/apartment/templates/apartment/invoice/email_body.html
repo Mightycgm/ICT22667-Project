@@ -1,3 +1,4 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -53,7 +54,7 @@
             {% if monthly_bill %}
             <tr>
                 <td>ค่าเช่าห้องประจำเดือน</td>
-                <td style="text-align:right;">{{ monthly_bill.Amount }} บาท</td>
+                <td style="text-align:right;">{{ monthly_bill.Amount|intcomma }} บาท</td>
             </tr>
             {% endif %}
 
@@ -64,27 +65,27 @@
                     <small style="color:#888;">{{ utility.Water_Unit_Before }} → {{ utility.Water_Unit_After }}
                     = {{ utility.Water_Unit_Used }} หน่วย × {{ utility.Water_Cost_Unit }} บาท</small>
                 </td>
-                <td style="text-align:right;">{{ utility.Water_Total }} บาท</td>
+                <td style="text-align:right;">{{ utility.Water_Total|intcomma }} บาท</td>
             </tr>
             <tr>
                 <td>
                     ค่าไฟฟ้า<br>
                     <small style="color:#888;">{{ utility.Elec_Unit_Used }} หน่วย × {{ utility.Elec_Cost_Unit }} บาท</small>
                 </td>
-                <td style="text-align:right;">{{ utility.Elec_Total }} บาท</td>
+                <td style="text-align:right;">{{ utility.Elec_Total|intcomma }} บาท</td>
             </tr>
             {% endif %}
 
             {% for fine in fines %}
             <tr>
                 <td style="color:#dc3545;">ค่าปรับ: {{ fine.Reason }}</td>
-                <td style="text-align:right; color:#dc3545;">{{ fine.Amount }} บาท</td>
+                <td style="text-align:right; color:#dc3545;">{{ fine.Amount|intcomma }} บาท</td>
             </tr>
             {% endfor %}
 
             <tr class="total">
                 <td>ยอดรวมทั้งหมด</td>
-                <td style="text-align:right;">{{ invoice.Grand_Total }} บาท</td>
+                <td style="text-align:right;">{{ invoice.Grand_Total|intcomma }} บาท</td>
             </tr>
         </table>
 

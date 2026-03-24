@@ -142,7 +142,7 @@
                 <small class="text-muted">สแกน PromptPay<br>{{ bank_info.promptpay_no }}</small>
             </div>
             <div style="font-size:12px; color:#666; margin-top:8px;">
-                ยอด <strong>{{ invoice.Grand_Total }} บาท</strong>
+                ยอด <strong>{{ invoice.Grand_Total|intcomma }} บาท</strong>
             </div>
         </div>
     </div>
