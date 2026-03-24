@@ -1,0 +1,25 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>⚡ สร้างใบแจ้งหนี้เดือนนี้</h4>
+</div>
+
+<div class="card">
+    <div class="card-body text-center py-5">
+        {% if created > 0 %}
+            <div class="mb-3" style="font-size:3rem;">✅</div>
+            <h5 class="text-success">{{ message }}</h5>
+            <p class="text-muted mt-2">วันที่ออกบิล: {{ today }}</p>
+        {% else %}
+            <div class="mb-3" style="font-size:3rem;">ℹ️</div>
+            <h5 class="text-secondary">{{ message }}</h5>
+        {% endif %}
+
+        <div class="mt-4 d-flex gap-2 justify-content-center">
+            <a href="{% url 'invoice_list' %}" class="btn btn-primary">📄 ดูรายการใบแจ้งหนี้</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
