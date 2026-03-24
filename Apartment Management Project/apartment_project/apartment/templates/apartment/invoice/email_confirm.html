@@ -1,4 +1,5 @@
 {% extends 'apartment/base.html' %}
+{% load humanize %}
 {% block content %}
 <div style="max-width:500px; margin: 40px auto;">
     <div class="card">
@@ -9,7 +10,7 @@
             <p>ยืนยันส่งใบแจ้งหนี้ <strong>#{{ invoice.Invoice_ID }}</strong></p>
             <p>ถึง: <strong>{{ tenant.First_Name }} {{ tenant.Last_Name }}</strong></p>
             <p>อีเมล: <strong class="text-primary">{{ tenant.Email }}</strong></p>
-            <p>ยอดรวม: <strong class="text-danger">{{ invoice.Grand_Total }} บาท</strong></p>
+            <p>ยอดรวม: <strong class="text-danger">{{ invoice.Grand_Total|intcomma }} บาท</strong></p>
             <form method="post">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary">

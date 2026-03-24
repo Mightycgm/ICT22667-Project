@@ -1,9 +1,10 @@
 {% extends 'apartment/base.html' %}
+{% load humanize %}
 {% block content %}
 <h2>{{ title }}</h2>
 <div class="card mt-3" style="max-width: 400px;">
     <div class="card-body">
-        <p>Invoice #{{ invoice.Invoice_ID }} ยอด <strong>{{ invoice.Grand_Total }} บาท</strong></p>
+        <p>Invoice #{{ invoice.Invoice_ID }} ยอด <strong>{{ invoice.Grand_Total|intcomma }} บาท</strong></p
         <form method="post">
             {% csrf_token %}
             {% for field in form %}

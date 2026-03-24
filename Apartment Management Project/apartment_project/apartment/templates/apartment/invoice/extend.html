@@ -1,4 +1,5 @@
 {% extends 'apartment/base.html' %}
+{% load humanize %}
 {% block content %}
 <div style="max-width:500px; margin:40px auto;">
 <div class="card border-warning">
@@ -7,7 +8,7 @@
     </div>
     <div class="card-body">
         <p>ผู้เช่า: <strong>{{ tenant.First_Name }} {{ tenant.Last_Name }}</strong></p>
-        <p>ยอดค้างชำระ: <strong class="text-danger">{{ invoice.Grand_Total }} บาท</strong></p>
+        <p>ยอดค้างชำระ: <strong class="text-danger">{{ invoice.Grand_Total|intcomma }} บาท</strong></p>
         <hr>
         <p class="fw-bold">เลือกแหล่งเงินที่จะโปะ:</p>
         <form method="post">
@@ -18,7 +19,7 @@
                            name="use_deposit" value="deposit" id="dep" checked>
                     <label class="form-check-label" for="dep">
                         เงินประกันห้อง
-                        <strong>{{ contract.Deposit }} บาท</strong>
+                        <strong>{{ contract.Deposit|intcomma }} บาท</strong>
                     </label>
                 </div>
                 <div class="form-check">
@@ -26,7 +27,7 @@
                            name="use_deposit" value="advance" id="adv">
                     <label class="form-check-label" for="adv">
                         เงินมัดจำ
-                        <strong>{{ contract.Deposit_Advance }} บาท</strong>
+                        <strong>{{ contract.Deposit_Advance|intcomma }} บาท</strong>
                     </label>
                 </div>
             </div>

@@ -249,6 +249,161 @@ updated = Invoice.objects.filter(
 ).update(Status='เกินกำหนด')
 print(f"  อัปเดต {updated} invoices เป็น เกินกำหนด")
 
+# ========== สร้างประวัติย้ายออก + ผู้เช่าใหม่ ==========
+# เลือกห้องที่มีผู้เช่าแบบสุ่ม 8 ห้อง → จำลองว่ามีผู้เช่าเก่าย้ายออก + คนใหม่เข้าแทน
+print("สร้างประวัติย้ายออก + ผู้เช่าใหม่...")
+
+MOVEOUT_ROOMS = 8
+moveout_candidates = random.sample(occupied_rooms, MOVEOUT_ROOMS)
+
+moveout_water = {}
+moveout_elec  = {}
+
+for room in moveout_candidates:
+    # ---- ผู้เช่าเก่า (ย้ายออก ธ.ค. 2024) ----
+    old_tenant = Tenant.objects.create(
+        First_Name = random.choice(first_names),
+        Last_Name  = random.choice(last_names),
+        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
+        Phone      = f"08{random.randint(10000000, 99999999)}",
+        Email      = f"old_tenant_{room.Room_ID}@example.com",
+        Line_ID    = f"old_{room.Room_ID}",
+    )
+    old_water_start = Decimal(str(random.randint(100, 300)))
+    old_elec_start  = Decimal(str(random.randint(100, 300)))
+    old_contract = Contract.objects.create(
+        Tenant_ID         = old_tenant,
+        Room_ID           = room,
+        Start_Date        = datetime.date(2024, 6, 1),
+        End_Date          = datetime.date(2024, 12, 31),
+        Deposit           = Decimal('4000'),
+        Deposit_Advance   = Decimal('2000'),
+        Rent_Price        = Decimal('4000'),
+        Water_Cost_Unit   = 18,
+        Elec_Cost_Unit    = 8,
+        Water_Meter_Start = old_water_start,
+        Elec_Meter_Start  = old_elec_start,
+        Status            = 'สิ้นสุด',
+    )
+
+    # สร้าง invoice ผู้เช่าเก่า มิ.ย. – ธ.ค. 2024 (7 เดือน) → ชำระแล้วทั้งหมด
+    w_run = float(old_water_start)
+    e_run = float(old_elec_start)
+    for yr, mo in [(2024,6),(2024,7),(2024,8),(2024,9),(2024,10),(2024,11),(2024,12)]:
+        bd        = datetime.date(yr, mo, 25)
+        bm        = datetime.date(yr, mo, 1)
+        next_m    = (bd + datetime.timedelta(days=10)).replace(day=1)
+        due       = next_m.replace(day=5)
+        wa        = w_run + random.randint(8, 25)
+        ea        = e_run + random.randint(50, 200)
+        wu        = wa - w_run;  eu = ea - e_run
+        wt        = Decimal(str(wu)) * 18;  et = Decimal(str(eu)) * 8
+        gt        = Decimal('4000') + wt + et
+        inv = Invoice.objects.create(
+            Contract_ID  = old_contract,
+            Billing_Date = bd,
+            Due_Date     = due,
+            Grand_Total  = gt,
+            Status       = 'ชำระแล้ว',
+            Paid_Date    = bd + datetime.timedelta(days=random.randint(1,9)),
+        )
+        MonthlyBill.objects.create(Invoice_ID=inv, Bill_Month=bm, Amount=Decimal('4000'))
+        Utility.objects.create(
+            Invoice_ID        = inv, Room_ID=room, Bill_Month=bm,
+            Water_Unit_Before = Decimal(str(w_run)), Water_Unit_After=Decimal(str(wa)),
+            Water_Unit_Used   = Decimal(str(wu)),    Elec_Unit_Used  = Decimal(str(eu)),
+            Water_Cost_Unit   = 18, Elec_Cost_Unit=8,
+            Water_Total=wt, Elec_Total=et,
+        )
+        w_run = wa;  e_run = ea
+
+    # บันทึก meter สุดท้ายของผู้เช่าเก่า → ใช้เป็นจุดเริ่มต้นของผู้เช่าใหม่
+    moveout_water[room.Room_ID] = w_run
+    moveout_elec[room.Room_ID]  = e_run
+
+    # ---- ผู้เช่าใหม่ (เข้ามา ม.ค. 2025) ----
+    new_tenant = Tenant.objects.create(
+        First_Name = random.choice(first_names),
+        Last_Name  = random.choice(last_names),
+        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
+        Phone      = f"08{random.randint(10000000, 99999999)}",
+        Email      = f"new_tenant_{room.Room_ID}@example.com",
+        Line_ID    = f"new_{room.Room_ID}",
+    )
+    new_water_start = Decimal(str(round(w_run)))
+    new_elec_start  = Decimal(str(round(e_run)))
+    new_contract = Contract.objects.create(
+        Tenant_ID         = new_tenant,
+        Room_ID           = room,
+        Start_Date        = datetime.date(2025, 1, 1),
+        End_Date          = datetime.date(2026, 6, 30),
+        Deposit           = Decimal('4000'),
+        Deposit_Advance   = Decimal('2000'),
+        Rent_Price        = Decimal('4000'),
+        Water_Cost_Unit   = 18,
+        Elec_Cost_Unit    = 8,
+        Water_Meter_Start = new_water_start,
+        Elec_Meter_Start  = new_elec_start,
+        Status            = 'ใช้งาน',
+    )
+
+    # สร้าง invoice ผู้เช่าใหม่ ม.ค. 2025 → เดือนล่าสุด
+    nw_run = float(new_water_start)
+    ne_run = float(new_elec_start)
+    new_bill_months = []
+    nc = datetime.date(2025, 1, 1)
+    ne = this_month if today.day < 25 else today.replace(day=1)
+    while nc <= ne:
+        new_bill_months.append(nc)
+        nc = (nc.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+
+    for bm_s in new_bill_months:
+        bd     = bm_s.replace(day=25)
+        if bd > today:
+            break
+        bm     = bm_s
+        next_m = (bd + datetime.timedelta(days=10)).replace(day=1)
+        due    = next_m.replace(day=5)
+        wa     = nw_run + random.randint(8, 25)
+        ea     = ne_run + random.randint(50, 200)
+        wu     = wa - nw_run;  eu = ea - ne_run
+        wt     = Decimal(str(wu)) * 18;  et = Decimal(str(eu)) * 8
+        gt     = Decimal('4000') + wt + et
+
+        # เดือนล่าสุด → รอชำระ, เดือนก่อนหน้า → ชำระแล้ว
+        if bm_s == this_month and today.day >= 25:
+            st = 'รอชำระ'; pd = None; du = due
+        elif bm_s == (this_month.replace(day=1) - datetime.timedelta(days=1)).replace(day=1):
+            st = 'ชำระแล้ว'; pd = bd + datetime.timedelta(days=random.randint(1,9)); du = due
+        else:
+            st = 'ชำระแล้ว'; pd = bd + datetime.timedelta(days=random.randint(1,9)); du = due
+
+        inv = Invoice.objects.create(
+            Contract_ID  = new_contract,
+            Billing_Date = bd,
+            Due_Date     = du,
+            Grand_Total  = gt,
+            Status       = st,
+            Paid_Date    = pd,
+        )
+        MonthlyBill.objects.create(Invoice_ID=inv, Bill_Month=bm, Amount=Decimal('4000'))
+        Utility.objects.create(
+            Invoice_ID        = inv, Room_ID=room, Bill_Month=bm,
+            Water_Unit_Before = Decimal(str(nw_run)), Water_Unit_After=Decimal(str(wa)),
+            Water_Unit_Used   = Decimal(str(wu)),     Elec_Unit_Used  = Decimal(str(eu)),
+            Water_Cost_Unit   = 18, Elec_Cost_Unit=8,
+            Water_Total=wt, Elec_Total=et,
+        )
+        nw_run = wa;  ne_run = ea
+
+    # อัปเดต contract_map → ชี้ไปผู้เช่าใหม่
+    contract_map[room.Room_ID] = new_contract
+
+print(f"  ห้องมีประวัติย้ายออก : {MOVEOUT_ROOMS} ห้อง")
+print(f"  Contract สิ้นสุด     : {Contract.objects.filter(Status='สิ้นสุด').count()} รายการ")
+print(f"  Contract ใช้งาน      : {Contract.objects.filter(Status='ใช้งาน').count()} รายการ")
+print(f"  Invoice ทั้งหมด (รวมประวัติ) : {Invoice.objects.count()} ฉบับ")
+
 # ========== Booking ==========
 print("สร้างการจอง...")
 booking_rooms = random.sample(vacant_rooms, min(4, len(vacant_rooms)))
@@ -281,15 +436,22 @@ print(f"  สร้าง {Maintenance.objects.count()} รายการแจ
 
 # ========== สรุป ==========
 print(f"\n{'='*50}")
-print(f"ห้องทั้งหมด        : {Room.objects.count()}")
-print(f"ว่าง               : {Room.objects.filter(Status='ว่าง').count()}")
-print(f"มีผู้เช่า (ปกติ)   : {Room.objects.filter(Status='มีผู้เช่า', Status_Flag='ปกติ').count()}")
-print(f"แจ้งย้ายออก        : {Room.objects.filter(Status_Flag='แจ้งย้ายออก').count()}")
-print(f"รอทำความสะอาด      : {Room.objects.filter(Status_Flag='รอทำความสะอาด').count()}")
-print(f"ซ่อมบำรุง          : {Room.objects.filter(Status='ซ่อมบำรุง').count()}")
-print(f"การจอง             : {Booking.objects.filter(Status='รอยืนยัน').count()}")
-print(f"Invoice ชำระแล้ว   : {Invoice.objects.filter(Status='ชำระแล้ว').count()}")
-print(f"Invoice รอชำระ     : {Invoice.objects.filter(Status='รอชำระ').count()}")
-print(f"Invoice เกินกำหนด  : {Invoice.objects.filter(Status='เกินกำหนด').count()}")
-print(f"แจ้งซ่อม           : {Maintenance.objects.count()}")
+print(f"ห้องทั้งหมด              : {Room.objects.count()}")
+print(f"ว่าง                     : {Room.objects.filter(Status='ว่าง').count()}")
+print(f"มีผู้เช่า (ปกติ)         : {Room.objects.filter(Status='มีผู้เช่า', Status_Flag='ปกติ').count()}")
+print(f"แจ้งย้ายออก              : {Room.objects.filter(Status_Flag='แจ้งย้ายออก').count()}")
+print(f"รอทำความสะอาด            : {Room.objects.filter(Status_Flag='รอทำความสะอาด').count()}")
+print(f"ซ่อมบำรุง                : {Room.objects.filter(Status='ซ่อมบำรุง').count()}")
+print(f"─────────────────────────────────────────────────")
+print(f"Contract ใช้งาน          : {Contract.objects.filter(Status='ใช้งาน').count()}")
+print(f"Contract สิ้นสุด (ย้ายออก): {Contract.objects.filter(Status='สิ้นสุด').count()}")
+print(f"─────────────────────────────────────────────────")
+print(f"การจอง                   : {Booking.objects.filter(Status='รอยืนยัน').count()}")
+print(f"─────────────────────────────────────────────────")
+print(f"Invoice รวมทั้งหมด        : {Invoice.objects.count()}")
+print(f"  ชำระแล้ว               : {Invoice.objects.filter(Status='ชำระแล้ว').count()}")
+print(f"  รอชำระ                 : {Invoice.objects.filter(Status='รอชำระ').count()}")
+print(f"  เกินกำหนด              : {Invoice.objects.filter(Status='เกินกำหนด').count()}")
+print(f"─────────────────────────────────────────────────")
+print(f"แจ้งซ่อม                 : {Maintenance.objects.count()}")
 print(f"{'='*50}")

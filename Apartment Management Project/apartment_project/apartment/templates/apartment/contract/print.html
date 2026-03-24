@@ -1,3 +1,4 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -40,7 +41,7 @@
     <p>
         ผู้เช่าตกลงเช่า <strong>ห้อง {{ contract.Room_ID.Room_Number }}</strong>
         อาคาร {{ contract.Room_ID.Building_No }} ชั้น {{ contract.Room_ID.Floor }}
-        ในราคา <strong>{{ contract.Rent_Price }} บาท/เดือน</strong>
+        ในราคา <strong>{{ contract.Rent_Price|intcomma }} บาท/เดือน</strong>
         ตั้งแต่วันที่ {{ contract.Start_Date|date:"d F Y" }}
         ถึงวันที่ {{ contract.End_Date|date:"d F Y" }}
     </p>
@@ -48,8 +49,8 @@
     <h6 class="mt-4">เงื่อนไขการเช่า</h6>
     <ol>
         <li>ผู้เช่าชำระค่าเช่าล่วงหน้าทุกต้นเดือน ภายในวันที่ 5 ของเดือน</li>
-        <li>เงินประกันห้อง <strong>{{ contract.Deposit }} บาท</strong> จะได้รับคืนเมื่อออกจากห้องและห้องอยู่ในสภาพปกติ</li>
-        <li>เงินมัดจำ <strong>{{ contract.Deposit_Advance }} บาท</strong> ชำระ ณ วันทำสัญญา</li>
+        <li>เงินประกันห้อง <strong>{{ contract.Deposit|intcomma }} บาท</strong> จะได้รับคืนเมื่อออกจากห้องและห้องอยู่ในสภาพปกติ</li>
+        <li>เงินมัดจำ <strong>{{ contract.Deposit_Advance|intcomma }} บาท</strong> ชำระ ณ วันทำสัญญา</li>
         <li>ค่าน้ำประปา คิดในอัตรา {{ contract.Water_Cost_Unit }} บาท/หน่วย (มิเตอร์เริ่มต้น: {{ contract.Water_Meter_Start }})</li>
         <li>ค่าไฟฟ้า คิดในอัตรา {{ contract.Elec_Cost_Unit }} บาท/หน่วย (มิเตอร์เริ่มต้น: {{ contract.Elec_Meter_Start }})</li>
         <li>ห้ามนำสัตว์เลี้ยงเข้าพักอาศัย</li>
