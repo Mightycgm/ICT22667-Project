@@ -1,72 +1,466 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
-<h4>{{ title }}</h4>
-<div class="card mt-3" style="max-width: 600px;">
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
 
-            <div class="mb-3">
-                <label class="form-label fw-bold">ห้องที่จอง <span class="text-danger">*</span></label>
-                {{ form.Room_ID }}
+<style>
+    .booking-form-hero {
+        background: linear-gradient(135deg, #f5a623 0%, #f7c948 50%, #f5a623 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 28px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+    }
+    .booking-form-hero::before {
+        content: '';
+        position: absolute;
+        top: -60%; right: -25%;
+        width: 280px; height: 280px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .booking-form-hero h4 {
+        font-weight: 800;
+        font-size: 1.5rem;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+    }
+    .booking-form-hero p {
+        opacity: 0.9;
+        font-size: 0.9rem;
+        margin: 6px 0 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .form-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+    .form-section {
+        padding: 24px 28px;
+    }
+    .form-section + .form-section {
+        border-top: 1px solid #f0f2f5;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .section-title .section-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    .section-title h6 {
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin: 0;
+        color: #1e1e2d;
+    }
+    .section-title small {
+        font-weight: 400;
+        color: #8c8ea0;
+        font-size: 0.78rem;
+    }
+
+    .form-floating-custom .form-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #5a5c6f;
+        margin-bottom: 6px;
+        letter-spacing: 0.3px;
+    }
+    .form-floating-custom .form-control,
+    .form-floating-custom .form-select,
+    .form-floating-custom select {
+        border-radius: 10px;
+        border: 1.5px solid #e4e6ef;
+        padding: 10px 14px;
+        font-size: 0.92rem;
+        transition: all 0.2s ease;
+        background-color: #fafbfc;
+        width: 100%;
+        height: auto;
+    }
+    .form-floating-custom .form-control:focus,
+    .form-floating-custom .form-select:focus,
+    .form-floating-custom select:focus {
+        border-color: #f5a623;
+        box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
+        background-color: #fff;
+        outline: none;
+    }
+
+    .required-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background: #ed4c78;
+        border-radius: 50%;
+        margin-left: 4px;
+        vertical-align: middle;
+    }
+
+    .filter-select {
+        border-radius: 10px !important;
+        border: 1.5px solid #e4e6ef !important;
+        padding: 10px 14px !important;
+        font-size: 0.92rem !important;
+        background-color: #fafbfc !important;
+        width: 100%;
+        transition: all 0.2s ease;
+        appearance: auto;
+    }
+    .filter-select:focus {
+        border-color: #f5a623 !important;
+        box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12) !important;
+        background-color: #fff !important;
+        outline: none;
+    }
+    .filter-select:disabled {
+        background-color: #f0f2f5 !important;
+        color: #adb5bd !important;
+        cursor: not-allowed;
+    }
+
+    .room-selected-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+        border: 1.5px solid #66bb6a;
+        color: #2e7d32;
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-top: 10px;
+    }
+
+    .btn-book {
+        background: linear-gradient(135deg, #f5a623 0%, #e8951a 100%);
+        border: none;
+        color: #fff;
+        font-weight: 700;
+        padding: 12px 32px;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+    }
+    .btn-book:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(245, 166, 35, 0.4);
+        color: #fff;
+    }
+    .btn-cancel {
+        background: #f0f2f5;
+        border: none;
+        color: #5a5c6f;
+        font-weight: 600;
+        padding: 12px 28px;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+    .btn-cancel:hover {
+        background: #e4e6ef;
+        color: #1e1e2d;
+    }
+</style>
+
+<!-- Hero -->
+<div class="booking-form-hero">
+    <h4><i class="bi bi-bookmark-star-fill me-2"></i>{{ title }}</h4>
+    <p>เลือกอาคาร → ชั้น → ห้อง แล้วกรอกข้อมูลผู้จอง</p>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-lg-8">
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-card">
+
+        <!-- Section 1: เลือกห้อง (Cascading Filter) -->
+        <div class="form-section">
+            <div class="section-title">
+                <div class="section-icon" style="background:#fff3e0; color:#e65100;">
+                    <i class="bi bi-door-open-fill"></i>
+                </div>
+                <div>
+                    <h6>เลือกห้องพัก</h6>
+                    <small>เลือกอาคาร → ชั้น → ห้องที่ว่าง</small>
+                </div>
             </div>
 
-            <hr><h6 class="text-muted">ข้อมูลผู้จอง</h6>
+            <div class="row g-3">
+                <div class="col-md-4 form-floating-custom">
+                    <label class="form-label">อาคาร <span class="required-dot"></span></label>
+                    <select id="filter-building" class="filter-select">
+                        <option value="">-- เลือกอาคาร --</option>
+                    </select>
+                </div>
+                <div class="col-md-4 form-floating-custom">
+                    <label class="form-label">ชั้น <span class="required-dot"></span></label>
+                    <select id="filter-floor" class="filter-select" disabled>
+                        <option value="">-- เลือกชั้น --</option>
+                    </select>
+                </div>
+                <div class="col-md-4 form-floating-custom">
+                    <label class="form-label">ห้อง <span class="required-dot"></span></label>
+                    <select id="filter-room" class="filter-select" disabled>
+                        <option value="">-- เลือกห้อง --</option>
+                    </select>
+                </div>
+            </div>
 
-            <div class="row mb-3">
-                <div class="col-6">
-                    <label class="form-label fw-bold">ชื่อ <span class="text-danger">*</span></label>
+            <!-- Hidden original form field -->
+            <div style="display:none;">{{ form.Room_ID }}</div>
+
+            <div id="room-selected-info" style="display:none;">
+                <div class="room-selected-badge">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span id="room-selected-text"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: ข้อมูลผู้จอง -->
+        <div class="form-section">
+            <div class="section-title">
+                <div class="section-icon" style="background:#e3f2fd; color:#1565c0;">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <div>
+                    <h6>ข้อมูลผู้จอง</h6>
+                    <small>กรอกข้อมูลส่วนตัวของผู้ที่ต้องการจองห้อง</small>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6 form-floating-custom">
+                    <label class="form-label">ชื่อ <span class="required-dot"></span></label>
                     {{ form.First_Name }}
                 </div>
-                <div class="col-6">
-                    <label class="form-label fw-bold">นามสกุล <span class="text-danger">*</span></label>
+                <div class="col-md-6 form-floating-custom">
+                    <label class="form-label">นามสกุล <span class="required-dot"></span></label>
                     {{ form.Last_Name }}
                 </div>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-6">
-                    <label class="form-label fw-bold">เลขบัตรประชาชน <span class="text-danger">*</span></label>
+                <div class="col-md-6 form-floating-custom">
+                    <label class="form-label">เลขบัตรประชาชน <span class="required-dot"></span></label>
                     {{ form.ID_Card }}
                 </div>
-                <div class="col-6">
-                    <label class="form-label fw-bold">เบอร์โทร <span class="text-danger">*</span></label>
+                <div class="col-md-6 form-floating-custom">
+                    <label class="form-label">เบอร์โทร <span class="required-dot"></span></label>
                     {{ form.Phone }}
                 </div>
             </div>
+        </div>
 
-            <div class="row mb-3">
-                <div class="col-6">
+        <!-- Section 3: ข้อมูลติดต่อ -->
+        <div class="form-section">
+            <div class="section-title">
+                <div class="section-icon" style="background:#e8f5e9; color:#2e7d32;">
+                    <i class="bi bi-chat-dots-fill"></i>
+                </div>
+                <div>
+                    <h6>ข้อมูลติดต่อเพิ่มเติม</h6>
+                    <small>ไม่บังคับ — กรอกเพิ่มเติมเพื่อความสะดวกในการติดต่อ</small>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6 form-floating-custom">
                     <label class="form-label">อีเมล์</label>
                     {{ form.Email }}
                 </div>
-                <div class="col-6">
+                <div class="col-md-6 form-floating-custom">
                     <label class="form-label">Line ID</label>
                     {{ form.Line_ID }}
                 </div>
+                <div class="col-12 form-floating-custom">
+                    <label class="form-label">ที่อยู่</label>
+                    {{ form.Address }}
+                </div>
             </div>
+        </div>
 
-            <div class="mb-3">
-                <label class="form-label">ที่อยู่</label>
-                {{ form.Address }}
+        <!-- Section 4: หมายเหตุ -->
+        <div class="form-section">
+            <div class="section-title">
+                <div class="section-icon" style="background:#f3f0ff; color:#5e60ce;">
+                    <i class="bi bi-journal-text"></i>
+                </div>
+                <div>
+                    <h6>หมายเหตุ</h6>
+                    <small>บันทึกข้อมูลเพิ่มเติมเกี่ยวกับการจอง</small>
+                </div>
             </div>
-
-            <div class="mb-4">
-                <label class="form-label">หมายเหตุ</label>
+            <div class="form-floating-custom">
                 {{ form.Note }}
             </div>
+        </div>
 
-            {% if form.errors %}
-            <div class="alert alert-danger">กรุณาตรวจสอบข้อมูลให้ครบถ้วน</div>
-            {% endif %}
-
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-warning fw-bold">
-                    📌 บันทึกการจอง
-                </button>
-                <a href="{% url 'booking_list' %}" class="btn btn-secondary">ยกเลิก</a>
+        <!-- Error -->
+        {% if form.errors %}
+        <div class="form-section" style="padding-top:0;">
+            <div class="alert alert-danger d-flex align-items-center" style="border-radius:10px; border:none; background:#fff5f5; color:#c62828;">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span>กรุณาตรวจสอบข้อมูลให้ครบถ้วน</span>
             </div>
-        </form>
-    </div>
-</div>
+        </div>
+        {% endif %}
+
+        <!-- Submit -->
+        <div class="form-section" style="background:#fafbfc; border-top: 2px solid #f0f2f5;">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{% url 'booking_list' %}" class="btn btn-cancel">
+                    <i class="bi bi-arrow-left me-1"></i> ยกเลิก
+                </a>
+                <button type="submit" class="btn btn-book">
+                    <i class="bi bi-bookmark-check-fill me-1"></i> บันทึกการจอง
+                </button>
+            </div>
+        </div>
+    </div><!-- end form-card -->
+</form>
+
+</div><!-- end col -->
+</div><!-- end row -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const API_URL    = '{% url "api_rooms_available" %}';
+    const selBuilding = document.getElementById('filter-building');
+    const selFloor    = document.getElementById('filter-floor');
+    const selRoom     = document.getElementById('filter-room');
+    const hiddenSelect = document.getElementById('id_Room_ID');
+    const infoDiv     = document.getElementById('room-selected-info');
+    const infoText    = document.getElementById('room-selected-text');
+
+    // Pre-selected room (เมื่อมาจากหน้า room detail)
+    const preselectedRoom = hiddenSelect ? hiddenSelect.value : '';
+
+    // 1) โหลดรายการอาคาร
+    fetch(API_URL + '?type=buildings')
+        .then(r => r.json())
+        .then(data => {
+            data.buildings.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = 'อาคาร ' + b;
+                selBuilding.appendChild(opt);
+            });
+
+            // ถ้ามี pre-selected room ให้โหลดข้อมูลห้องนั้นมา set ค่าอัตโนมัติ
+            if (preselectedRoom) {
+                loadPreselected(preselectedRoom);
+            }
+        });
+
+    // 2) เมื่อเลือกอาคาร → โหลดชั้น
+    selBuilding.addEventListener('change', function() {
+        selFloor.innerHTML = '<option value="">-- เลือกชั้น --</option>';
+        selRoom.innerHTML  = '<option value="">-- เลือกห้อง --</option>';
+        selFloor.disabled = true;
+        selRoom.disabled  = true;
+        clearSelection();
+
+        if (!this.value) return;
+
+        fetch(API_URL + '?type=floors&building=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.floors.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f;
+                    opt.textContent = 'ชั้น ' + f;
+                    selFloor.appendChild(opt);
+                });
+                selFloor.disabled = false;
+            });
+    });
+
+    // 3) เมื่อเลือกชั้น → โหลดห้อง
+    selFloor.addEventListener('change', function() {
+        selRoom.innerHTML = '<option value="">-- เลือกห้อง --</option>';
+        selRoom.disabled  = true;
+        clearSelection();
+
+        if (!this.value) return;
+
+        fetch(API_URL + '?building=' + selBuilding.value + '&floor=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.rooms.forEach(rm => {
+                    const opt = document.createElement('option');
+                    opt.value = rm.Room_ID;
+                    opt.textContent = 'ห้อง ' + rm.Room_Number;
+                    selRoom.appendChild(opt);
+                });
+                selRoom.disabled = false;
+            });
+    });
+
+    // 4) เมื่อเลือกห้อง → set hidden field
+    selRoom.addEventListener('change', function() {
+        if (this.value) {
+            hiddenSelect.value = this.value;
+            const roomText = this.options[this.selectedIndex].textContent;
+            const bldText  = selBuilding.options[selBuilding.selectedIndex].textContent;
+            const flrText  = selFloor.options[selFloor.selectedIndex].textContent;
+            infoText.textContent = bldText + ' · ' + flrText + ' · ' + roomText;
+            infoDiv.style.display = 'block';
+        } else {
+            clearSelection();
+        }
+    });
+
+    function clearSelection() {
+        if (hiddenSelect) hiddenSelect.value = '';
+        infoDiv.style.display = 'none';
+    }
+
+    // Pre-select: โหลดข้อมูลห้องที่ถูกเลือกไว้ล่วงหน้า
+    function loadPreselected(roomId) {
+        fetch(API_URL)
+            .then(r => r.json())
+            .then(data => {
+                const room = data.rooms.find(r => String(r.Room_ID) === String(roomId));
+                if (!room) return;
+
+                // Set building
+                selBuilding.value = room.Building_No;
+                selBuilding.dispatchEvent(new Event('change'));
+
+                // After building loads floors, set floor
+                setTimeout(() => {
+                    selFloor.value = room.Floor;
+                    selFloor.dispatchEvent(new Event('change'));
+
+                    // After floor loads rooms, set room
+                    setTimeout(() => {
+                        selRoom.value = room.Room_ID;
+                        selRoom.dispatchEvent(new Event('change'));
+                    }, 300);
+                }, 300);
+            });
+    }
+});
+</script>
+
 {% endblock %}

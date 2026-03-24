@@ -4,92 +4,382 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจัดการอพาร์ทเม้นต์</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
     <style>
-        body { background: #f5f5f5; }
-        .navbar-brand { font-weight: bold; }
-        .user-badge {
-            background: #343a40;
-            color: #adb5bd;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
+        :root {
+            --sidebar-width: 250px;
+            --topbar-height: 64px;
+            --primary-color: #4e73df;
+            --bg-body: #f4f6f9;
+            --sidebar-bg: #1e1e2d; /* Dark sleek */
+            --sidebar-text: #a2a3b7;
+            --sidebar-hover: #2b2b40;
+            --sidebar-active: #4e73df;
         }
-        .user-badge span { color: white; font-weight: bold; }
+        body { 
+            background: var(--bg-body); 
+            font-family: 'Inter', 'Kanit', sans-serif; 
+            overflow-x: hidden;
+            margin: 0;
+        }
+        
+        /* Layout Structure */
+        #wrapper {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+        
+        /* Sidebar */
+        #sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: white;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            z-index: 1030;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        #sidebar .sidebar-brand {
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(0,0,0,0.2);
+        }
+        #sidebar .nav-link {
+            color: var(--sidebar-text);
+            padding: 12px 24px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        #sidebar .nav-link i {
+            font-size: 1.15rem;
+            width: 24px;
+            text-align: center;
+        }
+        #sidebar .nav-link:hover {
+            color: #fff;
+            background: var(--sidebar-hover);
+        }
+        #sidebar .nav-link.active {
+            color: #fff;
+            background: rgba(78, 115, 223, 0.15);
+            border-left: 3px solid var(--sidebar-active);
+        }
+        
+        /* Main Content */
+        #content-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 100vh;
+        }
+        
+        /* Topbar */
+        #topbar {
+            height: var(--topbar-height);
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 1020;
+            position: sticky;
+            top: 0;
+        }
+        
+        /* Mobile Toggle */
+        #mobile-menu-btn {
+            display: none;
+            border: none;
+            background: transparent;
+            color: #495057;
+        }
+        
+        /* Overlay for mobile */
+        #sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1025;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                left: -250px;
+                height: 100vh;
+            }
+            #sidebar.show {
+                left: 0;
+            }
+            #mobile-menu-btn {
+                display: block;
+            }
+            #sidebar-overlay.show {
+                display: block;
+            }
+        }
+        
+        /* Global UI Upgrades */
+        .card {
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            background-color: transparent;
+            border-bottom: 1px solid #ebedf2;
+            font-weight: 600;
+            padding: 1.25rem 1.5rem;
+            font-size: 1.1rem;
+            color: #181c32;
+        }
+        
+        /* Beautiful Tables */
+        .table-responsive {
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.02);
+            background: white;
+        }
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 0;
+        }
+        .table thead th {
+            border-bottom: 1px solid #ebedf2;
+            border-top: none;
+            color: #a1a5b7;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            background: #fafafa;
+            padding: 1rem;
+        }
+        .table tbody td {
+            vertical-align: middle;
+            color: #3f4254;
+            border-bottom: 1px dashed #ebedf2;
+            padding: 1rem;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: #fcfcfc;
+        }
+        .table tbody tr:hover {
+            background-color: #f5f8fa;
+        }
+        
+        /* Buttons */
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 0.45rem 1.2rem;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn-primary { 
+            background-color: var(--primary-color); 
+            border-color: var(--primary-color); 
+        }
+        .btn-primary:hover { 
+            transform: translateY(-1px); 
+            box-shadow: 0 4px 10px rgba(78, 115, 223, 0.3); 
+        }
+        
+        /* User Badge */
+        .user-badge {
+            background: #f8f9fa;
+            color: #495057;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid #ebedf2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        
+        /* Status Badges */
+        .badge {
+            border-radius: 6px;
+            padding: 0.4em 0.6em;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
 
-<!-- Top bar: User info + Logout -->
-<div class="bg-dark py-1 px-3 d-flex justify-content-end align-items-center" style="font-size:0.85rem;">
-    <span class="user-badge me-2">
-        เข้าสู่ระบบโดย: <span>{{ request.user.get_full_name|default:request.user.username }}</span>
-        {% if user_role == 'ADMIN' %}
-            <span class="badge bg-danger ms-1">Admin</span>
-        {% elif user_role == 'MANAGER' %}
-            <span class="badge bg-primary ms-1">Manager</span>
-        {% elif user_role == 'STAFF' %}
-            <span class="badge bg-success ms-1">Staff</span>
-        {% else %}
-            <span class="badge bg-secondary ms-1">Readonly</span>
-        {% endif %}
-    </span>
-    <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm">ออกจากระบบ</a>
-</div>
+<div id="wrapper">
+    <!-- Overlay for mobile sidebar -->
+    <div id="sidebar-overlay"></div>
+    
+    <!-- Sidebar -->
+    <nav id="sidebar">
+        <a class="sidebar-brand" href="{% url 'dashboard' %}">
+            <i class="bi bi-building-fill-check text-primary me-2"></i> อพาร์ทเม้นต์
+        </a>
+        <div class="px-4 py-3 text-uppercase font-weight-bold" style="font-size: 0.65rem; letter-spacing: 1px; color: #6c7293; margin-top: 10px;">เมนูหลัก</div>
+        <ul class="nav flex-column mb-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'dashboard' %}" data-active="dashboard">
+                    <i class="bi bi-grid-1x2-fill"></i> ภาพรวมห้องพัก
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'booking_list' %}" data-active="booking">
+                    <i class="bi bi-calendar-check-fill text-warning"></i> จองห้องพัก
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'contract_list' %}" data-active="contract">
+                    <i class="bi bi-file-earmark-text-fill text-info"></i> สัญญาเช่า
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'tenant_list' %}" data-active="tenant">
+                    <i class="bi bi-people-fill text-success"></i> ลูกค้า / ผู้เช่า
+                </a>
+            </li>
+            {% if user_role != 'METER' %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'meter_index' %}" data-active="meter">
+                    <i class="bi bi-lightning-charge-fill text-danger"></i> จดมิเตอร์น้ำ-ไฟ
+                </a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'meter_input' %}" data-active="meter">
+                    <i class="bi bi-lightning-charge-fill text-danger"></i> มิเตอร์
+                </a>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'maintenance_list' %}" data-active="maintenance">
+                    <i class="bi bi-tools text-secondary"></i> แจ้งซ่อม
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'invoice_list' %}" data-active="invoice">
+                    <i class="bi bi-receipt-cutoff text-primary"></i> ใบแจ้งหนี้
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'monthly_summary' %}" data-active="report">
+                    <i class="bi bi-bar-chart-fill" style="color: #a855f7;"></i> รายงานสรุป
+                </a>
+            </li>
+            {% if user_role == 'ADMIN' %}
+            <div class="px-4 py-3 mt-2 text-uppercase font-weight-bold" style="font-size: 0.65rem; letter-spacing: 1px; color: #6c7293;">ตั้งค่าระบบ</div>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'room_list' %}" data-active="room">
+                    <i class="bi bi-gear-fill"></i> ตั้งค่าห้องพื้นฐาน
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+    <!-- Content Wrapper -->
+    <div id="content-wrapper">
+        <!-- Topbar -->
+        <header id="topbar">
+            <button class="btn btn-light" id="mobile-menu-btn">
+                <i class="bi bi-list fs-3"></i>
+            </button>
+            <div class="d-none d-md-block fw-bold text-dark fs-5">
+                <!-- Can be updated with page titles dynamically if needed -->
+            </div>
+            
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <span class="user-badge d-none d-md-inline-flex align-items-center">
+                    <i class="bi bi-person-circle me-2 fs-5 text-secondary"></i>
+                    <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+                    {% if user_role == 'ADMIN' %}
+                        <span class="badge bg-danger ms-2">Admin</span>
+                    {% elif user_role == 'MANAGER' %}
+                        <span class="badge bg-primary ms-2">Manager</span>
+                    {% elif user_role == 'STAFF' %}
+                        <span class="badge bg-success ms-2">Staff</span>
+                    {% else %}
+                        <span class="badge bg-secondary ms-2">Readonly</span>
+                    {% endif %}
+                </span>
+                <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-none fw-bold">
+                    <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+                </a>
+            </div>
+        </header>
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-top border-secondary">
-    <div class="container-fluid px-3">
-        <a class="navbar-brand" href="{% url 'dashboard' %}">🏢 อพาร์ทเม้นต์</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navMenu">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'dashboard' %}">🏠 ห้องพัก</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'booking_list' %}">📌 จองห้องพัก</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'contract_list' %}">📋 สัญญาเช่า</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'tenant_list' %}">👤 ลูกค้า</a>
-                </li>
-                {% if user_role != 'METER' %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'meter_index' %}">⚡ จดมิเตอร์</a>
-                </li>
-                {% else %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'meter_input' %}">⚡ มิเตอร์</a>
-                </li>
-                {% endif %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'maintenance_list' %}">🔧 แจ้งซ่อม</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'invoice_list' %}">📄 ใบแจ้งหนี้</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'monthly_summary' %}">📊 รายงานสรุป</a>
-                </li>
-                {% if user_role == 'ADMIN' %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'room_list' %}">⚙️ ตั้งค่าห้อง</a>
-                </li>
-                {% endif %}
-            </ul>
-        </div>
+        <!-- Main Content (Page Specific) -->
+        <main class="container-fluid px-md-4 px-3 py-4 flex-grow-1">
+            {% block content %}{% endblock %}
+        </main>
+        
+        <!-- Footer Optional -->
+        <footer class="text-center py-3 text-muted" style="font-size: 0.8rem; background: transparent;">
+            &copy; 2026 Apartment Management System. Developed with passion.
+        </footer>
     </div>
-</nav>
-
-<!-- Content -->
-<div class="container-fluid px-4 mt-3">
-    {% block content %}{% endblock %}
 </div>
+
+<!-- Mobile Sidebar scripts -->
+<script>
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    function toggleSidebar() {
+        sidebar.classList.toggle('show');
+        overlay.classList.toggle('show');
+    }
+    
+    mobileBtn.addEventListener('click', toggleSidebar);
+    overlay.addEventListener('click', toggleSidebar);
+    
+    // Auto-active script to highlight current page in sidebar
+    document.addEventListener("DOMContentLoaded", function() {
+        let currentUrl = window.location.pathname;
+        let navLinks = document.querySelectorAll('#sidebar .nav-link');
+        
+        navLinks.forEach(link => {
+            let href = link.getAttribute('href');
+            let dataActive = link.getAttribute('data-active');
+            
+            // Check by exact root or subpaths
+            if (href === '/' && currentUrl === '/') {
+                link.classList.add('active');
+            } else if (href !== '/' && currentUrl.startsWith(href)) {
+                link.classList.add('active');
+            } else if (currentUrl.includes(dataActive)) {
+                 link.classList.add('active'); // fallback mapping
+            }
+        });
+    });
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

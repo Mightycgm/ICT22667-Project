@@ -38,6 +38,7 @@ urlpatterns = [
     path('maintenance/',                views.maintenance_list,   name='maintenance_list'),
     path('maintenance/add/',            views.maintenance_create, name='maintenance_create'),
     path('maintenance/<int:pk>/edit/',  views.maintenance_edit,   name='maintenance_edit'),
+    path('maintenance/<int:pk>/delete/', views.maintenance_delete, name='maintenance_delete'),
 
     # Print + Report
     path('invoices/<int:pk>/print/',  views.invoice_print,    name='invoice_print'),
@@ -49,6 +50,9 @@ urlpatterns = [
     path('bookings/add/<int:room_pk>/',     views.booking_create,  name='booking_create_room'),
     path('bookings/<int:pk>/cancel/',       views.booking_cancel,  name='booking_cancel'),
     path('bookings/<int:pk>/confirm/',      views.booking_confirm, name='booking_confirm'),
+
+    # API
+    path('api/rooms-available/', views.api_rooms_available, name='api_rooms_available'),
 
     # Meter
     path('meter/',       views.meter_index, name='meter_index'),
