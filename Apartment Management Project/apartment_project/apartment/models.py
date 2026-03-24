@@ -120,10 +120,12 @@ class Utility(models.Model):
     Invoice_ID        = models.OneToOneField(Invoice, on_delete=models.PROTECT, db_column='Invoice_ID')
     Room_ID           = models.ForeignKey(Room, on_delete=models.PROTECT, db_column='Room_ID')
     Bill_Month        = models.DateField()
-    Water_Unit_Before = models.DecimalField(max_digits=5, decimal_places=2)
-    Water_Unit_After  = models.DecimalField(max_digits=5, decimal_places=2)
-    Water_Unit_Used   = models.DecimalField(max_digits=5, decimal_places=2)   # After - Before
-    Elec_Unit_Used    = models.DecimalField(max_digits=6, decimal_places=2)
+    Water_Unit_Before = models.DecimalField(max_digits=8, decimal_places=2)
+    Water_Unit_After  = models.DecimalField(max_digits=8, decimal_places=2)
+    Water_Unit_Used   = models.DecimalField(max_digits=8, decimal_places=2)   # After - Before
+    Elec_Unit_Before  = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    Elec_Unit_After   = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    Elec_Unit_Used    = models.DecimalField(max_digits=8, decimal_places=2)
     Water_Cost_Unit   = models.IntegerField()
     Elec_Cost_Unit    = models.IntegerField()
     Water_Total       = models.DecimalField(max_digits=10, decimal_places=2)  # Water_Unit_Used × Water_Cost_Unit

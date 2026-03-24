@@ -903,9 +903,14 @@ def meter_index(request):
         if f not in buildings[b]:
             buildings[b][f] = []
 
-        latest_u  = Utility.objects.filter(Room_ID=room).order_by('-Bill_Month').first()
         curr_u    = curr_map.get(room.Room_ID)
         contract  = contract_map.get(room.Room_ID)
+
+        latest_u = Utility.objects.filter(
+            Room_ID=room
+        ).exclude(
+            Bill_Month=bill_month
+        ).order_by('-Bill_Month').first()
 
         buildings[b][f].append({
             'room':     room,
@@ -913,7 +918,7 @@ def meter_index(request):
             'prev_u':   latest_u,
             'curr_u':   curr_u,
             'water_prev': latest_u.Water_Unit_After if latest_u else (contract.Water_Meter_Start if contract else 0),
-            'elec_prev':  (latest_u.Elec_Unit_Used + latest_u.Water_Unit_Before) if latest_u else (contract.Elec_Meter_Start if contract else 0),
+            'elec_prev':  latest_u.Elec_Unit_After if latest_u else (contract.Elec_Meter_Start if contract else 0),
         })
 
     # dropdown ตัวเลือก
@@ -980,7 +985,7 @@ def meter_save(request):
         ).first()
 
         water_before = float(prev_u.Water_Unit_After) if prev_u else float(contract.Water_Meter_Start)
-        elec_before  = float(prev_u.Elec_Unit_Used + prev_u.Water_Unit_Before) if prev_u else float(contract.Elec_Meter_Start)
+        elec_before  = float(prev_u.Elec_Unit_After) if prev_u else float(contract.Elec_Meter_Start)
 
         water_after_f = float(water_after)
         elec_after_f  = float(elec_after)
@@ -1012,6 +1017,8 @@ def meter_save(request):
                 'Water_Unit_Before': water_before,
                 'Water_Unit_After':  water_after_f,
                 'Water_Unit_Used':   water_used,
+                'Elec_Unit_Before':  elec_before,
+                'Elec_Unit_After':   elec_after_f,
                 'Elec_Unit_Used':    elec_used,
                 'Water_Cost_Unit':   contract.Water_Cost_Unit,
                 'Elec_Cost_Unit':    contract.Elec_Cost_Unit,
@@ -1066,13 +1073,17 @@ def meter_input(request):
         if b not in buildings:
             buildings[b] = []
         contract = contract_map.get(room.Room_ID)
-        latest_u = Utility.objects.filter(Room_ID=room).order_by('-Bill_Month').first()
         curr_u   = curr_map.get(room.Room_ID)
+        latest_u = Utility.objects.filter(
+            Room_ID=room
+        ).exclude(
+            Bill_Month=bill_month
+        ).order_by('-Bill_Month').first()
         buildings[b].append({
             'room':       room,
             'curr_u':     curr_u,
             'water_prev': latest_u.Water_Unit_After if latest_u else (contract.Water_Meter_Start if contract else 0),
-            'elec_prev':  (latest_u.Elec_Unit_Used + latest_u.Water_Unit_Before) if latest_u else (contract.Elec_Meter_Start if contract else 0),
+            'elec_prev':  latest_u.Elec_Unit_After if latest_u else (contract.Elec_Meter_Start if contract else 0),
         })
 
     if request.method == 'POST':
