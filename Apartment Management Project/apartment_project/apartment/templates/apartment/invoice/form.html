@@ -37,6 +37,36 @@
             </div>
         </div>
     </div>
-
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contractSelect = document.getElementById('id_Contract_ID');
+    const waterBefore = document.getElementById('id_Water_Unit_Before');
+    const waterAfter = document.getElementById('id_Water_Unit_After');
+    const elecUsed = document.getElementById('id_Elec_Unit_Used');
+    const billMonth = document.getElementById('id_Bill_Month');
+
+    if (contractSelect) {
+        contractSelect.addEventListener('change', function() {
+            const contractId = this.value;
+            if (!contractId) return;
+
+            fetch(`/api/utility-latest/?contract_id=${contractId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error(data.error);
+                        return;
+                    }
+                    if (waterBefore) waterBefore.value = data.Water_Unit_Before || 0;
+                    if (waterAfter) waterAfter.value = data.Water_Unit_After || 0;
+                    if (elecUsed) elecUsed.value = data.Elec_Unit_Used || 0;
+                    if (billMonth && data.Bill_Month) billMonth.value = data.Bill_Month;
+                })
+                .catch(error => console.error('Error fetching utility data:', error));
+        });
+    }
+});
+</script>
 {% endblock %}
