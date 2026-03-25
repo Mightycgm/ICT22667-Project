@@ -1,116 +1,322 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
-<h4>✅ ยืนยันการทำสัญญา</h4>
 
-<!-- ข้อมูลจากการจอง -->
-<div class="card mb-4 border-warning">
-    <div class="card-header bg-warning text-dark fw-bold">
-        📌 ข้อมูลจากการจอง — ห้อง {{ booking.Room_ID.Room_Number }}
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <p class="mb-1">ชื่อ: <strong>{{ booking.First_Name }} {{ booking.Last_Name }}</strong></p>
-                <p class="mb-1">เลขบัตร: {{ booking.ID_Card }}</p>
-                <p class="mb-1">เบอร์โทร: {{ booking.Phone }}</p>
+<style>
+    .confirm-hero {
+        background: linear-gradient(135deg, #182848 0%, #4b6cb7 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 28px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(24, 40, 72, 0.2);
+    }
+    .confirm-hero::before {
+        content: '';
+        position: absolute;
+        top: -60%; right: -15%;
+        width: 250px; height: 250px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .confirm-hero h4 {
+        font-weight: 800;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        font-size: 1.5rem;
+    }
+    .confirm-hero p {
+        opacity: 0.9;
+        margin: 6px 0 0;
+        position: relative;
+        z-index: 1;
+        font-size: 0.95rem;
+    }
+
+    /* Booking Summary Card */
+    .summary-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #ffe8cc;
+        box-shadow: 0 4px 15px rgba(245, 175, 25, 0.08);
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    .summary-header {
+        background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        padding: 16px 24px;
+        border-bottom: 1px solid #ffcc80;
+        color: #e65100;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.05rem;
+    }
+    .summary-body {
+        padding: 24px;
+    }
+    .info-label {
+        font-size: 0.8rem;
+        color: #8c8ea0;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .info-value {
+        font-size: 1rem;
+        color: #2b2d42;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: #fff;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+    .form-section {
+        padding: 24px 28px;
+    }
+    .form-section + .form-section {
+        border-top: 1px solid #f0f2f5;
+    }
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 24px;
+    }
+    .section-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        background: #e3f2fd;
+        color: #1565c0;
+        flex-shrink: 0;
+    }
+    .section-title h6 {
+        font-weight: 800;
+        font-size: 1rem;
+        margin: 0;
+        color: #1e1e2d;
+    }
+
+    .form-floating-custom .form-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #5a5c6f;
+        margin-bottom: 6px;
+        letter-spacing: 0.3px;
+        display: block;
+    }
+    .form-floating-custom .form-control,
+    .form-floating-custom .form-select,
+    .form-floating-custom select,
+    .form-floating-custom textarea,
+    .form-floating-custom input {
+        border-radius: 10px;
+        border: 1.5px solid #e4e6ef;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        background-color: #fafbfc;
+        width: 100%;
+        display: block;
+    }
+    .form-floating-custom .form-control:focus,
+    .form-floating-custom .form-select:focus,
+    .form-floating-custom select:focus,
+    .form-floating-custom textarea:focus,
+    .form-floating-custom input:focus {
+        border-color: #4b6cb7;
+        box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.12);
+        background-color: #fff;
+        outline: none;
+    }
+    
+    .btn-submit {
+        background: linear-gradient(135deg, #1aa37a 0%, #157347 100%);
+        border: none;
+        color: #fff;
+        font-weight: 700;
+        padding: 12px 28px;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(21, 115, 71, 0.3);
+    }
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(21, 115, 71, 0.4);
+        color: #fff;
+    }
+    .btn-back {
+        background: #f0f2f5;
+        border: none;
+        color: #5a5c6f;
+        font-weight: 600;
+        padding: 12px 28px;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    .btn-back:hover {
+        background: #e4e6ef;
+        color: #1e1e2d;
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="confirm-hero">
+    <h4><i class="bi bi-file-earmark-check-fill me-2"></i>ยืนยันการทำสัญญา</h4>
+    <p>ตรวจสอบข้อมูลการจองและกำหนดรายละเอียดของสัญญาเช่าให้ถูกต้องก่อนบันทึก</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <!-- ข้อมูลจากการจอง (Sidebar Summary) -->
+        <div class="summary-card h-100">
+            <div class="summary-header">
+                <i class="bi bi-pin-angle-fill text-warning"></i> ข้อมูลการจองห้อง {{ booking.Room_ID.Room_Number }}
             </div>
-            <div class="col-md-6">
-                <p class="mb-1">Line ID: {{ booking.Line_ID|default:"-" }}</p>
-                <p class="mb-1">อีเมล: {{ booking.Email|default:"-" }}</p>
-                <p class="mb-1">ที่อยู่: {{ booking.Address|default:"-" }}</p>
+            <div class="summary-body">
+                <div class="info-label">ชื่อผู้เช่า (จากใบจอง)</div>
+                <div class="info-value">{{ booking.First_Name }} {{ booking.Last_Name }}</div>
+                
+                <div class="info-label">เลขบัตรประชาชน</div>
+                <div class="info-value">{{ booking.ID_Card }}</div>
+                
+                <div class="info-label"><i class="bi bi-telephone-fill text-success me-1"></i> เบอร์โทรศัพท์</div>
+                <div class="info-value">{{ booking.Phone }}</div>
+                
+                <div class="info-label"><i class="bi bi-line text-success me-1"></i> Line ID</div>
+                <div class="info-value">{{ booking.Line_ID|default:"-" }}</div>
+                
+                <div class="info-label"><i class="bi bi-envelope-fill text-primary me-1"></i> อีเมล</div>
+                <div class="info-value">{{ booking.Email|default:"-" }}</div>
+                
+                <div class="info-label"><i class="bi bi-geo-alt-fill text-danger me-1"></i> ที่อยู่</div>
+                <div class="info-value mb-0">{{ booking.Address|default:"-" }}</div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- ฟอร์มสัญญา -->
-<div class="card">
-    <div class="card-header bg-dark text-white fw-bold">
-        📄 รายละเอียดสัญญาเช่า
-    </div>
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
+    <div class="col-lg-8 mb-4">
+        <!-- ฟอร์มสัญญา -->
+        <div class="form-card">
+            <form method="post">
+                {% csrf_token %}
+                
+                <!-- Hidden fields -->
+                {{ contract_form.Tenant_ID }}
+                {{ contract_form.Status }}
 
-            <!-- Hidden fields -->
-            {{ contract_form.Tenant_ID }}
-            {{ contract_form.Status }}
+                <div class="form-section">
+                    <div class="section-title">
+                        <div class="section-icon"><i class="bi bi-file-text-fill"></i></div>
+                        <div>
+                            <h6>รายละเอียดสัญญาเช่า</h6>
+                            <small class="text-muted">กำหนดระยะเวลาและค่าเช่าพื้นฐานอ้างอิงตามห้อง</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4 form-floating-custom">
+                            <label class="form-label">ห้องพัก <span class="text-danger">*</span></label>
+                            {{ contract_form.Room_ID }}
+                        </div>
+                        <div class="col-md-4 form-floating-custom">
+                            <label class="form-label">วันที่เริ่มสัญญา <span class="text-danger">*</span></label>
+                            {{ contract_form.Start_Date }}
+                        </div>
+                        <div class="col-md-4 form-floating-custom">
+                            <label class="form-label">ระยะเวลา (เดือน)</label>
+                            {{ contract_form.duration_months }}
+                        </div>
+                        <div class="col-md-4 form-floating-custom">
+                            <label class="form-label">วันสิ้นสุดสัญญา <span class="text-danger">*</span></label>
+                            {{ contract_form.End_Date }}
+                        </div>
+                        <div class="col-md-4 form-floating-custom">
+                            <label class="form-label">ค่าเช่า/เดือน <span class="text-danger">*</span></label>
+                            {{ contract_form.Rent_Price }}
+                        </div>
+                        <div class="col-md-4 form-floating-custom">
+                            <label class="form-label">เงินประกัน <span class="text-danger">*</span></label>
+                            {{ contract_form.Deposit }}
+                        </div>
+                        <div class="col-md-4 form-floating-custom">
+                            <label class="form-label">เงินมัดจำ (รับล่วงหน้า)</label>
+                            {{ contract_form.Deposit_Advance }}
+                        </div>
+                    </div>
+                </div>
 
-            <!-- ห้อง (fix ไม่ให้เปลี่ยน) -->
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">ห้องพัก</label>
-                    {{ contract_form.Room_ID }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">วันที่เริ่มสัญญา <span class="text-danger">*</span></label>
-                    {{ contract_form.Start_Date }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">ระยะเวลา</label>
-                    {{ contract_form.duration_months }}
-                </div>
-            </div>
+                <div class="form-section">
+                    <div class="section-title">
+                        <div class="section-icon" style="background: #e0f7fa; color: #00838f;"><i class="bi bi-lightning-charge-fill"></i></div>
+                        <div>
+                            <h6>ตั้งค่าบริการและมิเตอร์</h6>
+                            <small class="text-muted">กำหนดหน่วยค่าน้ำ ค่าไฟ และเลขมิเตอร์เริ่มต้น</small>
+                        </div>
+                    </div>
 
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">วันสิ้นสุดสัญญา <span class="text-danger">*</span></label>
-                    {{ contract_form.End_Date }}
+                    <div class="row g-3">
+                        <div class="col-md-6 form-floating-custom">
+                            <label class="form-label">ค่าน้ำ/หน่วย (บาท)</label>
+                            {{ contract_form.Water_Cost_Unit }}
+                        </div>
+                        <div class="col-md-6 form-floating-custom">
+                            <label class="form-label">มิเตอร์น้ำเริ่มต้น</label>
+                            {{ contract_form.Water_Meter_Start }}
+                        </div>
+                        <div class="col-md-6 form-floating-custom">
+                            <label class="form-label">ค่าไฟ/หน่วย (บาท)</label>
+                            {{ contract_form.Elec_Cost_Unit }}
+                        </div>
+                        <div class="col-md-6 form-floating-custom">
+                            <label class="form-label">มิเตอร์ไฟเริ่มต้น</label>
+                            {{ contract_form.Elec_Meter_Start }}
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">ค่าเช่า/เดือน <span class="text-danger">*</span></label>
-                    {{ contract_form.Rent_Price }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">เงินประกัน <span class="text-danger">*</span></label>
-                    {{ contract_form.Deposit }}
-                </div>
-            </div>
 
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">เงินมัดจำ</label>
-                    {{ contract_form.Deposit_Advance }}
+                {% if contract_form.errors %}
+                <div class="form-section pb-0">
+                    <div class="alert alert-danger mb-0" style="border-radius:10px; background:#fff5f5; border:none; color:#c62828;">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>กรุณาตรวจสอบข้อมูลให้ครบถ้วน</strong>
+                        <ul class="mt-2 mb-0 small">
+                            {% for field, errors in contract_form.errors.items %}
+                                <li><strong>{{ field }}</strong>: {{ errors }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">ค่าน้ำ/หน่วย</label>
-                    {{ contract_form.Water_Cost_Unit }}
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">ค่าไฟ/หน่วย</label>
-                    {{ contract_form.Elec_Cost_Unit }}
-                </div>
-            </div>
+                {% endif %}
 
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">มิเตอร์น้ำเริ่มต้น</label>
-                    {{ contract_form.Water_Meter_Start }}
+                <div class="form-section bg-light" style="border-top: 2px solid #f0f2f5;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'booking_list' %}" class="btn btn-back">
+                            <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
+                        </a>
+                        <button type="submit" class="btn btn-submit">
+                            <i class="bi bi-save me-1"></i> ยืนยันและพิมพ์สัญญา
+                        </button>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">มิเตอร์ไฟเริ่มต้น</label>
-                    {{ contract_form.Elec_Meter_Start }}
-                </div>
-            </div>
-
-            {% if contract_form.errors %}
-            <div class="alert alert-danger">
-                กรุณาตรวจสอบข้อมูลให้ครบถ้วน
-                <ul class="mt-2 mb-0">
-                    {% for field, errors in contract_form.errors.items %}
-                        <li><strong>{{ field }}</strong>: {{ errors }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-success btn-lg fw-bold">
-                    💾 ยืนยันและพิมพ์สัญญา
-                </button>
-                <a href="{% url 'booking_list' %}" class="btn btn-secondary btn-lg">กลับ</a>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 
