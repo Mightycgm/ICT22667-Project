@@ -7,24 +7,50 @@
     {% endif %}
 </div>
 
-<!-- ค้นหา -->
 <form method="get" class="mb-3">
-    <div class="input-group">
-        <input type="text" name="q" class="form-control" placeholder="ค้นหาชื่อ..." value="{{ query }}">
-        <button class="btn btn-outline-secondary" type="submit">ค้นหา</button>
+    <div class="row g-2">
+        <div class="col-md-2">
+            <select name="building" class="form-select">
+                <option value="">-- ทุกอาคาร --</option>
+                {% for b in buildings %}
+                <option value="{{ b }}" {% if building == b %}selected{% endif %}>อาคาร {{ b }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="floor" class="form-select">
+                <option value="">-- ทุกชั้น --</option>
+                {% for f in floors %}
+                <option value="{{ f }}" {% if floor == f %}selected{% endif %}>ชั้น {{ f }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <input type="text" name="q" class="form-control" placeholder="ค้นหาชื่อ, นามสกุล หรือ เลขห้อง..." value="{{ query }}">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" type="submit"><i class="bi bi-search"></i> ค้นหา</button>
+        </div>
     </div>
 </form>
 
 <table class="table table-bordered table-hover">
     <thead class="table-dark">
         <tr>
-            <th>ID</th><th>ชื่อ</th><th>นามสกุล</th><th>เลขบัตร</th><th>เบอร์โทร</th><th>จัดการ</th>
+            <th>ID</th><th>ห้อง</th><th>ชื่อ</th><th>นามสกุล</th><th>เลขบัตร</th><th>เบอร์โทร</th><th>จัดการ</th>
         </tr>
     </thead>
     <tbody>
         {% for t in tenants %}
         <tr>
             <td>{{ t.Tenant_ID }}</td>
+            <td>
+                {% if t.room_number %}
+                    <span class="badge bg-primary">{{ t.room_number }}</span>
+                {% else %}
+                    <span class="badge bg-secondary">-</span>
+                {% endif %}
+            </td>
             <td>{{ t.First_Name }}</td>
             <td>{{ t.Last_Name }}</td>
             <td>{{ t.ID_Card }}</td>
@@ -39,7 +65,7 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล</td></tr>
+        <tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูล</td></tr>
         {% endfor %}
     </tbody>
 </table>
