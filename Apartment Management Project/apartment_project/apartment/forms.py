@@ -118,8 +118,8 @@ class InvoiceForm(forms.ModelForm):
         today      = datetime.date.today()
         next_month = (today.replace(day=1) + datetime.timedelta(days=32)).replace(day=1)
         # วันออกบิล = 25 ของเดือนนี้, ครบกำหนด = 5 ของเดือนถัดไป
-        self.fields['Billing_Date'].initial = today.replace(day=25)
-        self.fields['Due_Date'].initial     = next_month.replace(day=5)
+        self.fields['Billing_Date'].initial = today.replace(day=25).strftime('%Y-%m-%d')
+        self.fields['Due_Date'].initial     = next_month.replace(day=5).strftime('%Y-%m-%d')
         self.fields['Contract_ID'].queryset = Contract.objects.filter(Status='ใช้งาน')
 
 
