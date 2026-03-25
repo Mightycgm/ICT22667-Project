@@ -1,14 +1,108 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
-<h4>ยกเลิกการจอง</h4>
-<div class="alert alert-warning mt-3">
-    ยืนยันการยกเลิกการจองห้อง <strong>{{ booking.Room_ID.Room_Number }}</strong>
-    ของ <strong>{{ booking.First_Name }} {{ booking.Last_Name }}</strong> ?
-    <br><small class="text-muted">ห้องจะกลับไปเป็นสถานะ "ว่าง" ทันที</small>
+
+<style>
+    .cancel-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+        max-width: 500px;
+        margin: 40px auto;
+        padding: 40px;
+        text-align: center;
+    }
+    .cancel-icon {
+        width: 80px;
+        height: 80px;
+        background: #fff5f5;
+        color: #dc3545;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        margin: 0 auto 20px;
+    }
+    .cancel-title {
+        font-weight: 800;
+        color: #2b2d42;
+        margin-bottom: 10px;
+    }
+    .cancel-text {
+        color: #5a5c6f;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+    .cancel-room {
+        font-weight: 700;
+        color: #e65100;
+        font-size: 1.2rem;
+    }
+    .cancel-notice {
+        background: #fafbfc;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: #8c8ea0;
+        margin-bottom: 30px;
+    }
+    .btn-cancel-confirm {
+        background: #dc3545;
+        color: #fff;
+        font-weight: 700;
+        padding: 12px 24px;
+        border-radius: 10px;
+        border: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        width: 100%;
+        margin-bottom: 12px;
+    }
+    .btn-cancel-confirm:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(220, 53, 69, 0.4);
+    }
+    .btn-cancel-back {
+        background: #f0f2f5;
+        color: #5a5c6f;
+        font-weight: 600;
+        padding: 12px 24px;
+        border-radius: 10px;
+        border: none;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: block;
+        width: 100%;
+    }
+    .btn-cancel-back:hover {
+        background: #e4e6ef;
+        color: #1e1e2d;
+    }
+</style>
+
+<div class="cancel-card">
+    <div class="cancel-icon">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    
+    <h4 class="cancel-title">ยืนยันการยกเลิกการจอง</h4>
+    
+    <p class="cancel-text">
+        คุณต้องการยกเลิกการจองห้อง <span class="cancel-room">{{ booking.Room_ID.Room_Number }}</span><br>
+        ของ <strong>{{ booking.First_Name }} {{ booking.Last_Name }}</strong> ใช่หรือไม่?
+    </p>
+    
+    <div class="cancel-notice">
+        <i class="bi bi-info-circle me-1"></i> ห้องจะกลับไปเป็นสถานะ "ว่าง" ทันทีหลังจากการยกเลิก
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn-cancel-confirm">ยืนยันยกเลิกการจอง</button>
+        <a href="{% url 'booking_list' %}" class="btn-cancel-back">กลับไปหน้ารายการ</a>
+    </form>
 </div>
-<form method="post">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-danger">ยืนยันยกเลิก</button>
-    <a href="{% url 'booking_list' %}" class="btn btn-secondary">กลับ</a>
-</form>
+
 {% endblock %}

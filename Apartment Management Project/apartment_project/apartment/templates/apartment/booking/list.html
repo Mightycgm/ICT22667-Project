@@ -1,38 +1,240 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>📌 รายการจองห้อง</h4>
-        <a href="{% url 'booking_create' %}" class="btn btn-primary">+ บันทึกการจอง</a>
+
+<style>
+    .booking-list-hero {
+        background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 28px;
+        position: relative;
+        overflow: hidden;
+        color: #000;
+        box-shadow: 0 4px 20px rgba(241, 39, 17, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .booking-list-hero::before {
+        content: '';
+        position: absolute;
+        top: -60%; right: -15%;
+        width: 250px; height: 250px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .hero-content h4 {
+        font-weight: 800;
+        margin: 0;
+        font-size: 1.5rem;
+    }
+    .hero-content p {
+        opacity: 0.9;
+        margin: 6px 0 0;
+        font-size: 0.95rem;
+    }
+    .btn-add-booking {
+        background: rgba(255, 255, 255, 0.4);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        color: #000;
+        font-weight: 700;
+        padding: 10px 24px;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        position: relative;
+        z-index: 1;
+    }
+    .btn-add-booking:hover {
+        background: rgba(255, 255, 255, 0.6);
+        transform: translateY(-2px);
+        color: #000;
+    }
+
+    .booking-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+        transition: all 0.2s ease;
+        background: #fff;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .booking-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px rgba(241, 39, 17, 0.1);
+    }
+    .booking-card-header {
+        background: linear-gradient(to right, #fff9f0, #ffffff);
+        padding: 16px 20px;
+        border-bottom: 1px solid #f0f2f5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .room-badge {
+        background: #fff3e0;
+        color: #e65100;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .booking-date {
+        font-size: 0.8rem;
+        color: #8c8ea0;
+        font-weight: 500;
+    }
+    .booking-card-body {
+        padding: 20px;
+        flex-grow: 1;
+    }
+    .customer-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #2b2d42;
+        margin-bottom: 12px;
+    }
+    .info-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #5a5c6f;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+    .info-line i {
+        color: #e65100;
+        width: 16px;
+        text-align: center;
+    }
+    .booking-note {
+        background: #fafbfc;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        color: #5a5c6f;
+        margin-top: 12px;
+        border-left: 3px solid #f5af19;
+    }
+    
+    .booking-card-footer {
+        padding: 16px 20px;
+        background: #fff;
+        border-top: 1px solid #f0f2f5;
+        display: flex;
+        gap: 10px;
+    }
+    .btn-confirm {
+        background: linear-gradient(135deg, #1aa37a 0%, #157347 100%);
+        border: none;
+        color: #fff;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition: all 0.2s;
+        flex-grow: 1;
+        text-align: center;
+        text-decoration: none;
+    }
+    .btn-confirm:hover {
+        background: #157347;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(21, 115, 71, 0.2);
+    }
+    .btn-cancel {
+        background: #fff5f5;
+        color: #dc3545;
+        border: 1px solid #ffe3e3;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition: all 0.2s;
+        text-align: center;
+        text-decoration: none;
+    }
+    .btn-cancel:hover {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 50px 20px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    }
+    .empty-icon {
+        font-size: 3rem;
+        color: #f1ebd8;
+        margin-bottom: 15px;
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="booking-list-hero">
+    <div class="hero-content">
+        <h4><i class="bi bi-calendar-check-fill me-2"></i>รายการจองห้อง</h4>
+        <p>จัดการการจองห้องพัก ยืนยันทำสัญญา หรือยกเลิกการจอง</p>
+    </div>
+    <a href="{% url 'booking_create' %}" class="btn-add-booking">
+        <i class="bi bi-plus-lg me-1"></i> บันทึกการจอง
+    </a>
 </div>
 
-<div class="row g-3">
+<!-- Booking List -->
+<div class="row g-4">
     {% for b in bookings %}
     <div class="col-md-6 col-lg-4">
-        <div class="card border-warning h-100">
-            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between">
-                <span>📌 ห้อง {{ b.Room_ID.Room_Number }}</span>
-                <small>{{ b.Booking_Date }}</small>
+        <div class="booking-card">
+            <div class="booking-card-header">
+                <div class="room-badge">
+                    <i class="bi bi-pin-angle-fill"></i> ห้อง {{ b.Room_ID.Room_Number }}
+                </div>
+                <div class="booking-date">
+                    <i class="bi bi-clock me-1"></i>{{ b.Booking_Date }}
+                </div>
             </div>
-            <div class="card-body">
-                <p class="mb-1"><strong>{{ b.First_Name }} {{ b.Last_Name }}</strong></p>
-                <p class="mb-1 text-muted small">📞 {{ b.Phone }}</p>
+            
+            <div class="booking-card-body">
+                <div class="customer-name">{{ b.First_Name }} {{ b.Last_Name }}</div>
+                
+                <div class="info-line">
+                    <i class="bi bi-telephone-fill"></i>
+                    <span>{{ b.Phone }}</span>
+                </div>
+                
                 {% if b.Line_ID %}
-                <p class="mb-1 text-muted small">LINE: {{ b.Line_ID }}</p>
+                <div class="info-line">
+                    <i class="bi bi-line text-success"></i>
+                    <span>{{ b.Line_ID }}</span>
+                </div>
                 {% endif %}
+                
                 {% if b.Note %}
-                <p class="mb-1 text-muted small">📝 {{ b.Note }}</p>
+                <div class="booking-note">
+                    <i class="bi bi-pencil-square me-1"></i> {{ b.Note }}
+                </div>
                 {% endif %}
             </div>
-            <div class="card-footer d-flex gap-2">
+            
+            <div class="booking-card-footer">
                 {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-                <a href="{% url 'booking_confirm' b.Booking_ID %}"
-                   class="btn btn-success btn-sm flex-fill">
-                    ✅ ยืนยันทำสัญญา
+                <a href="{% url 'booking_confirm' b.Booking_ID %}" class="btn-confirm">
+                    <i class="bi bi-check-circle-fill me-1"></i> ยืนยันทำสัญญา
                 </a>
-                {% endif %}
-                {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-                <a href="{% url 'booking_cancel' b.Booking_ID %}"
-                   class="btn btn-outline-danger btn-sm">
+                <a href="{% url 'booking_cancel' b.Booking_ID %}" class="btn-cancel">
                     ยกเลิก
                 </a>
                 {% endif %}
@@ -41,8 +243,13 @@
     </div>
     {% empty %}
     <div class="col-12">
-        <div class="alert alert-info">ไม่มีรายการจองที่รอยืนยัน</div>
+        <div class="empty-state">
+            <div class="empty-icon"><i class="bi bi-journal-x"></i></div>
+            <h5 class="text-muted fw-bold">ไม่มีรายการจอง</h5>
+            <p class="text-muted small">ขณะนี้ยังไม่มีลูกค้ารอการยืนยันการจองห้องพัก</p>
+        </div>
     </div>
     {% endfor %}
 </div>
+
 {% endblock %}
