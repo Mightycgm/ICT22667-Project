@@ -192,80 +192,37 @@
                 {% endfor %}
             </div>
         </div>
-
-        <!-- Section 2: ค่าน้ำ / ค่าไฟ -->
-        <div class="form-section">
-            <div class="section-title">
-                <div class="section-icon" style="background:#fff3e0; color:#e65100;">
-                    <i class="bi bi-lightning-charge-fill"></i>
-                </div>
-                <div>
-                    <h6>บันทึกมิเตอร์ค่าน้ำ - ค่าไฟ</h6>
-                    <small>จดเลขมิเตอร์สิ้นเดือนเพื่อคำนวนค่าใช้จ่าย</small>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                {% for field in utility_form %}
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">
-                        {% if 'น้ำ' in field.label or 'water' in field.name|lower %}
-                            <i class="bi bi-droplet-fill text-info me-1"></i>
-                        {% elif 'ไฟ' in field.label or 'elec' in field.name|lower %}
-                            <i class="bi bi-lightning-fill text-warning me-1"></i>
-                        {% endif %}
-                        {{ field.label }} {% if field.field.required %}<span class="required-dot"></span>{% endif %}
-                    </label>
-                    {{ field }}
-                    {% if field.errors %}
-                        <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ field.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Error Alert -->
-        {% if invoice_form.errors or utility_form.errors %}
-        <div class="form-section" style="padding-top:0;">
-            <div class="alert alert-danger d-flex align-items-center mb-0" style="border-radius:10px; border:none; background:#fff5f5; color:#c62828;">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <span>กรุณาตรวจสอบข้อมูลให้ครบถ้วน ข้อมูลบางส่วนไม่ถูกต้อง</span>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Submit -->
-        <div class="form-section" style="background:#fafbfc; border-top: 2px solid #f0f2f5;">
-            <div class="d-flex justify-content-between align-items-center">
-                <a href="{% url 'invoice_list' %}" class="btn btn-cancel">
-                    <i class="bi bi-arrow-left me-1"></i> ยกเลิก
-                </a>
-                <button type="submit" class="btn btn-submit">
-                    <i class="bi bi-printer-fill me-1"></i> บันทึกและออกใบแจ้งหนี้
-                </button>
-            </div>
-        </div>
-    </div><!-- end form-card -->
-</form>
-
-</div><!-- end col -->
-</div><!-- end row -->
+    </div>
+</div>
 
 <script>
-    // เพิ่ม class อัตโนมัติให้ inputs แบบ generic
-    document.addEventListener("DOMContentLoaded", function() {
-        const inputs = document.querySelectorAll('.form-floating-custom input, .form-floating-custom select, .form-floating-custom textarea');
-        inputs.forEach(input => {
-            if(!input.classList.contains('form-control') && !input.classList.contains('form-select')) {
-                if(input.tagName === 'SELECT') {
-                    input.classList.add('form-select');
-                } else {
-                    input.classList.add('form-control');
-                }
-            }
-        });
-    });
-</script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contractSelect = document.getElementById('id_Contract_ID');
+    const waterBefore = document.getElementById('id_Water_Unit_Before');
+    const waterAfter = document.getElementById('id_Water_Unit_After');
+    const elecUsed = document.getElementById('id_Elec_Unit_Used');
+    const billMonth = document.getElementById('id_Bill_Month');
 
+    if (contractSelect) {
+        contractSelect.addEventListener('change', function() {
+            const contractId = this.value;
+            if (!contractId) return;
+
+            fetch(`/api/utility-latest/?contract_id=${contractId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error(data.error);
+                        return;
+                    }
+                    if (waterBefore) waterBefore.value = data.Water_Unit_Before || 0;
+                    if (waterAfter) waterAfter.value = data.Water_Unit_After || 0;
+                    if (elecUsed) elecUsed.value = data.Elec_Unit_Used || 0;
+                    if (billMonth && data.Bill_Month) billMonth.value = data.Bill_Month;
+                })
+                .catch(error => console.error('Error fetching utility data:', error));
+        });
+    }
+});
+</script>
 {% endblock %}
