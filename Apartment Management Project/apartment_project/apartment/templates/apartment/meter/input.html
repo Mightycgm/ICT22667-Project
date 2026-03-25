@@ -184,21 +184,20 @@
                     <div class="rounded p-2" style="background:#e3f2fd;">
                         <div class="fw-bold mb-1" style="color:#0c7a9e; font-size:0.85rem;">💧 น้ำ</div>
                         <div class="prev-val mb-1">ก่อนหน้า: {{ item.water_prev }}</div>
-                        {% if item.curr_u %}
-                            <div class="used-badge text-success">{{ item.curr_u.Water_Unit_After }}</div>
-                            <div class="prev-val">ใช้: {{ item.curr_u.Water_Unit_Used }} หน่วย</div>
-                        {% else %}
-                            <input type="number"
-                                   name="water_after_{{ item.room.Room_ID }}"
-                                   id="w_{{ item.room.Room_ID }}"
-                                   class="form-control form-control-sm"
-                                   placeholder="เลขมิเตอร์"
-                                   min="{{ item.water_prev }}" step="0.01"
-                                   data-prev="{{ item.water_prev }}"
-                                   data-room="{{ item.room.Room_ID }}"
-                                   oninput="calc(this,'w')">
-                            <div class="prev-val mt-1" id="wu_{{ item.room.Room_ID }}">ใช้: -</div>
-                        {% endif %}
+                        <input type="number"
+                               name="water_after_{{ item.room.Room_ID }}"
+                               id="w_{{ item.room.Room_ID }}"
+                               class="form-control form-control-sm water-input {% if item.curr_u %}border-success text-success fw-bold{% endif %}"
+                               placeholder="เลขมิเตอร์"
+                               value="{% if item.curr_u %}{{ item.curr_u.Water_Unit_After }}{% endif %}"
+                               min="0" step="0.01"
+                               data-prev="{{ item.water_prev }}"
+                               data-room="{{ item.room.Room_ID }}"
+                               data-room-num="{{ item.room.Room_Number }}"
+                               oninput="calc(this,'w')">
+                        <div class="prev-val mt-1" id="wu_{{ item.room.Room_ID }}">
+                            {% if item.curr_u %}ใช้: {{ item.curr_u.Water_Unit_Used }} หน่วย{% else %}ใช้: -{% endif %}
+                        </div>
                     </div>
                 </div>
 
@@ -207,21 +206,20 @@
                     <div class="rounded p-2" style="background:#fff8e1;">
                         <div class="fw-bold mb-1" style="color:#856404; font-size:0.85rem;">⚡ ไฟ</div>
                         <div class="prev-val mb-1">ก่อนหน้า: {{ item.elec_prev }}</div>
-                        {% if item.curr_u %}
-                            <div class="used-badge text-success">{{ item.curr_u.Elec_Unit_After }}</div>
-                            <div class="prev-val">ใช้: {{ item.curr_u.Elec_Unit_Used }} หน่วย</div>
-                        {% else %}
-                            <input type="number"
-                                   name="elec_after_{{ item.room.Room_ID }}"
-                                   id="e_{{ item.room.Room_ID }}"
-                                   class="form-control form-control-sm"
-                                   placeholder="เลขมิเตอร์"
-                                   min="{{ item.elec_prev }}" step="0.01"
-                                   data-prev="{{ item.elec_prev }}"
-                                   data-room="{{ item.room.Room_ID }}"
-                                   oninput="calc(this,'e')">
-                            <div class="prev-val mt-1" id="eu_{{ item.room.Room_ID }}">ใช้: -</div>
-                        {% endif %}
+                        <input type="number"
+                               name="elec_after_{{ item.room.Room_ID }}"
+                               id="e_{{ item.room.Room_ID }}"
+                               class="form-control form-control-sm elec-input {% if item.curr_u %}border-success text-success fw-bold{% endif %}"
+                               placeholder="เลขมิเตอร์"
+                               value="{% if item.curr_u %}{{ item.curr_u.Elec_Unit_After }}{% endif %}"
+                               min="0" step="0.01"
+                               data-prev="{{ item.elec_prev }}"
+                               data-room="{{ item.room.Room_ID }}"
+                               data-room-num="{{ item.room.Room_Number }}"
+                               oninput="calc(this,'e')">
+                        <div class="prev-val mt-1" id="eu_{{ item.room.Room_ID }}">
+                            {% if item.curr_u %}ใช้: {{ item.curr_u.Elec_Unit_Used }} หน่วย{% else %}ใช้: -{% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -310,6 +308,29 @@ function calc(input, type) {
 }
 
 function submitForm() {
+    let hasError = false;
+    let errorRoom = '';
+
+    const inputs = document.querySelectorAll('.water-input, .elec-input');
+    for (let input of inputs) {
+        if (!input.value) continue;
+        const prev = parseFloat(input.dataset.prev) || 0;
+        const curr = parseFloat(input.value);
+        if (curr < prev) {
+            hasError = true;
+            errorRoom = input.dataset.roomNum;
+            input.classList.add('is-invalid');
+            break; // Stop at first error
+        } else {
+            input.classList.remove('is-invalid');
+        }
+    }
+
+    if (hasError) {
+        alert('พบข้อผิดพลาด: ห้อง ' + errorRoom + ' มีการจดเลขมิเตอร์ต่ำกว่าเดือนก่อนหน้า กรุณาตรวจสอบอีกครั้ง');
+        return;
+    }
+
     if (confirm('ยืนยันบันทึกมิเตอร์เดือนนี้?')) {
         document.getElementById('meterForm').submit();
     }

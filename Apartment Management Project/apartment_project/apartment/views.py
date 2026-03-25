@@ -1015,18 +1015,21 @@ def meter_save(request):
             Room_ID=room, Bill_Month=prev_month
         ).first()
 
-        water_before = float(prev_u.Water_Unit_After) if prev_u else float(contract.Water_Meter_Start)
-        elec_before  = float(prev_u.Elec_Unit_After) if prev_u else float(contract.Elec_Meter_Start)
+        from decimal import Decimal
 
-        water_after_f = float(water_after)
-        elec_after_f  = float(elec_after)
-        water_used    = water_after_f - water_before
-        if water_used < 0:
+        water_before = prev_u.Water_Unit_After if prev_u else contract.Water_Meter_Start
+        elec_before  = prev_u.Elec_Unit_After if prev_u else contract.Elec_Meter_Start
+
+        water_after_d = Decimal(str(water_after))
+        elec_after_d  = Decimal(str(elec_after))
+        
+        water_used    = water_after_d - water_before
+        if water_used < Decimal('0'):
             continue
-        elec_used     = elec_after_f  - elec_before
+        elec_used     = elec_after_d  - elec_before
 
-        water_total = water_used * contract.Water_Cost_Unit
-        elec_total  = elec_used  * contract.Elec_Cost_Unit
+        water_total = water_used * Decimal(str(contract.Water_Cost_Unit))
+        elec_total  = elec_used  * Decimal(str(contract.Elec_Cost_Unit))
 
         # สร้าง Invoice สำหรับเดือนนี้ก่อน (ถ้ายังไม่มี)
         invoice, created = Invoice.objects.get_or_create(
@@ -1046,10 +1049,10 @@ def meter_save(request):
             defaults={
                 'Bill_Month':        bill_month,
                 'Water_Unit_Before': water_before,
-                'Water_Unit_After':  water_after_f,
+                'Water_Unit_After':  water_after_d,
                 'Water_Unit_Used':   water_used,
                 'Elec_Unit_Before':  elec_before,
-                'Elec_Unit_After':   elec_after_f,
+                'Elec_Unit_After':   elec_after_d,
                 'Elec_Unit_Used':    elec_used,
                 'Water_Cost_Unit':   contract.Water_Cost_Unit,
                 'Elec_Cost_Unit':    contract.Elec_Cost_Unit,

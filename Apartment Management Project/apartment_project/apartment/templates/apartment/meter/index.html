@@ -107,23 +107,21 @@
                             <span class="water-prev">{{ item.water_prev }}</span>
                         </td>
                         <td class="table-info p-1">
-                            {% if item.curr_u %}
-                                <span class="text-success fw-bold">{{ item.curr_u.Water_Unit_After }}</span>
-                            {% else %}
-                                <input type="number"
-                                       name="water_after_{{ item.room.Room_ID }}"
-                                       id="water_after_{{ item.room.Room_ID }}"
-                                       class="form-control form-control-sm water-input text-center p-0"
-                                       style="width:80px; margin:auto;"
-                                       min="0" step="0.01"
-                                       data-prev="{{ item.water_prev }}"
-                                       data-room="{{ item.room.Room_ID }}"
-                                       oninput="calcUnit(this, 'water')">
-                            {% endif %}
+                            <input type="number"
+                                   name="water_after_{{ item.room.Room_ID }}"
+                                   id="water_after_{{ item.room.Room_ID }}"
+                                   class="form-control form-control-sm water-input text-center p-0 {% if item.curr_u %}border-success text-success fw-bold{% endif %}"
+                                   style="width:80px; margin:auto;"
+                                   value="{% if item.curr_u %}{{ item.curr_u.Water_Unit_After }}{% endif %}"
+                                   min="0" step="0.01"
+                                   data-prev="{{ item.water_prev }}"
+                                   data-room="{{ item.room.Room_ID }}"
+                                   data-room-num="{{ item.room.Room_Number }}"
+                                   oninput="calcUnit(this, 'water')">
                         </td>
                         <td class="table-info" id="water_used_{{ item.room.Room_ID }}">
                             {% if item.curr_u %}
-                                {{ item.curr_u.Water_Unit_Used }}
+                                <span id="span_water_used_{{ item.room.Room_ID }}">{{ item.curr_u.Water_Unit_Used }}</span>
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
@@ -134,23 +132,21 @@
                             <span class="elec-prev">{{ item.elec_prev }}</span>
                         </td>
                         <td class="table-warning p-1">
-                            {% if item.curr_u %}
-                                <span class="text-success fw-bold">{{ item.curr_u.Elec_Unit_After }}</span>
-                            {% else %}
-                                <input type="number"
-                                       name="elec_after_{{ item.room.Room_ID }}"
-                                       id="elec_after_{{ item.room.Room_ID }}"
-                                       class="form-control form-control-sm elec-input text-center p-0"
-                                       style="width:80px; margin:auto;"
-                                       min="0" step="0.01"
-                                       data-prev="{{ item.elec_prev }}"
-                                       data-room="{{ item.room.Room_ID }}"
-                                       oninput="calcUnit(this, 'elec')">
-                            {% endif %}
+                            <input type="number"
+                                   name="elec_after_{{ item.room.Room_ID }}"
+                                   id="elec_after_{{ item.room.Room_ID }}"
+                                   class="form-control form-control-sm elec-input text-center p-0 {% if item.curr_u %}border-success text-success fw-bold{% endif %}"
+                                   style="width:80px; margin:auto;"
+                                   value="{% if item.curr_u %}{{ item.curr_u.Elec_Unit_After }}{% endif %}"
+                                   min="0" step="0.01"
+                                   data-prev="{{ item.elec_prev }}"
+                                   data-room="{{ item.room.Room_ID }}"
+                                   data-room-num="{{ item.room.Room_Number }}"
+                                   oninput="calcUnit(this, 'elec')">
                         </td>
                         <td class="table-warning" id="elec_used_{{ item.room.Room_ID }}">
                             {% if item.curr_u %}
-                                {{ item.curr_u.Elec_Unit_Used }}
+                                <span id="span_elec_used_{{ item.room.Room_ID }}">{{ item.curr_u.Elec_Unit_Used }}</span>
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
@@ -194,6 +190,29 @@ document.getElementById('record_date').addEventListener('change', function() {
 
 // submit form
 function submitMeter() {
+    let hasError = false;
+    let errorRoom = '';
+
+    const inputs = document.querySelectorAll('.water-input, .elec-input');
+    for (let input of inputs) {
+        if (!input.value) continue;
+        const prev = parseFloat(input.dataset.prev) || 0;
+        const curr = parseFloat(input.value);
+        if (curr < prev) {
+            hasError = true;
+            errorRoom = input.dataset.roomNum;
+            input.classList.add('is-invalid');
+            break; // Stop at first error
+        } else {
+            input.classList.remove('is-invalid');
+        }
+    }
+
+    if (hasError) {
+        alert('พบข้อผิดพลาด: ห้อง ' + errorRoom + ' มีการจดเลขมิเตอร์ต่ำกว่าเดือนก่อนหน้า กรุณาตรวจสอบอีกครั้ง');
+        return;
+    }
+
     if (confirm('ยืนยันบันทึกรอบจดมิเตอร์เดือนนี้?')) {
         document.getElementById('meterForm').submit();
     }
