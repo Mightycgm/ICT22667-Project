@@ -1,22 +1,256 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
-<h2>{{ title }}</h2>
-<div class="card mt-3" style="max-width: 500px;">
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="mb-3">
-                    <label class="form-label">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.errors %}
-                        <div class="text-danger small">{{ field.errors }}</div>
-                    {% endif %}
+
+<style>
+    .tenant-form-hero {
+        background: linear-gradient(135deg, #0f9b8e 0%, #00695c 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 28px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(0, 105, 92, 0.2);
+    }
+    .tenant-form-hero::before {
+        content: '';
+        position: absolute;
+        top: -60%; right: -25%;
+        width: 280px; height: 280px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .tenant-form-hero h4 {
+        font-weight: 800;
+        font-size: 1.5rem;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+    }
+    .tenant-form-hero p {
+        opacity: 0.9;
+        font-size: 0.9rem;
+        margin: 6px 0 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .form-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        overflow: hidden;
+        background: #fff;
+    }
+    .form-section {
+        padding: 24px 28px;
+    }
+    .form-section + .form-section {
+        border-top: 1px solid #f0f2f5;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .section-title .section-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    .section-title h6 {
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin: 0;
+        color: #1e1e2d;
+    }
+    .section-title small {
+        font-weight: 400;
+        color: #8c8ea0;
+        font-size: 0.78rem;
+    }
+
+    .form-floating-custom .form-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #5a5c6f;
+        margin-bottom: 6px;
+        letter-spacing: 0.3px;
+    }
+    .form-floating-custom .form-control,
+    .form-floating-custom .form-select,
+    .form-floating-custom select,
+    .form-floating-custom textarea,
+    .form-floating-custom input {
+        border-radius: 10px;
+        border: 1.5px solid #e4e6ef;
+        padding: 10px 14px;
+        font-size: 0.92rem;
+        transition: all 0.2s ease;
+        background-color: #fafbfc;
+        width: 100%;
+        display: block;
+        height: auto;
+    }
+    .form-floating-custom .form-control:focus,
+    .form-floating-custom .form-select:focus,
+    .form-floating-custom select:focus,
+    .form-floating-custom textarea:focus,
+    .form-floating-custom input:focus {
+        border-color: #00897b;
+        box-shadow: 0 0 0 3px rgba(0, 137, 123, 0.12);
+        background-color: #fff;
+        outline: none;
+    }
+
+    .required-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background: #ed4c78;
+        border-radius: 50%;
+        margin-left: 4px;
+        vertical-align: middle;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #0f9b8e 0%, #00695c 100%);
+        border: none;
+        color: #fff;
+        font-weight: 700;
+        padding: 12px 32px;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0, 105, 92, 0.3);
+    }
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 105, 92, 0.4);
+        color: #fff;
+    }
+    .btn-cancel {
+        background: #f0f2f5;
+        border: none;
+        color: #5a5c6f;
+        font-weight: 600;
+        padding: 12px 28px;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+    .btn-cancel:hover {
+        background: #e4e6ef;
+        color: #1e1e2d;
+    }
+</style>
+
+<!-- Hero -->
+<div class="tenant-form-hero">
+    <h4><i class="bi bi-person-badge-fill me-2"></i>{{ title|default:"เพิ่ม/แก้ไขข้อมูลผู้เช่า" }}</h4>
+    <p>บันทึกข้อมูลส่วนตัวและข้อมูลการติดต่อของผู้เช่าให้ครบถ้วนเพื่อความสะดวกในการบริหารจัดการ</p>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-lg-8">
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-card">
+        
+        <!-- Section 1: ข้อมูลส่วนตัว -->
+        <div class="form-section">
+            <div class="section-title">
+                <div class="section-icon" style="background:#e3f2fd; color:#1565c0;">
+                    <i class="bi bi-person-fill"></i>
                 </div>
-            {% endfor %}
-            <button type="submit" class="btn btn-primary">บันทึก</button>
-            <a href="{% url 'tenant_list' %}" class="btn btn-secondary">ยกเลิก</a>
-        </form>
+                <div>
+                    <h6>ข้อมูลส่วนตัวผู้เช่า</h6>
+                    <small>ระบุชื่อ นามสกุล และเลขประจำตัวประชาชน</small>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6 form-floating-custom">
+                    <label class="form-label">ชื่อ <span class="required-dot"></span></label>
+                    {{ form.First_Name }}
+                </div>
+                <div class="col-md-6 form-floating-custom">
+                    <label class="form-label">นามสกุล <span class="required-dot"></span></label>
+                    {{ form.Last_Name }}
+                </div>
+                <div class="col-12 form-floating-custom">
+                    <label class="form-label">เลขบัตรประชาชน <span class="required-dot"></span></label>
+                    {{ form.ID_Card }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: ข้อมูลติดต่อและที่อยู่ -->
+        <div class="form-section">
+            <div class="section-title">
+                <div class="section-icon" style="background:#fff3e0; color:#e65100;">
+                    <i class="bi bi-telephone-fill"></i>
+                </div>
+                <div>
+                    <h6>ข้อมูลติดต่อและที่อยู่</h6>
+                    <small>เบอร์โทรศัพท์ อีเมล ไลน์ และที่อยู่ปัจจุบันหรือตามทะเบียนบ้าน</small>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4 form-floating-custom">
+                    <label class="form-label">เบอร์โทรติดต่อ <span class="required-dot"></span></label>
+                    {{ form.Phone }}
+                </div>
+                <div class="col-md-4 form-floating-custom">
+                    <label class="form-label">อีเมล</label>
+                    {{ form.Email }}
+                </div>
+                <div class="col-md-4 form-floating-custom">
+                    <label class="form-label">Line ID</label>
+                    {{ form.Line_ID }}
+                </div>
+                <div class="col-12 form-floating-custom">
+                    <label class="form-label">ที่อยู่</label>
+                    {{ form.Address }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        {% if form.errors %}
+        <div class="form-section" style="padding-top:0;">
+            <div class="alert alert-danger d-flex align-items-center" style="border-radius:10px; border:none; background:#fff5f5; color:#c62828; margin-bottom: 0;">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span>กรุณาตรวจสอบข้อมูลให้ครบถ้วน</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Submit -->
+        <div class="form-section" style="background:#fafbfc; border-top: 2px solid #f0f2f5;">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{% url 'tenant_list' %}" class="btn btn-cancel">
+                    <i class="bi bi-arrow-left me-1"></i> ยกเลิก
+                </a>
+                <button type="submit" class="btn btn-save">
+                    <i class="bi bi-save me-1"></i> บันทึกข้อมูล
+                </button>
+            </div>
+        </div>
+
     </div>
+</form>
+
+</div>
 </div>
 {% endblock %}
