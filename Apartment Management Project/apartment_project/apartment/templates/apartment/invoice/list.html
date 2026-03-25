@@ -237,7 +237,7 @@
     {% if user_role == 'ADMIN' or user_role == 'MANAGER' %}
     <div class="hero-buttons">
         <a href="{% url 'invoice_create' %}" class="btn-hero btn-hero-primary">
-            <i class="bi bi-plus-lg"></i> ออกใบแจ้งหนี้ (ใหม่)
+            <i class="bi bi-plus-lg"></i> ออกใบแจ้งหนี้ (รายคน)
         </a>
         <form method="post" action="{% url 'invoice_generate' %}" style="display:inline" onsubmit="return confirm('ระบบจะสร้างใบแจ้งหนี้ประจำเดือนนี้สำหรับทุกห้องที่มีการจดมิเตอร์แล้ว ยืนยันใช่หรือไม่?')">
             {% csrf_token %}
