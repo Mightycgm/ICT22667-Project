@@ -228,10 +228,23 @@ def contract_create(request, room_pk=None):
         'Water_Cost_Unit':  18,
         'Elec_Cost_Unit':   8,
         'Status':           'ใช้งาน',
-    })
+    }
+
+    if room_pk:
+        room = get_object_or_404(Room, pk=room_pk, Status='ว่าง')
+        initial_data['Room_ID'] = room
+
+    form = ContractForm(request.POST or None, initial=initial_data)
+
     building = get_user_building(request.user)
-    qs = Room.objects.filter(Status='ว่าง')
-    if building: qs = qs.filter(Building_No=building)
+    if room_pk:
+        qs = Room.objects.filter(pk=room_pk)
+    else:
+        qs = Room.objects.filter(Status='ว่าง')
+        
+    if building: 
+        qs = qs.filter(Building_No=building)
+        
     form.fields['Room_ID'].queryset = qs
 
     if form.is_valid():
