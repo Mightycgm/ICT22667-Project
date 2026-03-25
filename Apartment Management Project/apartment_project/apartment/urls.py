@@ -21,6 +21,7 @@ urlpatterns = [
     # Contract
     path('contracts/',                  views.contract_list,   name='contract_list'),
     path('contracts/add/',              views.contract_create, name='contract_create'),
+    path('contracts/add/<int:room_pk>/', views.contract_create, name='contract_create_room'),
     path('contracts/<int:pk>/edit/',    views.contract_edit,   name='contract_edit'),
     path('contracts/<int:pk>/delete/',  views.contract_delete, name='contract_delete'),
     path('contracts/<int:pk>/print/',   views.contract_print,  name='contract_print'),
