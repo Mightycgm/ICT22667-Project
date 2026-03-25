@@ -3,14 +3,14 @@
 
 <style>
     .invoice-form-hero {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1565c0 0%, #1976d2 50%, #0d47a1 100%);
         border-radius: 16px;
         padding: 28px 32px;
         margin-bottom: 28px;
         position: relative;
         overflow: hidden;
         color: #fff;
-        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2);
+        box-shadow: 0 4px 20px rgba(21, 101, 192, 0.2);
     }
     .invoice-form-hero::before {
         content: '';
@@ -78,12 +78,13 @@
     }
 
     .form-floating-custom .form-label {
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         font-weight: 600;
         color: #5a5c6f;
         margin-bottom: 6px;
         letter-spacing: 0.3px;
     }
+    
     /* Select, Input, Textarea styling */
     .form-floating-custom .form-control,
     .form-floating-custom .form-select,
@@ -100,6 +101,7 @@
         background-color: #fafbfc;
         width: 100%;
         display: block;
+        height: auto;
     }
     
     .form-floating-custom .form-control:focus,
@@ -107,8 +109,8 @@
     .form-floating-custom select:focus,
     .form-floating-custom textarea:focus,
     .form-floating-custom input:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+        border-color: #1565c0;
+        box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.12);
         background-color: #fff;
         outline: none;
     }
@@ -123,8 +125,8 @@
         vertical-align: middle;
     }
 
-    .btn-submit {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .btn-save {
+        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
         border: none;
         color: #fff;
         font-weight: 700;
@@ -132,11 +134,11 @@
         border-radius: 10px;
         font-size: 0.95rem;
         transition: all 0.2s ease;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3);
     }
-    .btn-submit:hover {
+    .btn-save:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 6px 20px rgba(21, 101, 192, 0.4);
         color: #fff;
     }
     .btn-cancel {
@@ -157,12 +159,12 @@
 
 <!-- Hero -->
 <div class="invoice-form-hero">
-    <h4><i class="bi bi-receipt me-2"></i>{{ title }}</h4>
+    <h4><i class="bi bi-receipt me-2"></i>{{ title|default:"ออกใบแจ้งหนี้" }}</h4>
     <p>ระบบออกใบแจ้งหนี้ให้ผู้เช่า ระบุค่าเช่า และบันทึกเลขมิเตอร์น้ำ/ไฟเพื่อคำนวณยอดรวม</p>
 </div>
 
 <div class="row justify-content-center">
-<div class="col-lg-10">
+<div class="col-lg-8">
 
 <form method="post">
     {% csrf_token %}
@@ -172,28 +174,108 @@
         <div class="form-section">
             <div class="section-title">
                 <div class="section-icon" style="background:#e3f2fd; color:#1565c0;">
-                    <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+                    <i class="bi bi-file-earmark-text"></i>
                 </div>
                 <div>
                     <h6>ข้อมูลใบแจ้งหนี้หลัก</h6>
-                    <small>เลือกห้องที่ต้องการออกบิล และวันที่กำหนดชำระ</small>
+                    <small>กำหนดรอบบิลและข้อมูลผู้เช่าที่ต้องการออกบิล</small>
                 </div>
             </div>
 
             <div class="row g-3">
-                {% for field in invoice_form %}
+                {% if invoice_form %}
+                    {% for field in invoice_form %}
+                    <div class="col-md-6 form-floating-custom">
+                        <label class="form-label">{{ field.label }} 
+                            {% if field.field.required %}<span class="required-dot"></span>{% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle-fill me-1"></i>{{ field.errors|striptags }}</div>
+                        {% endif %}
+                        {% if field.help_text %}
+                            <div class="text-muted small mt-1">{{ field.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- กรณีที่มีฟอร์มเดียวเป็น form ปกติ -->
+                    {% for field in form %}
+                    <div class="col-md-6 form-floating-custom">
+                        <label class="form-label">{{ field.label }} 
+                            {% if field.field.required %}<span class="required-dot"></span>{% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle-fill me-1"></i>{{ field.errors|striptags }}</div>
+                        {% endif %}
+                        {% if field.help_text %}
+                            <div class="text-muted small mt-1">{{ field.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Section 2: ค่าน้ำ / ค่าไฟ (สาธารณูปโภค) - จะแสดงถ้ามีการส่ง utility_form มา -->
+        {% if utility_form %}
+        <div class="form-section">
+            <div class="section-title">
+                <div class="section-icon" style="background:#fff3e0; color:#e65100;">
+                    <i class="bi bi-lightning-charge"></i>
+                </div>
+                <div>
+                    <h6>ค่าน้ำ / ค่าไฟ (สาธารณูปโภค)</h6>
+                    <small>บันทึกหน่วยและอัตราค่าใช้จ่ายประจำเดือน</small>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                {% for field in utility_form %}
                 <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">{{ field.label }} {% if field.field.required %}<span class="required-dot"></span>{% endif %}</label>
+                    <label class="form-label">{{ field.label }} 
+                        {% if field.field.required %}<span class="required-dot"></span>{% endif %}
+                    </label>
                     {{ field }}
                     {% if field.errors %}
-                        <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ field.errors.0 }}</div>
+                        <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle-fill me-1"></i>{{ field.errors|striptags }}</div>
+                    {% endif %}
+                    {% if field.help_text %}
+                        <div class="text-muted small mt-1">{{ field.help_text }}</div>
                     {% endif %}
                 </div>
                 {% endfor %}
             </div>
         </div>
-    </div>
-</div>
+        {% endif %}
+
+        <!-- Error Alert -->
+        {% if form.errors or invoice_form.errors or utility_form.errors %}
+        <div class="form-section" style="padding-top:0;">
+            <div class="alert alert-danger d-flex align-items-center" style="border-radius:10px; border:none; background:#fff5f5; color:#c62828; margin-bottom: 0;">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span>กรุณาตรวจสอบข้อมูลให้ครบถ้วน</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Submit -->
+        <div class="form-section" style="background:#fafbfc; border-top: 2px solid #f0f2f5;">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{% url 'invoice_list' %}" class="btn btn-cancel">
+                    <i class="bi bi-arrow-left me-1"></i> ยกเลิก
+                </a>
+                <button type="submit" class="btn btn-save">
+                    <i class="bi bi-printer-fill me-1"></i> บันทึกและดําเนินการ
+                </button>
+            </div>
+        </div>
+    </div><!-- end form-card -->
+</form>
+
+</div><!-- end col -->
+</div><!-- end row -->
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -225,4 +307,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
 {% endblock %}
