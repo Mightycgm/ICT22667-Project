@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models as django_models
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, Subquery, OuterRef
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -100,12 +100,57 @@ def dashboard(request):
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def tenant_list(request):
-    # ค้นหาผู้เช่าด้วยชื่อหรือนามสกุล
-    query   = request.GET.get('q', '')
-    tenants = Tenant.objects.all()
+    query    = request.GET.get('q', '')
+    building = request.GET.get('building', '')
+    floor    = request.GET.get('floor', '')
+
+    # ดึงค่าห้องพักปัจจุบันของแต่ละ Tenant จาก Contract ล่าสุดที่ยัง 'ใช้งาน'
+    active_contract = Contract.objects.filter(
+        Tenant_ID=OuterRef('pk'),
+        Status='ใช้งาน'
+    )
+    
+    tenants = Tenant.objects.annotate(
+        room_number=Subquery(active_contract.values('Room_ID__Room_Number')[:1]),
+        building_no=Subquery(active_contract.values('Room_ID__Building_No')[:1]),
+        floor_no=Subquery(active_contract.values('Room_ID__Floor')[:1])
+    )
+
+    # Manager restriction
+    user_building = get_user_building(request.user)
+    if user_building:
+        tenants = tenants.filter(building_no=user_building)
+
+    # กรองตามการค้นหา (รวมชื่อ นามสกุล และเลขห้อง)
     if query:
-        tenants = tenants.filter(First_Name__icontains=query) | tenants.filter(Last_Name__icontains=query)
-    return render(request, 'apartment/tenant/list.html', {'tenants': tenants, 'query': query})
+        tenants = tenants.filter(
+            Q(First_Name__icontains=query) | 
+            Q(Last_Name__icontains=query) |
+            Q(room_number__icontains=query)
+        )
+    
+    if building:
+        tenants = tenants.filter(building_no=building)
+    if floor:
+        tenants = tenants.filter(floor_no=floor)
+
+    # นำค่าตึกและชั้นทั้งหมดเพื่อไปใส่ใน Dropdown ตัวกรอง (ถ้า manager ล็อกอิน จะแสดงแค่ตึกตัวเอง)
+    buildings_qs = Room.objects.values_list('Building_No', flat=True).distinct().order_by('Building_No')
+    if user_building:
+        buildings_qs = buildings_qs.filter(Building_No=user_building)
+    floors = Room.objects.values_list('Floor', flat=True).distinct().order_by('Floor')
+
+    # เรียงลำดับตามเลขห้อง
+    tenants = tenants.order_by('room_number', 'First_Name')
+
+    return render(request, 'apartment/tenant/list.html', {
+        'tenants':   tenants, 
+        'query':     query,
+        'building':  building,
+        'floor':     floor,
+        'buildings': buildings_qs,
+        'floors':    floors,
+    })
 
 @login_required
 @role_required('ADMIN', 'MANAGER')
@@ -395,7 +440,8 @@ def invoice_create(request):
             u = utility_form.save(commit=False)
             u.Invoice_ID      = invoice
             u.Room_ID         = contract.Room_ID
-            u.Water_Unit_Used = u.Water_Unit_After - u.Water_Unit_Before
+            u.Water_Unit_Before = 0
+            u.Water_Unit_After = u.Water_Unit_Used
             u.Water_Total     = u.Water_Unit_Used * Decimal(u.Water_Cost_Unit)
             u.Elec_Total      = Decimal(u.Elec_Unit_Used) * Decimal(u.Elec_Cost_Unit)
             u.save()
@@ -820,15 +866,13 @@ def api_utility_latest(request):
     
     if utility:
         data = {
-            'Water_Unit_Before': utility.Water_Unit_Before,
-            'Water_Unit_After': utility.Water_Unit_After,
+            'Water_Unit_Used': utility.Water_Unit_Used,
             'Elec_Unit_Used': utility.Elec_Unit_Used,
             'Bill_Month': bill_month.strftime('%Y-%m-%d'),
         }
     else:
         data = {
-            'Water_Unit_Before': contract.Water_Meter_Start,
-            'Water_Unit_After': contract.Water_Meter_Start,
+            'Water_Unit_Used': 0,
             'Elec_Unit_Used': 0,
             'Bill_Month': bill_month.strftime('%Y-%m-%d'),
         }

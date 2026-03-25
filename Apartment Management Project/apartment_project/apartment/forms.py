@@ -129,22 +129,20 @@ class UtilityForm(forms.ModelForm):
         model  = Utility
         fields = [
             'Bill_Month',
-            'Water_Unit_Before', 'Water_Unit_After',
+            'Water_Unit_Used',
             'Elec_Unit_Used',
             'Water_Cost_Unit', 'Elec_Cost_Unit',
         ]
         labels = {
             'Bill_Month':        'เดือนที่คิด',
-            'Water_Unit_Before': 'มิเตอร์น้ำ (ก่อน)',
-            'Water_Unit_After':  'มิเตอร์น้ำ (หลัง)',
+            'Water_Unit_Used':   'หน่วยน้ำที่ใช้',
             'Elec_Unit_Used':    'หน่วยไฟที่ใช้',
             'Water_Cost_Unit':   'ราคาน้ำ/หน่วย (บาท)',
             'Elec_Cost_Unit':    'ราคาไฟ/หน่วย (บาท)',
         }
         widgets = {
             'Bill_Month':        forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'Water_Unit_Before': forms.NumberInput(attrs={'class': 'form-control'}),
-            'Water_Unit_After':  forms.NumberInput(attrs={'class': 'form-control'}),
+            'Water_Unit_Used':   forms.NumberInput(attrs={'class': 'form-control'}),
             'Elec_Unit_Used':    forms.NumberInput(attrs={'class': 'form-control'}),
             'Water_Cost_Unit':   forms.NumberInput(attrs={'class': 'form-control', 'value': '18'}),
             'Elec_Cost_Unit':    forms.NumberInput(attrs={'class': 'form-control', 'value': '8'}),
@@ -225,3 +223,12 @@ class BookingForm(forms.ModelForm):
             'Address':    forms.TextInput(attrs={'class': 'form-control'}),
             'Note':       forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def clean_ID_Card(self):
+        id_card = self.cleaned_data.get('ID_Card')
+        from .models import Tenant, Booking
+        if Tenant.objects.filter(ID_Card=id_card).exists():
+            raise forms.ValidationError("มีเลขบัตรประชาชนนี้อยู่ในระบบแล้ว (เป็นผู้เช่า)")
+        if Booking.objects.filter(ID_Card=id_card, Status='รอยืนยัน').exists():
+            raise forms.ValidationError("มีเลขบัตรประชาชนนี้อยู่ในระบบแล้ว (กำลังดำเนินการจอง)")
+        return id_card
