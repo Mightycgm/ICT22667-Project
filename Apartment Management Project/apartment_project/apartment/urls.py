@@ -21,6 +21,7 @@ urlpatterns = [
     # Contract
     path('contracts/',                  views.contract_list,   name='contract_list'),
     path('contracts/add/',              views.contract_create, name='contract_create'),
+    path('contracts/add/<int:room_pk>/', views.contract_create, name='contract_create_room'),
     path('contracts/<int:pk>/edit/',    views.contract_edit,   name='contract_edit'),
     path('contracts/<int:pk>/delete/',  views.contract_delete, name='contract_delete'),
     path('contracts/<int:pk>/print/',   views.contract_print,  name='contract_print'),
@@ -54,6 +55,7 @@ urlpatterns = [
 
     # API
     path('api/rooms-available/', views.api_rooms_available, name='api_rooms_available'),
+    path('api/utility-latest/', views.api_utility_latest, name='api_utility_latest'),
 
     # Meter
     path('meter/',       views.meter_index, name='meter_index'),

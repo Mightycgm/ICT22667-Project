@@ -12,6 +12,12 @@ import datetime
 from django.core.mail import send_mass_mail
 import time
 
+def get_user_building(user):
+    from .middleware import get_user_role
+    role = get_user_role(user)
+    if role in ['MANAGER', 'METER'] and hasattr(user, 'userprofile') and user.userprofile.Building_No:
+        return user.userprofile.Building_No
+    return None
 
 # ==================== DASHBOARD ====================
 
@@ -23,7 +29,10 @@ def dashboard(request):
         return redirect('meter_input')
     import datetime
     today = datetime.date.today()
-    rooms = Room.objects.all().order_by('Building_No', 'Floor', 'Room_Number')
+    building = get_user_building(request.user)
+    rooms = Room.objects.all()
+    if building: rooms = rooms.filter(Building_No=building)
+    rooms = rooms.order_by('Building_No', 'Floor', 'Room_Number')
 
     Invoice.objects.filter(
         Status='รอชำระ',
@@ -132,7 +141,10 @@ def tenant_delete(request, pk):
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def room_list(request):
-    rooms = Room.objects.all().order_by('Room_Number')
+    building = get_user_building(request.user)
+    rooms = Room.objects.all()
+    if building: rooms = rooms.filter(Building_No=building)
+    rooms = rooms.order_by('Room_Number')
     return render(request, 'apartment/room/list.html', {'rooms': rooms})
 
 @login_required
@@ -200,22 +212,40 @@ def room_detail(request, pk):
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def contract_list(request):
+    building = get_user_building(request.user)
     contracts = Contract.objects.select_related('Tenant_ID', 'Room_ID').all()
+    if building: contracts = contracts.filter(Room_ID__Building_No=building)
     return render(request, 'apartment/contract/list.html', {'contracts': contracts})
 
 @login_required
 @role_required('ADMIN', 'MANAGER')
-def contract_create(request):
-    # ดึงห้องว่างเท่านั้น
-    form = ContractForm(request.POST or None, initial={
+def contract_create(request, room_pk=None):
+    # ค่าเริ่มต้นสำหรับสัญญา
+    initial_data = {
         'Rent_Price':       4000,
         'Deposit':          4000,
         'Deposit_Advance':  2000,
         'Water_Cost_Unit':  18,
         'Elec_Cost_Unit':   8,
         'Status':           'ใช้งาน',
-    })
-    form.fields['Room_ID'].queryset = Room.objects.filter(Status='ว่าง')
+    }
+
+    if room_pk:
+        room = get_object_or_404(Room, pk=room_pk, Status='ว่าง')
+        initial_data['Room_ID'] = room
+
+    form = ContractForm(request.POST or None, initial=initial_data)
+
+    building = get_user_building(request.user)
+    if room_pk:
+        qs = Room.objects.filter(pk=room_pk)
+    else:
+        qs = Room.objects.filter(Status='ว่าง')
+        
+    if building: 
+        qs = qs.filter(Building_No=building)
+        
+    form.fields['Room_ID'].queryset = qs
 
     if form.is_valid():
         contract = form.save(commit=False)
@@ -663,7 +693,10 @@ def invoice_generate(request):
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def maintenance_list(request):
-    items = Maintenance.objects.select_related('Room_ID').all().order_by('-Report_Date')
+    building = get_user_building(request.user)
+    items = Maintenance.objects.select_related('Room_ID').all()
+    if building: items = items.filter(Room_ID__Building_No=building)
+    items = items.order_by('-Report_Date')
     return render(request, 'apartment/maintenance/list.html', {'items': items})
 
 @login_required
@@ -767,14 +800,49 @@ def api_rooms_available(request):
     data = list(rooms.values('Room_ID', 'Room_Number', 'Building_No', 'Floor').order_by('Room_Number'))
     return JsonResponse({'rooms': data})
 
+@login_required
+def api_utility_latest(request):
+    """JSON API สำหรับดึงข้อมูลมิเตอร์ล่าสุดของสัญญา เพื่อ auto-fill ในฟอร์มออกใบแจ้งหนี้"""
+    contract_id = request.GET.get('contract_id')
+    if not contract_id:
+        return JsonResponse({'error': 'Missing contract_id'}, status=400)
+    
+    contract = Contract.objects.filter(pk=contract_id).first()
+    if not contract:
+        return JsonResponse({'error': 'Invalid contract_id'}, status=400)
+
+    import datetime
+    today = datetime.date.today()
+    bill_month = today.replace(day=1)
+    
+    # ดึงค่า Utility ล่าสุดของห้องนี้
+    utility = Utility.objects.filter(Room_ID=contract.Room_ID).order_by('-Bill_Month').first()
+    
+    if utility:
+        data = {
+            'Water_Unit_Before': utility.Water_Unit_Before,
+            'Water_Unit_After': utility.Water_Unit_After,
+            'Elec_Unit_Used': utility.Elec_Unit_Used,
+            'Bill_Month': bill_month.strftime('%Y-%m-%d'),
+        }
+    else:
+        data = {
+            'Water_Unit_Before': contract.Water_Meter_Start,
+            'Water_Unit_After': contract.Water_Meter_Start,
+            'Elec_Unit_Used': 0,
+            'Bill_Month': bill_month.strftime('%Y-%m-%d'),
+        }
+    return JsonResponse(data)
+
 # ==================== BOOKING ====================
 
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def booking_list(request):
-    bookings = Booking.objects.select_related('Room_ID').filter(
-        Status='รอยืนยัน'
-    ).order_by('-Booking_Date')
+    building = get_user_building(request.user)
+    bookings = Booking.objects.select_related('Room_ID').filter(Status='รอยืนยัน')
+    if building: bookings = bookings.filter(Room_ID__Building_No=building)
+    bookings = bookings.order_by('-Booking_Date')
     return render(request, 'apartment/booking/list.html', {'bookings': bookings})
 
 
@@ -1095,7 +1163,10 @@ def meter_input(request):
     else:
         prev_month = datetime.date(year, month - 1, 1)
 
-    rooms        = Room.objects.filter(Status='มีผู้เช่า').order_by('Building_No', 'Floor', 'Room_Number')
+    building = get_user_building(request.user)
+    rooms = Room.objects.filter(Status='มีผู้เช่า')
+    if building: rooms = rooms.filter(Building_No=building)
+    rooms = rooms.order_by('Building_No', 'Floor', 'Room_Number')
     contract_map = {c.Room_ID_id: c for c in Contract.objects.filter(Status='ใช้งาน')}
     prev_map     = {u.Room_ID_id: u for u in Utility.objects.filter(Bill_Month=prev_month)}
     curr_map     = {u.Room_ID_id: u for u in Utility.objects.filter(Bill_Month=bill_month)}

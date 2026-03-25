@@ -1,5 +1,15 @@
 from django.db import models
+from django.contrib.auth.models import User
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    Building_No = models.CharField(max_length=1, null=True, blank=True)
+
+    class Meta:
+        db_table = 'USER_PROFILE'
+
+    def __str__(self):
+        return f"{self.user.username} - อาคาร {self.Building_No}"
 
 # ตาราง 1: ผู้เช่า
 class Tenant(models.Model):
@@ -71,7 +81,7 @@ class Contract(models.Model):
         db_table = 'CONTRACT'
 
     def __str__(self):
-        return f"สัญญา #{self.Contract_ID} - {self.Tenant_ID}"
+        return f"ห้อง {self.Room_ID.Room_Number} - {self.Tenant_ID.First_Name} {self.Tenant_ID.Last_Name}"
 
 
 # ตาราง 4: ใบแจ้งหนี้
