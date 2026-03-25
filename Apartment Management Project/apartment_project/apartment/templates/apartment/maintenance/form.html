@@ -3,14 +3,13 @@
 
 <style>
     .maintenance-form-hero {
-        background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+        background: linear-gradient(135deg, #e65100 0%, #fb8c00 100%);
         border-radius: 16px;
         padding: 28px 32px;
         margin-bottom: 28px;
         position: relative;
         overflow: hidden;
         color: #fff;
-        box-shadow: 0 4px 20px rgba(255, 126, 95, 0.2);
     }
     .maintenance-form-hero::before {
         content: '';
@@ -40,7 +39,6 @@
         border-radius: 16px;
         box-shadow: 0 4px 24px rgba(0,0,0,0.06);
         overflow: hidden;
-        background: #fff;
     }
     .form-section {
         padding: 24px 28px;
@@ -78,7 +76,7 @@
     }
 
     .form-floating-custom .form-label {
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         font-weight: 600;
         color: #5a5c6f;
         margin-bottom: 6px;
@@ -86,8 +84,7 @@
     }
     .form-floating-custom .form-control,
     .form-floating-custom .form-select,
-    .form-floating-custom select,
-    .form-floating-custom textarea {
+    .form-floating-custom select {
         border-radius: 10px;
         border: 1.5px solid #e4e6ef;
         padding: 10px 14px;
@@ -95,13 +92,13 @@
         transition: all 0.2s ease;
         background-color: #fafbfc;
         width: 100%;
+        height: auto;
     }
     .form-floating-custom .form-control:focus,
     .form-floating-custom .form-select:focus,
-    .form-floating-custom select:focus,
-    .form-floating-custom textarea:focus {
-        border-color: #ff7e5f;
-        box-shadow: 0 0 0 3px rgba(255, 126, 95, 0.12);
+    .form-floating-custom select:focus {
+        border-color: #fb8c00;
+        box-shadow: 0 0 0 3px rgba(251, 140, 0, 0.12);
         background-color: #fff;
         outline: none;
     }
@@ -116,8 +113,8 @@
         vertical-align: middle;
     }
 
-    .btn-submit {
-        background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+    .btn-save {
+        background: linear-gradient(135deg, #e65100 0%, #ff9800 100%);
         border: none;
         color: #fff;
         font-weight: 700;
@@ -125,11 +122,11 @@
         border-radius: 10px;
         font-size: 0.95rem;
         transition: all 0.2s ease;
-        box-shadow: 0 4px 12px rgba(255, 126, 95, 0.3);
+        box-shadow: 0 4px 12px rgba(230, 81, 0, 0.3);
     }
-    .btn-submit:hover {
+    .btn-save:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(255, 126, 95, 0.4);
+        box-shadow: 0 6px 20px rgba(230, 81, 0, 0.4);
         color: #fff;
     }
     .btn-cancel {
@@ -151,7 +148,7 @@
 <!-- Hero -->
 <div class="maintenance-form-hero">
     <h4><i class="bi bi-tools me-2"></i>{{ title }}</h4>
-    <p>ระบุรายละเอียดปัญหาที่ต้องการแจ้งซ่อมหรืออัปเดตสถานะการซ่อมแซมห้องพัก</p>
+    <p>เพิ่มหรือแก้ไขข้อมูลการแจ้งซ่อม</p>
 </div>
 
 <div class="row justify-content-center">
@@ -161,36 +158,69 @@
     {% csrf_token %}
 
     <div class="form-card">
+        
+        <!-- Section 1: ข้อมูลการแจ้งซ่อม -->
         <div class="form-section">
             <div class="section-title">
                 <div class="section-icon" style="background:#fff3e0; color:#e65100;">
-                    <i class="bi bi-wrench"></i>
+                    <i class="bi bi-house-door-fill"></i>
                 </div>
                 <div>
-                    <h6>รายละเอียดการแจ้งซ่อม</h6>
-                    <small>กรอกข้อมูลปัญหาที่พบและห้องที่ต้องการแจ้ง</small>
+                    <h6>ข้อมูลห้องและวันที่แจ้ง</h6>
+                    <small>เลือกห้องที่เกิดปัญหาและวันที่แจ้งซ่อม</small>
                 </div>
             </div>
 
             <div class="row g-3">
-                {% for field in form %}
-                <div class="col-12 form-floating-custom">
-                    <label class="form-label">{{ field.label }} {% if field.field.required %}<span class="required-dot"></span>{% endif %}</label>
-                    {{ field }}
-                    {% if field.errors %}
-                        <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ field.errors.0 }}</div>
-                    {% endif %}
+                <div class="col-md-6 form-floating-custom">
+                    <label class="form-label">ห้อง <span class="required-dot"></span></label>
+                    {{ form.Room_ID }}
                 </div>
-                {% endfor %}
+                <div class="col-md-6 form-floating-custom">
+                    <label class="form-label">วันที่แจ้ง <span class="required-dot"></span></label>
+                    {{ form.Report_Date }}
+                </div>
+                <div class="col-12 form-floating-custom">
+                    <label class="form-label">รายละเอียดปัญหา <span class="required-dot"></span></label>
+                    {{ form.Problem_Detail }}
+                </div>
             </div>
         </div>
 
-        <!-- Error Alert -->
+        <!-- Section 2: สถานะการซ่อมแซม -->
+        <div class="form-section">
+            <div class="section-title">
+                <div class="section-icon" style="background:#e3f2fd; color:#1565c0;">
+                    <i class="bi bi-clipboard-check-fill"></i>
+                </div>
+                <div>
+                    <h6>สถานะและการดำเนินการ</h6>
+                    <small>อัปเดตสถานะการซ่อม วันที่แก้ไขเสร็จ และค่าซ่อม (ถ้ามี)</small>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4 form-floating-custom">
+                    <label class="form-label">สถานะ <span class="required-dot"></span></label>
+                    {{ form.Status }}
+                </div>
+                <div class="col-md-4 form-floating-custom">
+                    <label class="form-label">วันที่ซ่อมเสร็จ</label>
+                    {{ form.Resolved_Date }}
+                </div>
+                <div class="col-md-4 form-floating-custom">
+                    <label class="form-label">ค่าซ่อม (บาท)</label>
+                    {{ form.Repair_Cost }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Error -->
         {% if form.errors %}
         <div class="form-section" style="padding-top:0;">
-            <div class="alert alert-danger d-flex align-items-center mb-0" style="border-radius:10px; border:none; background:#fff5f5; color:#c62828;">
+            <div class="alert alert-danger d-flex align-items-center" style="border-radius:10px; border:none; background:#fff5f5; color:#c62828;">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <span>กรุณาตรวจสอบข้อมูลให้ครบถ้วน ข้อมูลบางส่วนไม่ถูกต้อง</span>
+                <span>กรุณาตรวจสอบข้อมูลให้ครบถ้วน</span>
             </div>
         </div>
         {% endif %}
@@ -201,31 +231,15 @@
                 <a href="{% url 'maintenance_list' %}" class="btn btn-cancel">
                     <i class="bi bi-arrow-left me-1"></i> ยกเลิก
                 </a>
-                <button type="submit" class="btn btn-submit">
-                    <i class="bi bi-tools me-1"></i> บันทึกข้อมูล
+                <button type="submit" class="btn btn-save">
+                    <i class="bi bi-save me-1"></i> บันทึกข้อมูล
                 </button>
             </div>
         </div>
-    </div><!-- end form-card -->
+
+    </div>
 </form>
 
-</div><!-- end col -->
-</div><!-- end row -->
-
-<script>
-    // เพิ่ม class 'form-control' ให้กับช่องกรอกข้อมูลอัตโนมัติเผื่อไว้
-    document.addEventListener("DOMContentLoaded", function() {
-        const inputs = document.querySelectorAll('.form-floating-custom input, .form-floating-custom select, .form-floating-custom textarea');
-        inputs.forEach(input => {
-            if(!input.classList.contains('form-control') && !input.classList.contains('form-select')) {
-                if(input.tagName === 'SELECT') {
-                    input.classList.add('form-select');
-                } else {
-                    input.classList.add('form-control');
-                }
-            }
-        });
-    });
-</script>
-
+</div>
+</div>
 {% endblock %}
