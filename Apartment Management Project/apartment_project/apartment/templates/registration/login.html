@@ -2,54 +2,234 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>เข้าสู่ระบบ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - ระบบจัดการอพาร์ทเม้นต์</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
     <style>
         body {
-            background: #f0f2f5;
+            font-family: 'Sarabun', sans-serif;
+            background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #1e3c72, #2a5298);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
-        .login-card {
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .login-wrapper {
             width: 100%;
-            max-width: 400px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 440px;
+            position: relative;
+            z-index: 10;
         }
-        .login-header {
-            background: #212529;
+
+        /* The Card */
+        .login-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            position: relative;
+            padding: 40px;
+        }
+        
+        /* Decorative Top Accent */
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%);
+        }
+
+        /* Header block */
+        .brand-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            color: #0284c7;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 16px rgba(2, 132, 199, 0.15);
+        }
+
+        .app-title {
+            font-weight: 800;
+            color: #0f172a;
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+        .app-subtitle {
+            color: #64748b;
+            font-size: 0.95rem;
+            margin-bottom: 32px;
+        }
+
+        /* Custom Floating Inputs */
+        .form-floating {
+            margin-bottom: 20px;
+        }
+        .form-floating > .form-control {
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            padding: 1rem 1.25rem;
+            height: 60px;
+            font-weight: 500;
+            color: #0f172a;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+        .form-floating > .form-control:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+            background: #ffffff;
+        }
+        .form-floating > label {
+            padding: 1rem 1.25rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Submit Button */
+        .btn-login {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
             color: white;
-            border-radius: 12px 12px 0 0;
-            padding: 24px;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(2, 132, 199, 0.25);
+            margin-top: 10px;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(2, 132, 199, 0.35);
+            color: white;
+        }
+
+        /* Alerts */
+        .alert-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #ef4444;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+        }
+
+        /* Abstract Background Elements */
+        .circle-1 {
+            position: absolute;
+            top: 5%; left: 10%;
+            width: 300px; height: 300px;
+            background: rgba(56, 189, 248, 0.15);
+            border-radius: 50%;
+            filter: blur(60px);
+            z-index: 1;
+            animation: float 8s ease-in-out infinite;
+        }
+        .circle-2 {
+            position: absolute;
+            bottom: 10%; right: 15%;
+            width: 400px; height: 400px;
+            background: rgba(139, 92, 246, 0.15);
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 1;
+            animation: float 10s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(10deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        
+        /* Footer Text */
+        .login-footer {
             text-align: center;
+            margin-top: 24px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            position: relative;
+            z-index: 10;
         }
     </style>
 </head>
 <body>
-    <div class="login-card bg-white">
-        <div class="login-header">
-            <h4 class="mb-0">🏢 ระบบจัดการอพาร์ทเม้นต์</h4>
-            <small class="text-secondary">กรุณาเข้าสู่ระบบก่อนใช้งาน</small>
-        </div>
-        <div class="p-4">
+
+    <!-- Ambient Background Effects -->
+    <div class="circle-1"></div>
+    <div class="circle-2"></div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            
+            <div class="brand-icon">
+                <i class="bi bi-buildings-fill"></i>
+            </div>
+            
+            <h1 class="app-title">Apartment Manager</h1>
+            <p class="app-subtitle">ยินดีต้อนรับ, กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ</p>
+
             <form method="post">
                 {% csrf_token %}
+                
                 {% if form.errors %}
-                    <div class="alert alert-danger py-2">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+                <div class="alert-error">
+                    <i class="bi bi-exclamation-circle-fill fs-5"></i>
+                    <span>ข้อมูลชื่อผู้ใช้ หรือ รหัสผ่านไม่ถูกต้อง!</span>
+                </div>
                 {% endif %}
-                <div class="mb-3">
-                    <label class="form-label">ชื่อผู้ใช้</label>
-                    <input type="text" name="username" class="form-control" autofocus required>
+
+                <div class="form-floating text-start">
+                    <input type="text" name="username" class="form-control" id="floatingInput" placeholder="Username" autofocus required>
+                    <label for="floatingInput"><i class="bi bi-person-fill me-2 text-secondary"></i>ชื่อผู้ใช้งาน (Username)</label>
                 </div>
-                <div class="mb-4">
-                    <label class="form-label">รหัสผ่าน</label>
-                    <input type="password" name="password" class="form-control" required>
+                
+                <div class="form-floating text-start">
+                    <input type="password" name="password" class="form-control" id="floatingPassword" placeholder="Password" required>
+                    <label for="floatingPassword"><i class="bi bi-shield-lock-fill me-2 text-secondary"></i>รหัสผ่าน (Password)</label>
                 </div>
-                <button type="submit" class="btn btn-dark w-100">เข้าสู่ระบบ</button>
+                
+                <button type="submit" class="btn-login mt-2">
+                    เข้าสู่ระบบ <i class="bi bi-arrow-right-circle-fill ms-2"></i>
+                </button>
             </form>
         </div>
+        
+        <div class="login-footer">
+            &copy; {% now "Y" %} Apartment Management System. All rights reserved.
+        </div>
     </div>
+
+    <!-- Bootstrap JS (Optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
