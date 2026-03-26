@@ -1,110 +1,270 @@
 {% extends 'apartment/base.html' %}
 {% load humanize %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>ใบแจ้งหนี้ #{{ invoice.Invoice_ID }}</h2>
+
+<style>
+    /* Hero Section */
+    .invoice-hero {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        border-radius: 16px;
+        padding: 24px 32px;
+        margin-bottom: 24px;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(78, 115, 223, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .invoice-hero h2 {
+        margin: 0;
+        font-weight: 800;
+        font-size: 1.8rem;
+    }
+    
+    /* Buttons in Hero */
+    .btn-hero {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 8px 16px;
+        margin-left: 6px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transition: all 0.2s;
+        border: none;
+    }
+    .btn-hero:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
+    .btn-hero-success { background: #10b981; color: white; }
+    .btn-hero-success:hover { background: #059669; color: white; }
+    .btn-hero-light { background: #f8f9fa; color: #2b2d42; }
+    .btn-hero-light:hover { background: #e4e6ef; color: #1e1e2d; }
+    .btn-hero-info { background: #0ea5e9; color: white; }
+    .btn-hero-info:hover { background: #0284c7; color: white; }
+    .btn-hero-warning { background: #f59e0b; color: white; }
+    .btn-hero-warning:hover { background: #d97706; color: white; }
+
+    /* Modern Detail Cards */
+    .detail-card {
+        background: #fff;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+    .detail-card-header {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+        padding: 16px 24px;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    .detail-card-body {
+        padding: 24px;
+    }
+
+    /* Paragraphs inside tenant info */
+    .tenant-info p {
+        margin-bottom: 12px;
+        font-size: 1.05rem;
+        color: #475569;
+    }
+    .tenant-info strong {
+        color: #0f172a;
+        font-weight: 700;
+    }
+
+    /* Status Badges */
+    .badge-modern {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    /* Table */
+    .table-modern {
+        width: 100%;
+        margin-bottom: 0;
+    }
+    .table-modern td {
+        padding: 16px 20px;
+        border-bottom: 1px dashed #e2e8f0;
+        vertical-align: middle;
+        font-size: 1.05rem;
+        color: #334155;
+    }
+    .table-modern tfoot th {
+        background: #f8fafc;
+        padding: 20px 20px;
+        font-size: 1.2rem;
+        color: #0f172a;
+        font-weight: 800;
+        border-top: 2px solid #e4e6ef;
+    }
+
+    /* Penalty Form */
+    .penalty-form {
+        max-width: 400px;
+    }
+    .penalty-form label {
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 8px;
+    }
+    .penalty-form .form-control {
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        padding: 10px 16px;
+        transition: all 0.3s;
+    }
+    .penalty-form .form-control:focus {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+    .btn-penalty {
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 700;
+        transition: all 0.2s;
+    }
+    .btn-penalty:hover {
+        background: #dc2626;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+
+    /* Print hidden */
+    @media print {
+        .invoice-hero, .penalty-form { display: none !important; }
+        .detail-card { box-shadow: none !important; border: 1px solid #ddd; }
+        body { background: white; }
+    }
+</style>
+
+<div class="invoice-hero">
+    <h2><i class="bi bi-receipt"></i> ใบแจ้งหนี้ #{{ invoice.Invoice_ID }}</h2>
     <div>
         {% if invoice.Status != 'ชำระแล้ว' %}
             {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-                <a href="{% url 'invoice_pay' invoice.Invoice_ID %}" class="btn btn-success">บันทึกชำระเงิน</a>
+                <a href="{% url 'invoice_pay' invoice.Invoice_ID %}" class="btn btn-hero btn-hero-success">
+                    <i class="bi bi-cash-coin me-1"></i> บันทึกชำระเงิน
+                </a>
             {% endif %}
         {% endif %}
-        <a href="{% url 'invoice_list' %}" class="btn btn-secondary">กลับ</a>
-        <a href="{% url 'invoice_print' invoice.Invoice_ID %}" class="btn btn-outline-secondary" target="_blank">🖨️ พิมพ์</a>
+        
+        <a href="{% url 'invoice_list' %}" class="btn btn-hero btn-hero-light text-dark">
+            <i class="bi bi-arrow-left me-1"></i> กลับ
+        </a>
+        
+        <a href="{% url 'invoice_print' invoice.Invoice_ID %}" class="btn btn-hero btn-hero-light text-dark" target="_blank">
+            <i class="bi bi-printer-fill me-1"></i> พิมพ์
+        </a>
+        
         {% if invoice.Contract_ID.Tenant_ID.Email %}
             {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-                <a href="{% url 'invoice_send_email' invoice.Invoice_ID %}" class="btn btn-info">
-                📧 ส่งอีเมล
+                <a href="{% url 'invoice_send_email' invoice.Invoice_ID %}" class="btn btn-hero btn-hero-info">
+                    <i class="bi bi-envelope-fill me-1"></i> ส่งอีเมล
                 </a>
             {% endif %}
         {% else %}
-            <span class="btn btn-outline-secondary disabled" title="ผู้เช่าไม่มีอีเมลในระบบ">
-            📧 ไม่มีอีเมล
+            <span class="btn btn-hero btn-secondary disabled" title="ผู้เช่าไม่มีอีเมลในระบบ">
+                <i class="bi bi-envelope-x-fill me-1"></i> ไม่มีอีเมล
             </span>
         {% endif %}
+        
         {% if invoice.Status == 'เกินกำหนด' %}
             {% if user_role == 'ADMIN' or user_role == 'MANAGER' %}
-                <a href="{% url 'invoice_extend' invoice.Invoice_ID %}"
-                class="btn btn-warning btn-sm">⏳ ต่อเวลาชำระ</a>
+                <a href="{% url 'invoice_extend' invoice.Invoice_ID %}" class="btn btn-hero btn-hero-warning">
+                    <i class="bi bi-hourglass-split me-1"></i> ต่อเวลาชำระ
+                </a>
             {% endif %}
         {% endif %}
     </div>
 </div>
 
 <!-- ข้อมูลสัญญา -->
-<div class="card mb-3">
-    <div class="card-header bg-dark text-white">ข้อมูลผู้เช่า</div>
-    <div class="card-body">
+<div class="detail-card">
+    <div class="detail-card-header"><i class="bi bi-person-lines-fill me-2"></i> ข้อมูลผู้เช่า</div>
+    <div class="detail-card-body tenant-info">
         <p>ผู้เช่า: <strong>{{ invoice.Contract_ID.Tenant_ID }}</strong></p>
         <p>ห้อง: <strong>{{ invoice.Contract_ID.Room_ID }}</strong></p>
-        <p>วันออกบิล: {{ invoice.Billing_Date }} | ครบกำหนด: {{ invoice.Due_Date }}</p>
-        <p>สถานะ:
+        <p>วันออกบิล: <strong>{{ invoice.Billing_Date }}</strong> | ครบกำหนด: <strong class="text-danger">{{ invoice.Due_Date }}</strong></p>
+        <p class="mb-0">สถานะ:
             {% if invoice.Status == 'ชำระแล้ว' %}
-                <span class="badge bg-success">{{ invoice.Status }}</span>
-                — วันที่ชำระ: {{ invoice.Paid_Date }}
+                <span class="badge-modern bg-success text-white"><i class="bi bi-check-circle-fill me-1"></i> {{ invoice.Status }}</span>
+                <span class="text-success ms-2 fw-bold">— วันที่ชำระ: {{ invoice.Paid_Date }}</span>
             {% elif invoice.Status == 'เกินกำหนด' %}
-                <span class="badge bg-danger">{{ invoice.Status }}</span>
+                <span class="badge-modern bg-danger text-white"><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ invoice.Status }}</span>
             {% else %}
-                <span class="badge bg-warning text-dark">{{ invoice.Status }}</span>
+                <span class="badge-modern bg-warning text-dark"><i class="bi bi-clock-history me-1"></i> {{ invoice.Status }}</span>
             {% endif %}
         </p>
     </div>
 </div>
 
 <!-- รายการค่าใช้จ่าย -->
-<div class="card mb-3">
-    <div class="card-header bg-dark text-white">รายการค่าใช้จ่าย</div>
-    <div class="card-body">
-        <table class="table">
-            <tbody>
-                {% if monthly_bill %}
-                <tr>
-                    <td>ค่าเช่า</td>
-                    <td class="text-end">{{ monthly_bill.Amount|floatformat:2|intcomma }} บาท</td>
-                </tr>
-                {% endif %}
-                {% if utility %}
-                <tr>
-                    <td>ค่าน้ำ ({{ utility.Water_Unit_Used }} หน่วย × {{ utility.Water_Cost_Unit }} บาท)</td>
-                    <td class="text-end">{{ utility.Water_Total|floatformat:2|intcomma }} บาท</td>
-                </tr>
-                <tr>
-                    <td>ค่าไฟ ({{ utility.Elec_Unit_Used }} หน่วย × {{ utility.Elec_Cost_Unit }} บาท)</td>
-                    <td class="text-end">{{ utility.Elec_Total|floatformat:2|intcomma }} บาท</td>
-                </tr>
-                {% endif %}
-                {% for fine in fines %}
-                <tr class="text-danger">
-                    <td>ค่าปรับ: {{ fine.Reason }}</td>
-                    <td class="text-end">{{ fine.Amount|floatformat:2|intcomma }} บาท</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr class="table-dark">
-                    <th>ยอดรวมทั้งหมด</th>
-                    <th class="text-end">{{ invoice.Grand_Total|floatformat:2|intcomma }} บาท</th>
-                </tr>
-            </tfoot>
-        </table>
+<div class="detail-card">
+    <div class="detail-card-header"><i class="bi bi-list-columns-reverse me-2"></i> รายการค่าใช้จ่าย</div>
+    <div class="detail-card-body p-0">
+        <div class="table-responsive">
+            <table class="table-modern">
+                <tbody>
+                    {% if monthly_bill %}
+                    <tr>
+                        <td>ค่าเช่า</td>
+                        <td class="text-end fw-bold">{{ monthly_bill.Amount|floatformat:2|intcomma }} บาท</td>
+                    </tr>
+                    {% endif %}
+                    {% if utility %}
+                    <tr>
+                        <td>ค่าน้ำ <span class="text-muted fs-6">({{ utility.Water_Unit_Used }} หน่วย × {{ utility.Water_Cost_Unit }} บาท)</span></td>
+                        <td class="text-end fw-bold">{{ utility.Water_Total|floatformat:2|intcomma }} บาท</td>
+                    </tr>
+                    <tr>
+                        <td>ค่าไฟ <span class="text-muted fs-6">({{ utility.Elec_Unit_Used }} หน่วย × {{ utility.Elec_Cost_Unit }} บาท)</span></td>
+                        <td class="text-end fw-bold">{{ utility.Elec_Total|floatformat:2|intcomma }} บาท</td>
+                    </tr>
+                    {% endif %}
+                    {% for fine in fines %}
+                    <tr class="text-danger">
+                        <td><i class="bi bi-exclamation-circle-fill me-1"></i> ค่าปรับ: {{ fine.Reason }}</td>
+                        <td class="text-end fw-bold">{{ fine.Amount|floatformat:2|intcomma }} บาท</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>ยอดรวมทั้งหมด</th>
+                        <th class="text-end text-success fs-4">{{ invoice.Grand_Total|floatformat:2|intcomma }} บาท</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
     </div>
 </div>
 
 <!-- เพิ่มค่าปรับ -->
 {% if invoice.Status != 'ชำระแล้ว' %}
-<div class="card mb-3" style="max-width: 400px;">
-    <div class="card-header">เพิ่มค่าปรับ</div>
-    <div class="card-body">
+<div class="detail-card penalty-form">
+    <div class="detail-card-header" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">
+        <i class="bi bi-plus-circle-fill me-2"></i> เพิ่มค่าปรับ
+    </div>
+    <div class="detail-card-body">
         <form method="post">
             {% csrf_token %}
             {% for field in fine_form %}
-            <div class="mb-2">
+            <div class="mb-3">
                 <label class="form-label">{{ field.label }}</label>
                 {{ field }}
             </div>
             {% endfor %}
             {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-            <button type="submit" class="btn btn-danger btn-sm">เพิ่มค่าปรับ</button>
+            <button type="submit" class="btn-penalty w-100">
+                <i class="bi bi-save-fill me-1"></i> เพิ่มค่าปรับ
+            </button>
             {% endif %}
         </form>
     </div>
