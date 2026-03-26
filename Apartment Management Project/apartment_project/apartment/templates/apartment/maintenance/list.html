@@ -1,52 +1,237 @@
 {% extends 'apartment/base.html' %}
 {% load humanize %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>รายการแจ้งซ่อม</h2>
-        <a href="{% url 'maintenance_create' %}" class="btn btn-primary">+ แจ้งซ่อม</a>
+
+<style>
+    .maintenance-hero {
+        background: linear-gradient(135deg, #f2709c 0%, #ff9472 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(242, 112, 156, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .maintenance-hero::before {
+        content: '';
+        position: absolute;
+        top: -60%; right: -15%;
+        width: 250px; height: 250px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .hero-content h4 {
+        font-weight: 800;
+        margin: 0;
+        font-size: 1.5rem;
+    }
+    .hero-content p {
+        opacity: 0.9;
+        margin: 6px 0 0;
+        font-size: 0.95rem;
+    }
+    .hero-buttons {
+        position: relative;
+        z-index: 1;
+    }
+    .btn-hero {
+        background: #fff;
+        color: #e65100;
+        font-weight: 700;
+        padding: 10px 24px;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .btn-hero:hover {
+        background: #f8f9fa;
+        color: #e65100;
+        transform: translateY(-2px);
+    }
+
+    /* Modern Table Card */
+    .table-card {
+        background: #fff;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        overflow: hidden;
+        margin-bottom: 28px;
+    }
+    .table-modern {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-modern thead th {
+        background: #f8f9fa;
+        color: #5a5c6f;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 16px 20px;
+        border-bottom: 2px solid #e4e6ef;
+        border-top: none;
+    }
+    .table-modern tbody td {
+        padding: 16px 20px;
+        vertical-align: middle;
+        font-size: 0.95rem;
+        color: #2b2d42;
+        border-bottom: 1px solid #f0f2f5;
+    }
+    .table-modern tbody tr:hover td {
+        background-color: #fafbfc;
+    }
+    .table-modern tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Typography & Highlights */
+    .mnt-id {
+        font-weight: 700;
+        color: #f2709c;
+    }
+    .room-number {
+        font-weight: 700;
+        color: #e65100;
+        background: #fff3e0;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+    }
+
+    /* Custom Badges */
+    .badge-custom {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .badge-done { background: #e8f5e9; color: #2e7d32; }
+    .badge-working { background: #fff8e1; color: #f57f17; }
+    .badge-pending { background: #f0f2f5; color: #5a5c6f; }
+
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s;
+        color: #fff;
+        text-decoration: none;
+    }
+    .btn-edit { background: #ffc107; color: #212529; }
+    .btn-edit:hover { background: #e0a800; transform: translateY(-2px); color: #212529; }
+    .btn-delete { background: #fff5f5; color: #dc3545; }
+    .btn-delete:hover { background: #dc3545; color: #fff; transform: translateY(-2px); }
+</style>
+
+<!-- Hero Section -->
+<div class="maintenance-hero">
+    <div class="hero-content">
+        <h4><i class="bi bi-tools me-2"></i>ระบบแจ้งซ่อม</h4>
+        <p>ติดตามสถานะการแจ้งซ่อมของห้องพัก ประเมินค่าใช้จ่าย และอัปเดตงานซ่อมบำรุง</p>
+    </div>
+    <div class="hero-buttons">
+        <a href="{% url 'maintenance_create' %}" class="btn-hero">
+            <i class="bi bi-plus-circle-fill"></i> แจ้งซ่อมใหม่ (รปภ/ช่าง)
+        </a>
+    </div>
 </div>
 
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>#</th>
-            <th>ห้อง</th>
-            <th>รายละเอียด</th>
-            <th>วันที่แจ้ง</th>
-            <th>สถานะ</th>
-            <th>ค่าซ่อม</th>
-            <th>วันซ่อมเสร็จ</th>
-            <th>จัดการ</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in items %}
-        <tr>
-            <td>{{ item.Maintenance_ID }}</td>
-            <td>{{ item.Room_ID }}</td>
-            <td>{{ item.Problem_Detail }}</td>
-            <td>{{ item.Report_Date }}</td>
-            <td>
-                {% if item.Status == 'ซ่อมเสร็จ' %}
-                    <span class="badge bg-success">{{ item.Status }}</span>
-                {% elif item.Status == 'กำลังซ่อม' %}
-                    <span class="badge bg-warning text-dark">{{ item.Status }}</span>
-                {% else %}
-                    <span class="badge bg-secondary">{{ item.Status }}</span>
-                {% endif %}
-            </td>
-            <td>{{ item.Repair_Cost|intcomma }} บาท</td>
-            <td>{{ item.Resolved_Date|default:"-" }}</td>
-            <td>
-                <a href="{% url 'maintenance_edit' item.Maintenance_ID %}" class="btn btn-sm btn-warning">อัปเดต</a>
-                {% if user_role == 'ADMIN' %}
-                <a href="{% url 'maintenance_delete' item.Maintenance_ID %}" class="btn btn-sm btn-danger">ลบ</a>
-                {% endif %}
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="8" class="text-center text-muted">ไม่มีรายการแจ้งซ่อม</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th># รหัส</th>
+                    <th>ห้อง</th>
+                    <th>ปัญหา/รายละเอียด</th>
+                    <th>วันที่รับแจ้ง</th>
+                    <th class="text-center">สถานะ</th>
+                    <th class="text-end">ค่าซ่อม</th>
+                    <th>วันซ่อมเสร็จ</th>
+                    <th class="text-center">ตรวจสอบ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td class="mnt-id">#{{ item.Maintenance_ID }}</td>
+                    <td><span class="room-number"><i class="bi bi-door-closed-fill me-1"></i>{{ item.Room_ID }}</span></td>
+                    <td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ item.Problem_Detail }}">
+                        {{ item.Problem_Detail }}
+                    </td>
+                    <td>{{ item.Report_Date }}</td>
+                    <td class="text-center">
+                        {% if item.Status == 'ซ่อมเสร็จ' %}
+                            <span class="badge-custom badge-done"><i class="bi bi-check-circle-fill me-1"></i>{{ item.Status }}</span>
+                        {% elif item.Status == 'กำลังซ่อม' %}
+                            <span class="badge-custom badge-working"><i class="bi bi-gear-wide-connected me-1"></i>{{ item.Status }}</span>
+                        {% else %}
+                            <span class="badge-custom badge-pending"><i class="bi bi-clock-history me-1"></i>{{ item.Status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold">
+                        {% if item.Repair_Cost %}
+                            ฿ {{ item.Repair_Cost|intcomma }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.Resolved_Date %}
+                            {{ item.Resolved_Date }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'maintenance_edit' item.Maintenance_ID %}" class="btn-action btn-edit" title="อัปเดตสถานะ">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            {% if user_role == 'ADMIN' %}
+                            <a href="{% url 'maintenance_delete' item.Maintenance_ID %}" class="btn-action btn-delete" title="ลบรายการ">
+                                <i class="bi bi-trash-fill"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-wrench-adjustable mb-3 d-block" style="font-size: 3rem; color: #e4e6ef;"></i>
+                            <h6 class="fw-bold mb-1">ยังไม่มีรายการแจ้งซ่อม</h6>
+                            <p class="small mb-0">ระบบพร้อมรับแจ้งซ่อมเสมอ หากมีปัญหาโปรดกดปุ่มด้านบน</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 {% endblock %}
