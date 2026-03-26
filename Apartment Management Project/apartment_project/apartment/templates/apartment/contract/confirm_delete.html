@@ -1,12 +1,129 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
-<h2>{{ title }}</h2>
-<div class="alert alert-danger mt-3">
-    ยืนยันการลบ <strong>{{ object }}</strong> ?
+
+<style>
+    .action-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 60vh;
+        padding: 20px;
+    }
+    .action-card {
+        background: #fff;
+        border-radius: 24px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        padding: 40px;
+        max-width: 500px;
+        width: 100%;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .action-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%);
+    }
+    .icon-wrapper {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        background: #ffebee;
+        color: #e53935;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        margin: 0 auto 24px;
+        box-shadow: 0 8px 24px rgba(229, 57, 53, 0.2);
+    }
+    .action-title {
+        font-weight: 800;
+        color: #2b2d42;
+        margin-bottom: 12px;
+        font-size: 1.5rem;
+    }
+    .action-desc {
+        color: #5a5c6f;
+        font-size: 1.05rem;
+        margin-bottom: 32px;
+        line-height: 1.6;
+    }
+    .target-highlight {
+        display: inline-block;
+        background: #f8f9fa;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        color: #d32f2f;
+        margin-top: 10px;
+        border: 1px dashed #ef9a9a;
+    }
+    .btn-action-primary {
+        background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        color: #fff;
+        font-weight: 700;
+        padding: 12px 24px;
+        border-radius: 12px;
+        border: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(255, 75, 43, 0.3);
+        width: 100%;
+        margin-bottom: 12px;
+        font-size: 1.1rem;
+    }
+    .btn-action-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 75, 43, 0.4);
+        color: #fff;
+    }
+    .btn-action-secondary {
+        background: #f8f9fa;
+        color: #5a5c6f;
+        font-weight: 700;
+        padding: 12px 24px;
+        border-radius: 12px;
+        border: none;
+        transition: all 0.2s;
+        width: 100%;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 1.1rem;
+    }
+    .btn-action-secondary:hover {
+        background: #e4e6ef;
+        color: #2b2d42;
+    }
+</style>
+
+<div class="action-container">
+    <div class="action-card">
+        <div class="icon-wrapper">
+            <i class="bi bi-trash3-fill"></i>
+        </div>
+        
+        <h3 class="action-title">{{ title|default:"ยืนยันการลบสัญญาเช่า" }}</h3>
+        
+        <div class="action-desc">
+            คุณกำลังจะดำเนินการลบข้อมูลเอกสารนี้ออกจากระบบอย่างถาวร 
+            โปรดตรวจสอบให้แน่ใจก่อนกดยืนยัน
+            <div class="target-highlight">
+                <i class="bi bi-file-earmark-x me-2"></i>{{ object }}
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn-action-primary">
+                <i class="bi bi-check-circle-fill me-2"></i>ยืนยันลบข้อมูล
+            </button>
+            <a href="{% url 'contract_list' %}" class="btn-action-secondary">
+                <i class="bi bi-x-circle me-2"></i>ยกเลิกและกลับหน้าเดิม
+            </a>
+        </form>
+    </div>
 </div>
-<form method="post">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-danger">ยืนยันลบ</button>
-    <a href="{% url 'contract_list' %}" class="btn btn-secondary">ยกเลิก</a>
-</form>
 {% endblock %}

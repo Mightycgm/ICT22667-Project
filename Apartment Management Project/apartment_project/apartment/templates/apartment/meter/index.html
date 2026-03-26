@@ -4,14 +4,14 @@
 <style>
     /* Hero Section */
     .meter-hero {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
         border-radius: 16px;
         padding: 28px 32px;
         margin-bottom: 24px;
         position: relative;
         overflow: hidden;
         color: #fff;
-        box-shadow: 0 4px 20px rgba(17, 153, 142, 0.2);
+        box-shadow: 0 4px 20px rgba(0, 114, 255, 0.2);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -49,7 +49,7 @@
     }
     .btn-hero-primary {
         background: #fff;
-        color: #11998e;
+        color: #0072ff;
         font-weight: 700;
         padding: 10px 20px;
         border-radius: 10px;
@@ -106,8 +106,8 @@
         transition: all 0.2s;
     }
     .filter-input:focus {
-        border-color: #38ef7d;
-        box-shadow: 0 0 0 3px rgba(56, 239, 125, 0.1);
+        border-color: #00c6ff;
+        box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.15);
         background: #fff;
     }
 
@@ -132,7 +132,7 @@
         gap: 10px;
     }
     .card-header-modern i {
-        color: #38ef7d;
+        color: #00c6ff;
         font-size: 1.4rem;
     }
     
@@ -272,7 +272,7 @@
 <div class="no-print">
     <form method="get" class="filter-card flex-wrap align-items-center mb-4 pb-0">
         <div class="filter-group mb-auto pb-3">
-            <i class="bi bi-calendar3 fs-5" style="color:#11998e;"></i>
+            <i class="bi bi-calendar3 fs-5" style="color:#0072ff;"></i>
             <label class="filter-label">เลือกประจำเดือน</label>
             <select name="month" class="form-select filter-input w-auto">
                 {% for num, mname in months_th %}
@@ -284,7 +284,7 @@
                 <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="btn text-white fw-bold" style="background:#11998e; border-radius: 8px; padding: 8px 16px;"><i class="bi bi-search"></i> เรียกดู</button>
+            <button type="submit" class="btn text-white fw-bold" style="background:#0072ff; border-radius: 8px; padding: 8px 16px;"><i class="bi bi-search"></i> เรียกดู</button>
         </div>
 
         <div class="filter-group ms-auto mb-auto pb-3">

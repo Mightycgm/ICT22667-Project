@@ -4,14 +4,14 @@
 
 <style>
     .report-hero {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%);
         border-radius: 16px;
         padding: 28px 32px;
         margin-bottom: 24px;
         position: relative;
         overflow: hidden;
         color: #fff;
-        box-shadow: 0 4px 20px rgba(30, 60, 114, 0.2);
+        box-shadow: 0 4px 20px rgba(74, 0, 224, 0.2);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -56,13 +56,13 @@
         border-bottom: 1px solid #f0f2f5;
         font-weight: 800;
         font-size: 1.1rem;
-        color: #1e3c72;
+        color: #2b2d42;
         display: flex;
         align-items: center;
         gap: 10px;
     }
     .card-header-modern i {
-        color: #2a5298;
+        color: #8E2DE2;
         font-size: 1.2rem;
     }
     
@@ -104,7 +104,7 @@
     }
     .invoice-id {
         font-weight: 700;
-        color: #1e3c72;
+        color: #4A00E0;
     }
     .tenant-name {
         font-weight: 600;
@@ -124,8 +124,8 @@
         font-size: 1.05rem;
     }
     .count-badge {
-        background: #e3f2fd;
-        color: #1565c0;
+        background: #f3e5f5;
+        color: #7b1fa2;
         font-weight: 700;
         padding: 4px 10px;
         border-radius: 20px;
@@ -195,7 +195,7 @@
             <tbody>
                 {% for row in summary %}
                 <tr>
-                    <td class="month-name"><i class="bi bi-calendar2-check-fill text-primary me-2"></i>{{ row.month|date:"F Y" }}</td>
+                    <td class="month-name"><i class="bi bi-calendar2-check-fill me-2" style="color: #8E2DE2;"></i>{{ row.month|date:"F Y" }}</td>
                     <td class="text-center"><span class="count-badge">{{ row.count }}</span></td>
                     <td class="text-center">
                         <div class="progress-text">
