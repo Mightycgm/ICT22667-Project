@@ -99,9 +99,13 @@
 
         /* Print Only Styles */
         @media print {
+            @page {
+                margin: 0; /* ซ่อน Header และ Footer อัตโนมัติของเบราว์เซอร์ (URL, วันที่, เลขหน้า) */
+            }
             body {
                 background: #fff;
                 font-size: 15px;
+                padding: 2cm; /* เพิ่มระยะขอบที่ body แทน เพื่อไม่ให้เนื้อหาชิดขอบกระดาษเกินไป */
             }
             .no-print, .contract-hero {
                 display: none !important;
