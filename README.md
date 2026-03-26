@@ -35,7 +35,21 @@ cd Apartment Management Project
 
 ---
 
-### 📦 ขั้นตอนที่ 2 — ติดตั้ง Packages
+### 📦 ขั้นตอนที่ 2 — สร้าง Virtual Environment และติดตั้ง Packages
+
+สร้างและเปิดใช้งาน Virtual Environment (venv) เพื่อแยก Library ของโปรเจกต์นี้ออกจากระบบหลัก
+
+**Windows:**
+```bash
+python -m venv venv
+.\venv\Scripts\activate
+```
+**Mac/Linux:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+เมื่อมีคำว่า (venv) ขึ้นนำหน้า Terminal แล้ว ให้ทำการติดตั้ง Packages:
 
 ```bash
 pip install django==4.2.29 mysqlclient python-dotenv
