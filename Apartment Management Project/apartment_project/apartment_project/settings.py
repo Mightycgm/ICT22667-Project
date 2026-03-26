@@ -150,3 +150,5 @@ BANK_INFO = {
     'account_no':   '8200587932',
     'promptpay_no': '0623948480',   # เบอร์ PromptPay
 }
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
