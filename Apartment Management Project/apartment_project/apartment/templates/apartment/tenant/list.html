@@ -1,72 +1,296 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>รายชื่อผู้เช่า</h2>
+
+<style>
+    /* Hero Section */
+    .tenant-hero {
+        background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(11, 163, 96, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .tenant-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%; right: -10%;
+        width: 300px; height: 300px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .hero-content h4 {
+        font-weight: 800;
+        margin: 0;
+        font-size: 1.6rem;
+    }
+    .hero-content p {
+        opacity: 0.9;
+        margin: 6px 0 0;
+        font-size: 0.95rem;
+    }
+    .btn-hero-primary {
+        background: #fff;
+        color: #0ba360;
+        font-weight: 700;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        text-decoration: none;
+        position: relative;
+        z-index: 1;
+    }
+    .btn-hero-primary:hover {
+        background: #f8f9fa;
+        transform: translateY(-2px);
+        color: #0ba360;
+    }
+
+    /* Filter Card */
+    .filter-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        margin-bottom: 28px;
+    }
+    .filter-label {
+        font-weight: 700;
+        color: #2b2d42;
+        margin-bottom: 8px;
+        display: block;
+        font-size: 0.9rem;
+    }
+    .filter-input {
+        background: #f8f9fa;
+        border: 1px solid #e4e6ef;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    .filter-input:focus {
+        border-color: #3cba92;
+        box-shadow: 0 0 0 3px rgba(60, 186, 146, 0.1);
+        background: #fff;
+    }
+    .btn-search {
+        background: #2b2d42;
+        color: #fff;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    .btn-search:hover {
+        background: #1e1e2d;
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    /* Table Card */
+    .table-card {
+        background: #fff;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        overflow: hidden;
+        margin-bottom: 28px;
+    }
+    .table-modern {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-modern thead th {
+        background: #f8f9fa;
+        color: #5a5c6f;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 16px 20px;
+        border-bottom: 2px solid #e4e6ef;
+        border-top: none;
+        vertical-align: middle;
+    }
+    .table-modern tbody td {
+        padding: 16px 20px;
+        vertical-align: middle;
+        font-size: 0.95rem;
+        color: #2b2d42;
+        border-bottom: 1px solid #f0f2f5;
+    }
+    .table-modern tbody tr:hover td {
+        background-color: #fafbfc;
+    }
+    
+    /* Typography & Badges */
+    .tenant-id {
+        font-weight: 700;
+        color: #6c757d;
+        font-size: 0.85rem;
+    }
+    .tenant-name {
+        font-weight: 700;
+        color: #2b2d42;
+    }
+    .room-badge {
+        background: #e8f5e9;
+        color: #2e7d32;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 800;
+        font-size: 0.85rem;
+        display: inline-block;
+    }
+    .room-badge-none {
+        background: #f0f2f5;
+        color: #8c8ea0;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+    .id-card-text {
+        font-family: monospace;
+        letter-spacing: 1px;
+        color: #5a5c6f;
+    }
+
+    /* Action Buttons */
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    .btn-edit { background: #fff8e1; color: #f57f17; }
+    .btn-edit:hover { background: #ffecb3; transform: translateY(-2px); color: #f57f17; }
+    .btn-delete { background: #ffebee; color: #c62828; }
+    .btn-delete:hover { background: #ffcdd2; transform: translateY(-2px); color: #c62828; }
+</style>
+
+<!-- Hero Section -->
+<div class="tenant-hero">
+    <div class="hero-content">
+        <h4><i class="bi bi-people-fill me-2"></i>ระบบจัดการผู้เช่า</h4>
+        <p>ตรวจสอบรายชื่อ ค้นหาข้อมูลผู้เช่า และจัดการสิทธิ์การเข้าพักในโครงการ</p>
+    </div>
     {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-    <a href="{% url 'tenant_create' %}" class="btn btn-primary">+ เพิ่มผู้เช่า</a>
+    <a href="{% url 'tenant_create' %}" class="btn-hero-primary">
+        <i class="bi bi-person-plus-fill me-1"></i> เพิ่มผู้เช่าใหม่
+    </a>
     {% endif %}
 </div>
 
-<form method="get" class="mb-3">
-    <div class="row g-2">
-        <div class="col-md-2">
-            <select name="building" class="form-select">
-                <option value="">-- ทุกอาคาร --</option>
-                {% for b in buildings %}
-                <option value="{{ b }}" {% if building == b %}selected{% endif %}>อาคาร {{ b }}</option>
-                {% endfor %}
-            </select>
+<!-- Filter Card -->
+<div class="filter-card">
+    <form method="get" class="w-100">
+        <div class="row g-3">
+            <div class="col-md-3 col-lg-2">
+                <label class="filter-label"><i class="bi bi-building me-1"></i>อาคาร</label>
+                <select name="building" class="form-select filter-input">
+                    <option value="">-- ทุกอาคาร --</option>
+                    {% for b in buildings %}
+                    <option value="{{ b }}" {% if building == b %}selected{% endif %}>อาคาร {{ b }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label class="filter-label"><i class="bi bi-layers me-1"></i>ชั้น</label>
+                <select name="floor" class="form-select filter-input">
+                    <option value="">-- ทุกชั้น --</option>
+                    {% for f in floors %}
+                    <option value="{{ f }}" {% if floor == f %}selected{% endif %}>ชั้น {{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 col-lg-6">
+                <label class="filter-label"><i class="bi bi-search me-1"></i>ค้นหาผู้เช่า</label>
+                <input type="text" name="q" class="form-control filter-input" placeholder="พิมพ์ชื่อ, นามสกุล หรือ เลขห้องที่ต้องการค้นหา..." value="{{ query }}">
+            </div>
+            <div class="col-md-2 col-lg-2 d-flex align-items-end">
+                <button class="btn btn-search w-100 py-2 pt-2 pb-2 mt-auto" style="height: 42px;" type="submit">ค้นหาเลย</button>
+            </div>
         </div>
-        <div class="col-md-2">
-            <select name="floor" class="form-select">
-                <option value="">-- ทุกชั้น --</option>
-                {% for f in floors %}
-                <option value="{{ f }}" {% if floor == f %}selected{% endif %}>ชั้น {{ f }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-6">
-            <input type="text" name="q" class="form-control" placeholder="ค้นหาชื่อ, นามสกุล หรือ เลขห้อง..." value="{{ query }}">
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-outline-secondary w-100" type="submit"><i class="bi bi-search"></i> ค้นหา</button>
-        </div>
-    </div>
-</form>
+    </form>
+</div>
 
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>ID</th><th>ห้อง</th><th>ชื่อ</th><th>นามสกุล</th><th>เลขบัตร</th><th>เบอร์โทร</th><th>จัดการ</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for t in tenants %}
-        <tr>
-            <td>{{ t.Tenant_ID }}</td>
-            <td>
-                {% if t.room_number %}
-                    <span class="badge bg-primary">{{ t.room_number }}</span>
-                {% else %}
-                    <span class="badge bg-secondary">-</span>
-                {% endif %}
-            </td>
-            <td>{{ t.First_Name }}</td>
-            <td>{{ t.Last_Name }}</td>
-            <td>{{ t.ID_Card }}</td>
-            <td>{{ t.Phone }}</td>
-            <td>
-                {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-                <a href="{% url 'tenant_edit' t.Tenant_ID %}" class="btn btn-sm btn-warning">แก้ไข</a>
-                {% endif %}
-                {% if user_role == 'ADMIN' %}
-                <a href="{% url 'tenant_delete' t.Tenant_ID %}" class="btn btn-sm btn-danger">ลบ</a>
-                {% endif %}
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูล</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Data Table -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>รหัส</th>
+                    <th class="text-center">ห้องพัก</th>
+                    <th>ชื่อผู้เช่า</th>
+                    <th>นามสกุล</th>
+                    <th>เลขบัตรประชาชน</th>
+                    <th>เบอร์โทรศัพท์</th>
+                    <th class="text-center">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tenants %}
+                <tr>
+                    <td class="tenant-id">#{{ t.Tenant_ID }}</td>
+                    <td class="text-center">
+                        {% if t.room_number %}
+                            <span class="room-badge"><i class="bi bi-door-closed-fill me-1"></i>{{ t.room_number }}</span>
+                        {% else %}
+                            <span class="room-badge-none">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="tenant-name">{{ t.First_Name }}</td>
+                    <td class="tenant-name">{{ t.Last_Name }}</td>
+                    <td class="id-card-text">{{ t.ID_Card }}</td>
+                    <td><i class="bi bi-telephone text-muted me-1"></i>{{ t.Phone }}</td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                            {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
+                            <a href="{% url 'tenant_edit' t.Tenant_ID %}" class="btn-action btn-edit" title="แก้ไขข้อมูล">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            {% endif %}
+                            {% if user_role == 'ADMIN' %}
+                            <a href="{% url 'tenant_delete' t.Tenant_ID %}" class="btn-action btn-delete" title="ลบผู้เช่า">
+                                <i class="bi bi-trash-fill"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-person-x mb-3 d-block" style="font-size: 3.5rem; color: #e4e6ef;"></i>
+                            <h6 class="fw-bold mb-1">ไม่พบข้อมูลผู้เช่า</h6>
+                            <p class="small mb-0">ลองปรับเปลี่ยนเงื่อนไขการค้นหา หรือเพิ่มผู้เช่าใหม่</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 {% endblock %}
