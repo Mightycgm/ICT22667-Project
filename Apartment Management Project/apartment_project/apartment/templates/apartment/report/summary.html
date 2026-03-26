@@ -1,34 +1,219 @@
 {% extends 'apartment/base.html' %}
 {% load humanize %}
 {% block content %}
-<h2 class="mb-4">สรุปยอดรายเดือน</h2>
+
+<style>
+    .report-hero {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(30, 60, 114, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .report-hero::before {
+        content: '';
+        position: absolute;
+        top: -60%; right: -15%;
+        width: 250px; height: 250px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .hero-content h4 {
+        font-weight: 800;
+        margin: 0;
+        font-size: 1.5rem;
+    }
+    .hero-content p {
+        opacity: 0.9;
+        margin: 6px 0 0;
+        font-size: 0.95rem;
+    }
+
+    /* Modern Table Card */
+    .table-card {
+        background: #fff;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        overflow: hidden;
+        margin-bottom: 28px;
+    }
+    .card-header-modern {
+        background: #fff;
+        padding: 20px 24px;
+        border-bottom: 1px solid #f0f2f5;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #1e3c72;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .card-header-modern i {
+        color: #2a5298;
+        font-size: 1.2rem;
+    }
+    
+    .table-modern {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-modern thead th {
+        background: #f8f9fa;
+        color: #5a5c6f;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 16px 20px;
+        border-bottom: 2px solid #e4e6ef;
+        border-top: none;
+    }
+    .table-modern tbody td {
+        padding: 16px 20px;
+        vertical-align: middle;
+        font-size: 0.95rem;
+        color: #2b2d42;
+        border-bottom: 1px solid #f0f2f5;
+    }
+    .table-modern tbody tr:hover td {
+        background-color: #fafbfc;
+    }
+    .table-modern tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Typography & Highlights */
+    .month-name {
+        font-weight: 700;
+        color: #2b2d42;
+    }
+    .invoice-id {
+        font-weight: 700;
+        color: #1e3c72;
+    }
+    .tenant-name {
+        font-weight: 600;
+        color: #2b2d42;
+    }
+    .room-number {
+        font-weight: 700;
+        color: #e65100;
+        background: #fff3e0;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+    }
+    .grand-total {
+        font-weight: 800;
+        color: #1aa37a;
+        font-size: 1.05rem;
+    }
+    .count-badge {
+        background: #e3f2fd;
+        color: #1565c0;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+    .progress-text {
+        font-weight: 600;
+        color: #5a5c6f;
+        font-size: 0.9rem;
+    }
+    .progress-text span {
+        color: #198754;
+        font-weight: 800;
+    }
+
+    /* Custom Badges */
+    .badge-custom {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .badge-paid { background: #e8f5e9; color: #2e7d32; }
+    .badge-pending { background: #fff8e1; color: #f57f17; }
+    .badge-late { background: #ffebee; color: #c62828; }
+    .badge-extended { background: #e3f2fd; color: #1565c0; }
+    .badge-default { background: #f0f2f5; color: #5a5c6f; }
+
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s;
+        color: #fff;
+        text-decoration: none;
+    }
+    .btn-print { background: #f0f2f5; color: #5a5c6f; }
+    .btn-print:hover { background: #e4e6ef; transform: translateY(-2px); color: #1e1e2d; }
+</style>
+
+<!-- Hero Section -->
+<div class="report-hero">
+    <div class="hero-content">
+        <h4><i class="bi bi-graph-up-arrow me-2"></i>สรุปยอดรายเดือน</h4>
+        <p>รายงานรายได้ สถานะการชำระเงิน และประวัติใบแจ้งหนี้ทั้งหมดของโครงการ</p>
+    </div>
+</div>
 
 <!-- ตารางสรุปรายเดือน -->
-<div class="card mb-4">
-    <div class="card-header bg-dark text-white">ยอดรวมแต่ละเดือน</div>
-    <div class="card-body">
-        <table class="table table-bordered">
-            <thead class="table-light">
+<div class="table-card">
+    <div class="card-header-modern">
+        <i class="bi bi-pie-chart-fill"></i> ภาพรวมรายได้และยอดรวมแต่ละเดือน
+    </div>
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
                 <tr>
-                    <th>เดือน</th>
-                    <th class="text-center">จำนวนบิล</th>
-                    <th class="text-center">ชำระแล้ว</th>
-                    <th class="text-end">ยอดรวม (บาท)</th>
+                    <th>ประจำเดือน</th>
+                    <th class="text-center">จำนวนบิลที่ออก (รายการ)</th>
+                    <th class="text-center">สัดส่วนการชำระเสร็จสิ้น</th>
+                    <th class="text-end">ยอดรวมรายได้ (บาท)</th>
                 </tr>
             </thead>
             <tbody>
                 {% for row in summary %}
                 <tr>
-                    <td>{{ row.month|date:"F Y" }}</td>
-                    <td class="text-center">{{ row.count }}</td>
+                    <td class="month-name"><i class="bi bi-calendar2-check-fill text-primary me-2"></i>{{ row.month|date:"F Y" }}</td>
+                    <td class="text-center"><span class="count-badge">{{ row.count }}</span></td>
                     <td class="text-center">
-                        <span class="badge bg-success">{{ row.paid }}</span>
-                        / {{ row.count }}
+                        <div class="progress-text">
+                            <span><i class="bi bi-check-circle-fill me-1"></i>{{ row.paid }}</span> / {{ row.count }}
+                        </div>
                     </td>
-                    <td class="text-end"><strong>{{ row.total|floatformat:2|intcomma }}</strong></td>
+                    <td class="text-end grand-total">฿ {{ row.total|floatformat:2|intcomma }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="4" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>
+                <tr>
+                    <td colspan="4" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-bar-chart mb-3 d-block" style="font-size: 3rem; color: #e4e6ef;"></i>
+                            <h6 class="fw-bold mb-1">ยังไม่มีข้อมูลสรุปรายเดือน</h6>
+                            <p class="small mb-0">ข้อมูลทวีคูณจะถูกประมวลผลและแสดงที่นี่เมื่อเริ่มมีใบแจ้งหนี้</p>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -36,47 +221,69 @@
 </div>
 
 <!-- รายการ Invoice ทั้งหมด -->
-<div class="card">
-    <div class="card-header bg-dark text-white">รายการใบแจ้งหนี้ทั้งหมด</div>
-    <div class="card-body">
-        <table class="table table-bordered table-hover table-sm">
-            <thead class="table-light">
+<div class="table-card">
+    <div class="card-header-modern">
+        <i class="bi bi-journal-text"></i> ประวัติรายการใบแจ้งหนี้ทั้งหมด
+    </div>
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
                 <tr>
-                    <th>#</th>
+                    <th># รหัสบิล</th>
                     <th>ผู้เช่า</th>
                     <th>ห้อง</th>
-                    <th>เดือน</th>
-                    <th class="text-end">ยอด(บาท)</th>
-                    <th>สถานะ</th>
-                    <th></th>
+                    <th>รอบเดือน</th>
+                    <th class="text-end">ยอดรวมทั้งสิ้น</th>
+                    <th class="text-center">สถานะ</th>
+                    <th class="text-center">ตรวจสอบ</th>
                 </tr>
             </thead>
             <tbody>
                 {% for inv in invoices %}
                 <tr>
-                    <td>{{ inv.Invoice_ID }}</td>
-                    <td>{{ inv.Contract_ID.Tenant_ID }}</td>
-                    <td>{{ inv.Contract_ID.Room_ID }}</td>
+                    <td class="invoice-id">#{{ inv.Invoice_ID }}</td>
+                    <td class="tenant-name">{{ inv.Contract_ID.Tenant_ID }}</td>
+                    <td><span class="room-number"><i class="bi bi-door-closed-fill me-1"></i>{{ inv.Contract_ID.Room_ID }}</span></td>
                     <td>{{ inv.Billing_Date|date:"M Y" }}</td>
-                    <td class="text-end">{{ inv.Grand_Total|floatformat:2|intcomma }}</td>
-                    <td>
+                    
+                    <td class="text-end fw-bold" style="color: #2b2d42;">฿ {{ inv.Grand_Total|floatformat:2|intcomma }}</td>
+                    
+                    <td class="text-center">
                         {% if inv.Status == 'ชำระแล้ว' %}
-                            <span class="badge bg-success">{{ inv.Status }}</span>
+                            <span class="badge-custom badge-paid"><i class="bi bi-check-circle-fill me-1"></i>{{ inv.Status }}</span>
+                        {% elif inv.Status == 'รอชำระ' %}
+                            <span class="badge-custom badge-pending"><i class="bi bi-clock-history me-1"></i>{{ inv.Status }}</span>
+                        {% elif inv.Status == 'จ่ายล่าช้า' %}
+                            <span class="badge-custom badge-late"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ inv.Status }}</span>
+                        {% elif inv.Status == 'ต่อเวลาชำระ' %}
+                            <span class="badge-custom badge-extended"><i class="bi bi-calendar-plus-fill me-1"></i>{{ inv.Status }}</span>
                         {% elif inv.Status == 'เกินกำหนด' %}
-                            <span class="badge bg-danger">{{ inv.Status }}</span>
+                            <span class="badge-custom badge-late"><i class="bi bi-x-circle-fill me-1"></i>{{ inv.Status }}</span>
                         {% else %}
-                            <span class="badge bg-warning text-dark">{{ inv.Status }}</span>
+                            <span class="badge-custom badge-default">{{ inv.Status }}</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <a href="{% url 'invoice_print' inv.Invoice_ID %}" class="btn btn-sm btn-outline-secondary">🖨️</a>
+                    
+                    <td class="text-center">
+                        <a href="{% url 'invoice_print' inv.Invoice_ID %}" class="btn-action btn-print" title="พิมพ์ใบแจ้งหนี้" target="_blank">
+                            <i class="bi bi-printer-fill"></i>
+                        </a>
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="7" class="text-center text-muted">ยังไม่มีข้อมูล</td></tr>
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-receipt mb-3 d-block" style="font-size: 3rem; color: #e4e6ef;"></i>
+                            <h6 class="fw-bold mb-1">ไม่พบข้อมูลใบแจ้งหนี้</h6>
+                            <p class="small mb-0">ระบบยังไม่มีดราฟใบแจ้งหนี้ใดๆ</p>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
 {% endblock %}
