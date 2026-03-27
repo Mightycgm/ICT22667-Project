@@ -1,41 +1,236 @@
 {% extends 'apartment/base.html' %}
 {% load humanize %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>รายการสัญญาเช่า</h2>
+
+<style>
+    /* Hero Section */
+    .contract-hero {
+        background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(75, 108, 183, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .contract-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%; right: -10%;
+        width: 300px; height: 300px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.05);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .hero-content h4 {
+        font-weight: 800;
+        margin: 0;
+        font-size: 1.6rem;
+    }
+    .hero-content p {
+        opacity: 0.9;
+        margin: 6px 0 0;
+        font-size: 0.95rem;
+    }
+    .btn-hero-primary {
+        background: #fff;
+        color: #182848;
+        font-weight: 700;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        text-decoration: none;
+        position: relative;
+        z-index: 1;
+    }
+    .btn-hero-primary:hover {
+        background: #f8f9fa;
+        transform: translateY(-2px);
+        color: #4b6cb7;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: #fff;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        overflow: hidden;
+        margin-bottom: 28px;
+    }
+    .table-modern {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-modern thead th {
+        background: #f8f9fa;
+        color: #5a5c6f;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 16px 20px;
+        border-bottom: 2px solid #e4e6ef;
+        border-top: none;
+        vertical-align: middle;
+    }
+    .table-modern tbody td {
+        padding: 16px 20px;
+        vertical-align: middle;
+        font-size: 0.95rem;
+        color: #2b2d42;
+        border-bottom: 1px solid #f0f2f5;
+    }
+    .table-modern tbody tr:hover td {
+        background-color: #fafbfc;
+    }
+
+    /* Typography & Badges */
+    .contract-id {
+        font-weight: 700;
+        color: #4b6cb7;
+        font-size: 0.9rem;
+    }
+    .room-badge {
+        background: #fff3e0;
+        color: #e65100;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-weight: 800;
+        font-size: 0.85rem;
+        display: inline-block;
+    }
+    .rent-price {
+        font-weight: 800;
+        color: #1aa37a;
+    }
+    .date-text {
+        color: #5a5c6f;
+        font-size: 0.9rem;
+    }
+    
+    /* Custom Badges for Status */
+    .badge-status {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.8rem;
+    }
+    .badge-active { background: #e8f5e9; color: #2e7d32; }
+    .badge-ended { background: #ffebee; color: #c62828; }
+    .badge-draft { background: #fff8e1; color: #f57f17; }
+    .badge-default { background: #f0f2f5; color: #5a5c6f; }
+
+    /* Action Buttons */
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    .btn-edit { background: #fff8e1; color: #f57f17; }
+    .btn-edit:hover { background: #ffecb3; transform: translateY(-2px); color: #f57f17; }
+    .btn-delete { background: #ffebee; color: #c62828; }
+    .btn-delete:hover { background: #ffcdd2; transform: translateY(-2px); color: #c62828; }
+</style>
+
+<!-- Hero Section -->
+<div class="contract-hero">
+    <div class="hero-content">
+        <h4><i class="bi bi-file-earmark-text-fill me-2"></i>ระบบจัดการสัญญาเช่า</h4>
+        <p>ตรวจสอบรายละเอียดสัญญา วันเริ่มต้น-สิ้นสุด และกำหนดอัตราค่าเช่าของแต่ละห้องพัก</p>
+    </div>
     {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-    <a href="{% url 'contract_create' %}" class="btn btn-primary">+ สร้างสัญญาเช่า</a>
+    <a href="{% url 'contract_create' %}" class="btn-hero-primary">
+        <i class="bi bi-plus-circle-fill me-1"></i> สร้างสัญญาเช่าใหม่
+    </a>
     {% endif %}
 </div>
 
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>ID</th><th>ผู้เช่า</th><th>ห้อง</th><th>เริ่มสัญญา</th><th>สิ้นสุด</th><th>ค่าเช่า</th><th>สถานะ</th><th>จัดการ</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for c in contracts %}
-        <tr>
-            <td>{{ c.Contract_ID }}</td>
-            <td>{{ c.Tenant_ID }}</td>
-            <td>{{ c.Room_ID }}</td>
-            <td>{{ c.Start_Date }}</td>
-            <td>{{ c.End_Date }}</td>
-            <td>{{ c.Rent_Price|intcomma }}</td>
-            <td>{{ c.Status }}</td>
-            <td>
-                {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
-                <a href="{% url 'contract_edit' c.Contract_ID %}" class="btn btn-sm btn-warning">แก้ไข</a>
-                {% endif %}
-                {% if user_role == 'ADMIN' %}
-                <a href="{% url 'contract_delete' c.Contract_ID %}" class="btn btn-sm btn-danger">ลบ</a>
-                {% endif %}
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="8" class="text-center text-muted">ไม่พบข้อมูล</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Data Table -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th># รหัสสัญญา</th>
+                    <th>ผู้เช่า</th>
+                    <th class="text-center">ห้องพัก</th>
+                    <th>เริ่มสัญญา</th>
+                    <th>สิ้นสุดสัญญา</th>
+                    <th class="text-end">ค่าเช่า/เดือน</th>
+                    <th class="text-center">สถานะ</th>
+                    <th class="text-center">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in contracts %}
+                <tr>
+                    <td class="contract-id">#{{ c.Contract_ID }}</td>
+                    <td class="fw-bold">{{ c.Tenant_ID }}</td>
+                    <td class="text-center">
+                        <span class="room-badge"><i class="bi bi-door-closed-fill me-1"></i>{{ c.Room_ID }}</span>
+                    </td>
+                    <td class="date-text"><i class="bi bi-calendar-check text-success me-1"></i>{{ c.Start_Date }}</td>
+                    <td class="date-text"><i class="bi bi-calendar-x text-danger me-1"></i>{{ c.End_Date }}</td>
+                    <td class="text-end rent-price">฿ {{ c.Rent_Price|intcomma }}</td>
+                    <td class="text-center">
+                        {% if c.Status == 'กำลังเช่า' or c.Status == 'ACTIVE' or c.Status == 'ใช้งาน' or c.Status == 'ใช้งานอยู่' %}
+                            <span class="badge-status badge-active"><i class="bi bi-check-circle-fill me-1"></i>{{ c.Status }}</span>
+                        {% elif c.Status == 'ยกเลิก' or c.Status == 'หมดสัญญา' or c.Status == 'สิ้นสุด' %}
+                            <span class="badge-status badge-ended"><i class="bi bi-x-circle-fill me-1"></i>{{ c.Status }}</span>
+                        {% elif c.Status == 'ร่าง' or c.Status == 'รออนุมัติ' %}
+                            <span class="badge-status badge-draft"><i class="bi bi-clock-history me-1"></i>{{ c.Status }}</span>
+                        {% else %}
+                            <span class="badge-status badge-default">{{ c.Status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                            {% if user_role == 'MANAGER' or user_role == 'ADMIN' %}
+                            <a href="{% url 'contract_edit' c.Contract_ID %}" class="btn-action btn-edit" title="แก้ไขสัญญา">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            {% endif %}
+                            {% if user_role == 'ADMIN' %}
+                            <a href="{% url 'contract_delete' c.Contract_ID %}" class="btn-action btn-delete" title="ลบสัญญา">
+                                <i class="bi bi-trash-fill"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-file-earmark-x mb-3 d-block" style="font-size: 3.5rem; color: #e4e6ef;"></i>
+                            <h6 class="fw-bold mb-1">ไม่พบข้อมูลสัญญาเช่า</h6>
+                            <p class="small mb-0">ระบบยังไม่มีข้อมูลสัญญาเช่าที่บันทึกไว้</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 {% endblock %}

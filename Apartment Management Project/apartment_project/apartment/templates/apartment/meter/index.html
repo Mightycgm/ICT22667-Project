@@ -1,57 +1,299 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
 
-<!-- Header bar -->
-<div class="d-flex flex-wrap align-items-center gap-3 mb-4">
-    <h4 class="mb-0">⚡ จดมิเตอร์</h4>
+<style>
+    /* Hero Section */
+    .meter-hero {
+        background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(0, 114, 255, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .meter-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%; right: -10%;
+        width: 300px; height: 300px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .hero-content h4 {
+        font-weight: 800;
+        margin: 0;
+        font-size: 1.6rem;
+    }
+    .hero-content p {
+        opacity: 0.9;
+        margin: 6px 0 0;
+        font-size: 0.95rem;
+    }
+    .hero-buttons {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .btn-hero-primary {
+        background: #fff;
+        color: #0072ff;
+        font-weight: 700;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .btn-hero-primary:hover {
+        background: #f8f9fa;
+        transform: translateY(-2px);
+    }
+    .btn-hero-outline {
+        background: rgba(255,255,255,0.2);
+        color: #fff;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.5);
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    .btn-hero-outline:hover {
+        background: rgba(255,255,255,0.3);
+        color: #fff;
+    }
 
-    <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
-        <label class="mb-0 fw-bold">ประจำเดือน</label>
+    /* Filter Card */
+    .filter-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px 24px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        margin-bottom: 28px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 20px;
+    }
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .filter-label {
+        font-weight: 700;
+        color: #2b2d42;
+        margin: 0;
+    }
+    .filter-input {
+        background: #f8f9fa;
+        border: 1px solid #e4e6ef;
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition: all 0.2s;
+    }
+    .filter-input:focus {
+        border-color: #00c6ff;
+        box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.15);
+        background: #fff;
+    }
 
-        <!-- dropdown เดือน -->
-        <select name="month" class="form-select form-select-sm" style="width:140px;">
-            {% for num, mname in months_th %}
-            <option value="{{ num }}" {% if num == month %}selected{% endif %}>
-                {{ mname }}
-            </option>
-            {% endfor %}
-        </select>
-
-        <!-- dropdown ปี -->
-        <select name="year" class="form-select form-select-sm" style="width:90px;">
-            {% for y in years %}
-            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-        </select>
-
-        <button type="submit" class="btn btn-secondary btn-sm">ดู</button>
-    </form>
-
-    <!-- วันที่จด -->
-    <div class="d-flex align-items-center gap-2">
-        <label class="mb-0 fw-bold">วันที่จด</label>
-        <input type="date" id="record_date" class="form-control form-control-sm"
-               style="width:160px;" value="{{ today|date:'Y-m-d' }}">
-    </div>
-
-    <!-- ปุ่ม -->
-    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print">
-        🖨️ พิมพ์ใบจดมิเตอร์
-    </button>
-    <button onclick="submitMeter()" class="btn btn-warning btn-sm no-print fw-bold">
-        💾 บันทึกรอบจดมิเตอร์
-    </button>
+    /* Building Card & Table */
+    .table-card {
+        background: #fff;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        overflow: hidden;
+        margin-bottom: 28px;
+    }
+    .card-header-modern {
+        background: #fff;
+        padding: 16px 24px;
+        border-bottom: 2px solid #f0f2f5;
+        font-weight: 800;
+        font-size: 1.2rem;
+        color: #2b2d42;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .card-header-modern i {
+        color: #00c6ff;
+        font-size: 1.4rem;
+    }
     
-    <a href="{% url 'meter_input' %}" 
-    class="btn btn-outline-info btn-sm no-print" 
-    target="_blank">
-    📱 เปิดหน้าจดมิเตอร์มือถือ
-    </a>
+    .table-modern {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-modern thead th {
+        color: #5a5c6f;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 14px 10px;
+        border-bottom: 2px solid #e4e6ef;
+        border-top: none;
+        vertical-align: middle;
+    }
+    .table-modern tbody td {
+        padding: 12px 10px;
+        vertical-align: middle;
+        font-size: 0.95rem;
+        color: #2b2d42;
+        border-bottom: 1px solid #f0f2f5;
+    }
+    .table-modern tbody tr:hover td {
+        background-color: #fcfcfc;
+    }
+    
+    /* Dynamic Headers */
+    .th-water { background: #e3f2fd; color: #0b5ed7 !important; border-bottom-color: #bee5eb !important; }
+    .th-elec { background: #fff8e1; color: #d97706 !important; border-bottom-color: #ffeeb5 !important; }
+
+    /* Input Styling in Table */
+    .meter-input {
+        background: #f8f9fa;
+        border: 1px solid #e4e6ef;
+        border-radius: 8px;
+        padding: 6px 10px;
+        transition: all 0.2s;
+        font-weight: 600;
+        color: #2b2d42;
+        text-align: center;
+    }
+    .meter-input:focus {
+        background: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        outline: none;
+    }
+    .meter-input.is-invalid {
+        border-color: #dc3545;
+        background: #fff5f5;
+        color: #dc3545;
+    }
+    .meter-input.border-success {
+        border-color: #198754 !important;
+        background: #f6fdf9;
+        color: #198754;
+    }
+
+    /* Row Highlights */
+    .floor-row td {
+        background: #f8f9fa !important;
+        color: #8c8ea0 !important;
+        font-weight: 700;
+        padding: 10px 24px !important;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+    }
+    .room-badge {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #2b2d42;
+    }
+    .badge-status {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .prev-val {
+        color: #8c8ea0;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    .used-water { color: #0d6efd; font-weight: 800; font-size: 1rem; }
+    .used-elec { color: #d97706; font-weight: 800; font-size: 1rem; }
+
+    /* Utilities */
+    .td-water { background-color: rgba(13, 110, 253, 0.02); }
+    .td-elec { background-color: rgba(217, 119, 6, 0.02); }
+
+    /* Print Styles */
+    @media print {
+        .no-print { display: none !important; }
+        body { background: #fff !important; }
+        .table-card { box-shadow: none !important; border: none !important; margin-bottom: 20px !important; break-inside: avoid; }
+        .card-header-modern { border-bottom: 2px solid #000 !important; background: transparent !important; }
+        .table-modern, .table-modern th, .table-modern td { border: 1px solid #ccc !important; }
+        .meter-input { border: 1px solid #ccc !important; background: transparent !important; padding: 2px !important; }
+    }
+</style>
+
+<!-- Hero Section -->
+<div class="meter-hero no-print">
+    <div class="hero-content">
+        <h4><i class="bi bi-speedometer2 me-2"></i>ระบบบันทึกจดมิเตอร์</h4>
+        <p>บันทึกค่าน้ำ-ค่าไฟประจำเดือน คำนวณหน่วยที่ใช้โดยอัตโนมัติ</p>
+    </div>
+    <div class="hero-buttons">
+        <button onclick="window.print()" class="btn-hero-outline">
+            <i class="bi bi-printer"></i> พิมพ์ใบจด
+        </button>
+        <a href="{% url 'meter_input' %}" class="btn-hero-outline" target="_blank">
+            <i class="bi bi-phone"></i> จดผ่านมือถือ
+        </a>
+        <button onclick="submitMeter()" class="btn-hero-primary">
+            <i class="bi bi-save-fill me-1"></i> บันทึกข้อมูล
+        </button>
+    </div>
 </div>
 
 {% if request.GET.saved %}
-<div class="alert alert-success">✅ บันทึกสำเร็จ {{ request.GET.saved }} ห้อง</div>
+<div class="alert alert-success d-flex align-items-center mb-4 border-0 shadow-sm" style="border-radius: 12px; background: #edfcfa; color: #0b7a69;">
+    <i class="bi bi-check-circle-fill fs-4 me-3"></i>
+    <div>
+        <h6 class="mb-0 fw-bold">บันทึกสำเร็จเรียบร้อย</h6>
+        <small>ระบบได้บันทึกข้อมูลมิเตอร์ของเดือนนี้จำนวน {{ request.GET.saved }} ห้อง เป็นที่เรียบร้อยแล้ว</small>
+    </div>
+</div>
 {% endif %}
+
+<!-- Filter Card -->
+<div class="no-print">
+    <form method="get" class="filter-card flex-wrap align-items-center mb-4 pb-0">
+        <div class="filter-group mb-auto pb-3">
+            <i class="bi bi-calendar3 fs-5" style="color:#0072ff;"></i>
+            <label class="filter-label">เลือกประจำเดือน</label>
+            <select name="month" class="form-select filter-input w-auto">
+                {% for num, mname in months_th %}
+                <option value="{{ num }}" {% if num == month %}selected{% endif %}>{{ mname }}</option>
+                {% endfor %}
+            </select>
+            <select name="year" class="form-select filter-input w-auto">
+                {% for y in years %}
+                <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn text-white fw-bold" style="background:#0072ff; border-radius: 8px; padding: 8px 16px;"><i class="bi bi-search"></i> เรียกดู</button>
+        </div>
+
+        <div class="filter-group ms-auto mb-auto pb-3">
+            <i class="bi bi-calendar-check fs-5 text-secondary"></i>
+            <label class="filter-label">วันที่ลงบันทึกลงระบบ</label>
+            <input type="date" id="record_date" class="form-control filter-input" style="width:160px;" value="{{ today|date:'Y-m-d' }}">
+        </div>
+    </form>
+</div>
 
 <!-- ฟอร์มหลัก -->
 <form method="post" action="{% url 'meter_save' %}" id="meterForm">
@@ -61,57 +303,57 @@
     <input type="hidden" name="record_date" id="hidden_record_date" value="{{ today|date:'Y-m-d' }}">
 
     {% for building_no, floors in buildings.items %}
-    <div class="card mb-4">
-        <div class="card-header bg-dark text-white fw-bold">
-            🏗️ อาคาร {{ building_no }}
+    <div class="table-card">
+        <div class="card-header-modern">
+            <i class="bi bi-building"></i> ข้อมูลอาคาร {{ building_no }}
         </div>
-        <div class="card-body p-0">
-            <table class="table table-bordered table-sm mb-0" style="font-size:0.85rem;">
+        <div class="table-responsive">
+            <table class="table-modern">
                 <thead>
                     <tr class="text-center">
-                        <th rowspan="2" class="align-middle">ชั้น</th>
-                        <th rowspan="2" class="align-middle">เลขห้อง</th>
-                        <th rowspan="2" class="align-middle">สถานะ</th>
+                        <th rowspan="2" class="align-middle bg-light">ชั้น</th>
+                        <th rowspan="2" class="align-middle bg-light">เลขห้อง</th>
+                        <th rowspan="2" class="align-middle bg-light">สถานะลูกค้า</th>
                         <!-- มิเตอร์น้ำ -->
-                        <th colspan="3" class="table-info">💧 มิเตอร์น้ำ</th>
+                        <th colspan="3" class="th-water">💧 ปริมาณผู้ใช้น้ำ (หน่วย)</th>
                         <!-- มิเตอร์ไฟ -->
-                        <th colspan="3" class="table-warning">⚡ มิเตอร์ไฟฟ้า</th>
+                        <th colspan="3" class="th-elec">⚡ ปริมาณไฟ (หน่วย)</th>
                     </tr>
                     <tr class="text-center">
-                        <th class="table-info">ก่อนหน้า</th>
-                        <th class="table-info">ล่าสุด <span class="text-danger">*</span></th>
-                        <th class="table-info">หน่วยที่ใช้</th>
-                        <th class="table-warning">ก่อนหน้า</th>
-                        <th class="table-warning">ล่าสุด <span class="text-danger">*</span></th>
-                        <th class="table-warning">หน่วยที่ใช้</th>
+                        <th class="th-water" style="font-weight: 600;">ครั้งก่อน</th>
+                        <th class="th-water" style="font-weight: 800;">จดครั้งนี้ <span class="text-danger">*</span></th>
+                        <th class="th-water" style="font-weight: 600;">ที่ใช้ไป</th>
+                        <th class="th-elec" style="font-weight: 600;">ครั้งก่อน</th>
+                        <th class="th-elec" style="font-weight: 800;">จดครั้งนี้ <span class="text-danger">*</span></th>
+                        <th class="th-elec" style="font-weight: 600;">ที่ใช้ไป</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for floor_no, room_list in floors.items %}
                     <!-- แถวหัวชั้น -->
-                    <tr class="table-light">
-                        <td colspan="9" class="fw-bold text-muted ps-3">
-                            ชั้น {{ floor_no }}
+                    <tr class="floor-row">
+                        <td colspan="9">
+                            <i class="bi bi-layers-half me-2"></i> ชั้น {{ floor_no }}
                         </td>
                     </tr>
                     {% for item in room_list %}
                     <tr class="text-center" id="row_{{ item.room.Room_ID }}">
                         <td>{{ item.room.Floor }}</td>
-                        <td class="fw-bold">{{ item.room.Room_Number }}</td>
+                        <td class="room-badge">{{ item.room.Room_Number }}</td>
                         <td>
-                            <span class="badge bg-primary">{{ item.room.Status }}</span>
+                            <span class="badge badge-status bg-primary">{{ item.room.Status }}</span>
                         </td>
 
                         <!-- มิเตอร์น้ำ -->
-                        <td class="table-info">
-                            <span class="water-prev">{{ item.water_prev }}</span>
+                        <td class="td-water align-middle">
+                            <span class="prev-val">{{ item.water_prev }}</span>
                         </td>
-                        <td class="table-info p-1">
+                        <td class="td-water p-2 align-middle">
                             <input type="number"
                                    name="water_after_{{ item.room.Room_ID }}"
                                    id="water_after_{{ item.room.Room_ID }}"
-                                   class="form-control form-control-sm water-input text-center p-0 {% if item.curr_u %}border-success text-success fw-bold{% endif %}"
-                                   style="width:80px; margin:auto;"
+                                   class="form-control meter-input w-100 mx-auto max-w-sm {% if item.curr_u %}border-success text-success fw-bold{% endif %}"
+                                   style="max-width: 90px;"
                                    value="{% if item.curr_u %}{{ item.curr_u.Water_Unit_After }}{% endif %}"
                                    min="0" step="0.01"
                                    data-prev="{{ item.water_prev }}"
@@ -119,24 +361,24 @@
                                    data-room-num="{{ item.room.Room_Number }}"
                                    oninput="calcUnit(this, 'water')">
                         </td>
-                        <td class="table-info" id="water_used_{{ item.room.Room_ID }}">
+                        <td class="td-water align-middle" id="water_used_{{ item.room.Room_ID }}">
                             {% if item.curr_u %}
-                                <span id="span_water_used_{{ item.room.Room_ID }}">{{ item.curr_u.Water_Unit_Used }}</span>
+                                <span class="used-water" id="span_water_used_{{ item.room.Room_ID }}">{{ item.curr_u.Water_Unit_Used }}</span>
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
                         </td>
 
                         <!-- มิเตอร์ไฟ -->
-                        <td class="table-warning">
-                            <span class="elec-prev">{{ item.elec_prev }}</span>
+                        <td class="td-elec align-middle">
+                            <span class="prev-val">{{ item.elec_prev }}</span>
                         </td>
-                        <td class="table-warning p-1">
+                        <td class="td-elec p-2 align-middle">
                             <input type="number"
                                    name="elec_after_{{ item.room.Room_ID }}"
                                    id="elec_after_{{ item.room.Room_ID }}"
-                                   class="form-control form-control-sm elec-input text-center p-0 {% if item.curr_u %}border-success text-success fw-bold{% endif %}"
-                                   style="width:80px; margin:auto;"
+                                   class="form-control meter-input w-100 mx-auto max-w-sm {% if item.curr_u %}border-success text-success fw-bold{% endif %}"
+                                   style="max-width: 90px;"
                                    value="{% if item.curr_u %}{{ item.curr_u.Elec_Unit_After }}{% endif %}"
                                    min="0" step="0.01"
                                    data-prev="{{ item.elec_prev }}"
@@ -144,9 +386,9 @@
                                    data-room-num="{{ item.room.Room_Number }}"
                                    oninput="calcUnit(this, 'elec')">
                         </td>
-                        <td class="table-warning" id="elec_used_{{ item.room.Room_ID }}">
+                        <td class="td-elec align-middle" id="elec_used_{{ item.room.Room_ID }}">
                             {% if item.curr_u %}
-                                <span id="span_elec_used_{{ item.room.Room_ID }}">{{ item.curr_u.Elec_Unit_Used }}</span>
+                                <span class="used-elec" id="span_elec_used_{{ item.room.Room_ID }}">{{ item.curr_u.Elec_Unit_Used }}</span>
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
@@ -159,18 +401,14 @@
         </div>
     </div>
     {% empty %}
-    <div class="alert alert-info">ไม่มีห้องที่มีผู้เช่าในขณะนี้</div>
+    <div class="text-center py-5 no-print" style="background:#fff; border-radius:16px;">
+        <i class="bi bi-box-seam mb-3 d-block" style="font-size: 4rem; color: #e4e6ef;"></i>
+        <h5 class="fw-bold mb-1 text-secondary">ไม่มีข้อมูลผู้เช่า</h5>
+        <p class="text-muted">ระบบยังไม่มีห้องพักที่ถูกจองหรือไม่มีผู้เช่าในขณะนี้</p>
+    </div>
     {% endfor %}
 
 </form>
-
-<style>
-@media print {
-    .no-print { display: none !important; }
-    .navbar, nav { display: none !important; }
-    .card-header { background: #eee !important; color: #000 !important; }
-}
-</style>
 
 <script>
 // คำนวณหน่วยที่ใช้แบบ real-time
@@ -178,9 +416,17 @@ function calcUnit(input, type) {
     const roomId = input.dataset.room;
     const prev   = parseFloat(input.dataset.prev) || 0;
     const curr   = parseFloat(input.value) || 0;
-    const used   = Math.max(0, curr - prev);
-    document.getElementById(`${type}_used_${roomId}`).textContent =
-        used % 1 === 0 ? used : used.toFixed(2);
+    
+    const usedSpan = document.getElementById(`${type}_used_${roomId}`);
+    
+    // ตรวจสอบเพื่อเปลี่ยนสี span ที่แสดงการคำนวณ
+    if (curr > 0 && curr >= prev) {
+        const used = Math.max(0, curr - prev);
+        const displayVal = used % 1 === 0 ? used : used.toFixed(2);
+        usedSpan.innerHTML = `<span class="used-${type}">${displayVal}</span>`;
+    } else {
+        usedSpan.innerHTML = '<span class="text-muted">-</span>';
+    }
 }
 
 // sync วันที่จด
@@ -193,7 +439,7 @@ function submitMeter() {
     let hasError = false;
     let errorRoom = '';
 
-    const inputs = document.querySelectorAll('.water-input, .elec-input');
+    const inputs = document.querySelectorAll('.meter-input');
     for (let input of inputs) {
         if (!input.value) continue;
         const prev = parseFloat(input.dataset.prev) || 0;
@@ -213,7 +459,7 @@ function submitMeter() {
         return;
     }
 
-    if (confirm('ยืนยันบันทึกรอบจดมิเตอร์เดือนนี้?')) {
+    if (confirm('ระบบจะทำการบันทึกรอบจดมิเตอร์เดือนนี้\n\nต้องการยืนยันหรือไม่?')) {
         document.getElementById('meterForm').submit();
     }
 }

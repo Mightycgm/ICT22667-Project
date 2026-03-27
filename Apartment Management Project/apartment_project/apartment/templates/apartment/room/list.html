@@ -1,38 +1,214 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>รายการห้องพัก</h2>
+
+<style>
+    /* Hero Section - Amethyst Theme */
+    .room-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(118, 75, 162, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .room-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%; right: -10%;
+        width: 250px; height: 250px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+    }
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .hero-content h4 {
+        font-weight: 800;
+        margin: 0;
+        font-size: 1.6rem;
+    }
+    .hero-content p {
+        opacity: 0.9;
+        margin: 6px 0 0;
+        font-size: 0.95rem;
+    }
+    .btn-hero-primary {
+        background: #fff;
+        color: #764ba2;
+        font-weight: 700;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-hero-primary:hover {
+        background: #f8f9fa;
+        transform: translateY(-2px);
+        color: #667eea;
+    }
+
+    /* Table Card */
+    .table-card {
+        background: #fff;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        overflow: hidden;
+        margin-bottom: 28px;
+    }
+    .table-modern {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-modern thead th {
+        background: #f8f9fa;
+        color: #5a5c6f;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 16px 20px;
+        border-bottom: 2px solid #e4e6ef;
+        border-top: none;
+    }
+    .table-modern tbody td {
+        padding: 16px 20px;
+        vertical-align: middle;
+        font-size: 0.95rem;
+        color: #2b2d42;
+        border-bottom: 1px solid #f0f2f5;
+    }
+    .table-modern tbody tr:hover td {
+        background-color: #fafbfc;
+    }
+
+    /* Status Badges */
+    .badge-status {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .status-available { background: #e8f5e9; color: #2e7d32; }
+    .status-occupied { background: #ffebee; color: #c62828; }
+    .status-maintenance { background: #fff8e1; color: #f57f17; }
+    
+    .room-id {
+        font-weight: 700;
+        color: #764ba2;
+    }
+    .room-number {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #2b2d42;
+    }
+
+    /* Actions */
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s;
+        color: #fff;
+        text-decoration: none;
+        margin-right: 4px;
+    }
+    .btn-edit { background: #fff8e1; color: #f57f17; }
+    .btn-edit:hover { background: #ffecb3; transform: translateY(-2px); color: #ef6c00; }
+    .btn-delete { background: #ffebee; color: #e53935; }
+    .btn-delete:hover { background: #ffcdd2; transform: translateY(-2px); color: #c62828; }
+</style>
+
+<!-- Hero Section -->
+<div class="room-hero">
+    <div class="hero-content">
+        <h4><i class="bi bi-door-closed me-2"></i>จัดการข้อมูลห้องพัก</h4>
+        <p>ดูรายการห้อง สถานะปัจจุบัน อาคาร และชั้นทั้งหมดในระบบ</p>
+    </div>
     {% if user_role == 'ADMIN' %}
-    <a href="{% url 'room_create' %}" class="btn btn-primary">+ เพิ่มห้องพัก</a>
+    <div>
+        <a href="{% url 'room_create' %}" class="btn-hero-primary">
+            <i class="bi bi-plus-lg"></i> เพิ่มห้องพักใหม่
+        </a>
+    </div>
     {% endif %}
 </div>
 
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>ID</th><th>เลขห้อง</th><th>อาคาร</th><th>ชั้น</th><th>สถานะ</th><th>จัดการ</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for r in rooms %}
-        <tr>
-            <td>{{ r.Room_ID }}</td>
-            <td>{{ r.Room_Number }}</td>
-            <td>{{ r.Building_No }}</td>
-            <td>{{ r.Floor }}</td>
-            <td>{{ r.Status }}</td>
-            <td>
+<!-- Table Card -->
+<div class="table-card table-responsive">
+    <table class="table-modern">
+        <thead>
+            <tr>
+                <th>ไอดีห้อง</th>
+                <th>เลขห้อง</th>
+                <th>อาคาร</th>
+                <th class="text-center">ชั้น</th>
+                <th class="text-center">สถานะ</th>
                 {% if user_role == 'ADMIN' %}
-                <a href="{% url 'room_edit' r.Room_ID %}" class="btn btn-sm btn-warning">แก้ไข</a>
+                <th class="text-center">จัดการ</th>
                 {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rooms %}
+            <tr>
+                <td class="room-id">#{{ r.Room_ID }}</td>
+                <td class="room-number">{{ r.Room_Number }}</td>
+                <td><i class="bi bi-building me-2 text-muted"></i>{{ r.Building_No }}</td>
+                <td class="text-center fw-bold text-secondary">{{ r.Floor }}</td>
+                <td class="text-center">
+                    {% if r.Status == 'ว่าง' or r.Status == 'พร้อมอยู่' %}
+                        <span class="badge-status status-available"><i class="bi bi-check-circle-fill"></i>{{ r.Status }}</span>
+                    {% elif r.Status == 'มีผู้เช่า' or r.Status == 'ไม่ว่าง' %}
+                        <span class="badge-status status-occupied"><i class="bi bi-person-fill"></i>{{ r.Status }}</span>
+                    {% else %}
+                        <span class="badge-status status-maintenance"><i class="bi bi-tools"></i>{{ r.Status }}</span>
+                    {% endif %}
+                </td>
                 {% if user_role == 'ADMIN' %}
-                <a href="{% url 'room_delete' r.Room_ID %}" class="btn btn-sm btn-danger">ลบ</a>
+                <td class="text-center">
+                    <a href="{% url 'room_edit' r.Room_ID %}" class="btn-action btn-edit" title="แก้ไข">
+                        <i class="bi bi-pencil-fill"></i>
+                    </a>
+                    <a href="{% url 'room_delete' r.Room_ID %}" class="btn-action btn-delete" title="ลบ">
+                        <i class="bi bi-trash3-fill"></i>
+                    </a>
+                </td>
                 {% endif %}
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{% if user_role == 'ADMIN' %}6{% else %}5{% endif %}" class="text-center py-5">
+                    <div class="text-muted">
+                        <i class="bi bi-door-closed mb-3 d-block" style="font-size: 3rem; color: #e4e6ef;"></i>
+                        <h6 class="fw-bold mb-1">ไม่มีข้อมูลห้องพัก</h6>
+                        <p class="small mb-0">ยังไม่มีห้องพักในระบบปัจจุบัน</p>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
