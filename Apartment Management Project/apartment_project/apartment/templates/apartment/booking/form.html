@@ -190,7 +190,7 @@
 <div class="row justify-content-center">
 <div class="col-lg-8">
 
-<form method="post">
+<form method="post" onsubmit="return validateForm()">
     {% csrf_token %}
 
     <div class="form-card">
@@ -285,7 +285,7 @@
 
             <div class="row g-3">
                 <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">อีเมล</label>
+                    <label class="form-label">อีเมล<span class="required-dot"></span></label>
                     {{ form.Email }}
                 </div>
                 <div class="col-md-6 form-floating-custom">
@@ -343,6 +343,19 @@
 </div><!-- end row -->
 
 <script>
+// Form submission validation function
+function validateForm() {
+    const emailField = document.getElementById('id_Email');
+    const emailValue = emailField ? emailField.value.trim() : '';
+    
+    if (!emailValue) {
+        alert('กรุณาระบุอีเมล');
+        return false;
+    }
+    
+    return true;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const API_URL    = '{% url "api_rooms_available" %}';
     const selBuilding = document.getElementById('filter-building');
