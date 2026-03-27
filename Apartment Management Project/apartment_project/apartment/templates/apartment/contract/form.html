@@ -1,391 +1,154 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
+<h4>{{ title }}</h4>
+<div class="card mt-3">
+    <div class="card-body">
+        <form method="post" id="contractForm">
+            {% csrf_token %}
 
-<style>
-    .contract-form-hero {
-        background: linear-gradient(135deg, #377dff 0%, #5e60ce 100%);
-        border-radius: 16px;
-        padding: 28px 32px;
-        margin-bottom: 28px;
-        position: relative;
-        overflow: hidden;
-        color: #fff;
-    }
-    .contract-form-hero::before {
-        content: '';
-        position: absolute;
-        top: -60%; right: -25%;
-        width: 280px; height: 280px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.08);
-    }
-    .contract-form-hero h4 {
-        font-weight: 800;
-        font-size: 1.5rem;
-        margin: 0;
-        position: relative;
-        z-index: 1;
-    }
-    .contract-form-hero p {
-        opacity: 0.9;
-        font-size: 0.9rem;
-        margin: 6px 0 0;
-        position: relative;
-        z-index: 1;
-    }
-
-    .form-card {
-        border: none;
-        border-radius: 16px;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-        overflow: hidden;
-        background: #fff;
-    }
-    .form-section {
-        padding: 24px 28px;
-    }
-    .form-section + .form-section {
-        border-top: 1px solid #f0f2f5;
-    }
-
-    .section-title {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-    .section-title .section-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        flex-shrink: 0;
-    }
-    .section-title h6 {
-        font-weight: 700;
-        font-size: 0.95rem;
-        margin: 0;
-        color: #1e1e2d;
-    }
-    .section-title small {
-        font-weight: 400;
-        color: #8c8ea0;
-        font-size: 0.78rem;
-    }
-
-    .form-floating-custom .form-label {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #5a5c6f;
-        margin-bottom: 6px;
-        letter-spacing: 0.3px;
-    }
-    .form-floating-custom .form-control,
-    .form-floating-custom .form-select,
-    .form-floating-custom select {
-        border-radius: 10px;
-        border: 1.5px solid #e4e6ef;
-        padding: 10px 14px;
-        font-size: 0.92rem;
-        transition: all 0.2s ease;
-        background-color: #fafbfc;
-        width: 100%;
-        height: auto;
-    }
-    .form-floating-custom .form-control:focus,
-    .form-floating-custom .form-select:focus,
-    .form-floating-custom select:focus {
-        border-color: #377dff;
-        box-shadow: 0 0 0 3px rgba(55, 125, 255, 0.12);
-        background-color: #fff;
-        outline: none;
-    }
-
-    .required-dot {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
-        background: #ed4c78;
-        border-radius: 50%;
-        margin-left: 4px;
-        vertical-align: middle;
-    }
-
-    .btn-submit {
-        background: linear-gradient(135deg, #377dff 0%, #5e60ce 100%);
-        border: none;
-        color: #fff;
-        font-weight: 700;
-        padding: 12px 32px;
-        border-radius: 10px;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 12px rgba(55, 125, 255, 0.3);
-    }
-    .btn-submit:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(55, 125, 255, 0.4);
-        color: #fff;
-    }
-    .btn-cancel {
-        background: #f0f2f5;
-        border: none;
-        color: #5a5c6f;
-        font-weight: 600;
-        padding: 12px 28px;
-        border-radius: 10px;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
-    }
-    .btn-cancel:hover {
-        background: #e4e6ef;
-        color: #1e1e2d;
-    }
-
-    .form-floating-custom .form-control[readonly] {
-        background-color: #f8f9fa;
-        color: #6c757d;
-        border-style: dashed;
-        cursor: not-allowed;
-    }
-</style>
-
-<!-- Hero -->
-<div class="contract-form-hero">
-    <h4><i class="bi bi-file-earmark-text-fill me-2"></i>{{ title }}</h4>
-    <p>สร้างสัญญาเช่าห้องพัก บันทึกข้อมูลผู้เช่าและรายละเอียดค่าใช้จ่ายต่างๆ</p>
-</div>
-
-<div class="row justify-content-center">
-<div class="col-lg-10 col-xl-8">
-
-<form method="post" id="contractForm">
-    {% csrf_token %}
-
-    <div class="form-card">
-
-        <!-- Section 1: ห้องพักและผู้เช่า -->
-        <div class="form-section">
-            <div class="section-title">
-                <div class="section-icon" style="background:#e3f2fd; color:#1565c0;">
-                    <i class="bi bi-person-fill"></i>
-                </div>
-                <div>
-                    <h6>ข้อมูลห้องพักและผู้เช่า</h6>
-                    <small>เลือกห้องที่ต้องการทำสัญญา และระบุผู้เช่าหลัก</small>
-                </div>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">ห้องที่ทำสัญญา <span class="required-dot"></span></label>
+            <!-- แถว 1: ห้อง + วันทำสัญญา -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ห้องที่ทำสัญญา <span class="text-danger">*</span></label>
                     {{ form.Room_ID }}
-                    {% if form.Room_ID.errors %}<div class="text-danger small mt-1">{{ form.Room_ID.errors.0 }}</div>{% endif %}
                 </div>
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">วันที่ทำรายการ</label>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">วันที่ทำรายการ</label>
                     <input type="text" class="form-control" id="datetime_now" readonly>
                 </div>
-                <div class="col-12 form-floating-custom">
-                    <label class="form-label">ผู้เช่า <span class="required-dot"></span></label>
+            </div>
+
+            <hr class="my-3">
+            <h6 class="text-muted mb-3">ข้อมูลผู้เช่า</h6>
+
+            <!-- แถว 2: ชื่อ + นามสกุล -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">ผู้เช่า <span class="text-danger">*</span></label>
                     {{ form.Tenant_ID }}
-                    {% if form.Tenant_ID.errors %}<div class="text-danger small mt-1">{{ form.Tenant_ID.errors.0 }}</div>{% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 2: รายละเอียดสัญญา -->
-        <div class="form-section">
-            <div class="section-title">
-                <div class="section-icon" style="background:#fce4ec; color:#c2185b;">
-                    <i class="bi bi-calendar-check-fill"></i>
-                </div>
-                <div>
-                    <h6>รายละเอียดสัญญา</h6>
-                    <small>กำหนดระยะเวลาเริ่มต้นและการสิ้นสุดของสัญญาเช่า</small>
                 </div>
             </div>
 
-            <div class="row g-3">
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">ประเภทสัญญา</label>
+            <hr class="my-3">
+            <h6 class="text-muted mb-3">รายละเอียดสัญญา</h6>
+
+            <!-- แถว 3: ประเภทสัญญา + ระยะเวลา -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ประเภทสัญญา</label>
                     <input type="text" class="form-control" value="รายเดือน" readonly>
                 </div>
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">ระยะเวลาเข้าพัก (เดือน)</label>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ระยะเวลาเข้าพัก</label>
                     {{ form.duration_months }}
                 </div>
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">วันที่เริ่มสัญญา <span class="required-dot"></span></label>
+            </div>
+
+            <!-- แถว 4: วันเริ่ม + วันสิ้นสุด -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">วันที่เริ่มสัญญา <span class="text-danger">*</span></label>
                     {{ form.Start_Date }}
-                    {% if form.Start_Date.errors %}<div class="text-danger small mt-1">{{ form.Start_Date.errors.0 }}</div>{% endif %}
                 </div>
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">วันที่สิ้นสุดสัญญา <span class="required-dot"></span></label>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">วันที่สิ้นสุดสัญญา <span class="text-danger">*</span></label>
                     {{ form.End_Date }}
-                    {% if form.End_Date.errors %}<div class="text-danger small mt-1">{{ form.End_Date.errors.0 }}</div>{% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 3: ค่าใช้จ่ายและเงินมัดจำ -->
-        <div class="form-section">
-            <div class="section-title">
-                <div class="section-icon" style="background:#e8f5e9; color:#2e7d32;">
-                    <i class="bi bi-cash-stack"></i>
-                </div>
-                <div>
-                    <h6>ค่าใช้จ่ายหลัก</h6>
-                    <small>ระบุค่าเช่า เงินประกัน และอัตราค่าน้ำค่าไฟ</small>
                 </div>
             </div>
 
-            <div class="row g-3">
-                <div class="col-md-4 form-floating-custom">
-                    <label class="form-label">ค่าเช่าห้องต่อเดือน <span class="required-dot"></span></label>
+            <!-- แถว 5: ค่าเช่า + ประกัน + มัดจำ -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ค่าเช่าห้องต่อเดือน <span class="text-danger">*</span></label>
                     {{ form.Rent_Price }}
-                    {% if form.Rent_Price.errors %}<div class="text-danger small mt-1">{{ form.Rent_Price.errors.0 }}</div>{% endif %}
                 </div>
-                <div class="col-md-4 form-floating-custom">
-                    <label class="form-label">เงินประกันห้อง <span class="required-dot"></span></label>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">เงินประกันห้อง <span class="text-danger">*</span></label>
                     {{ form.Deposit }}
-                    {% if form.Deposit.errors %}<div class="text-danger small mt-1">{{ form.Deposit.errors.0 }}</div>{% endif %}
                 </div>
-                <div class="col-md-4 form-floating-custom">
-                    <label class="form-label">เงินมัดจำล่วงหน้า <span class="required-dot"></span></label>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">เงินมัดจำ <span class="text-danger">*</span></label>
                     {{ form.Deposit_Advance }}
-                    {% if form.Deposit_Advance.errors %}<div class="text-danger small mt-1">{{ form.Deposit_Advance.errors.0 }}</div>{% endif %}
                 </div>
-                
-                <div class="col-12 mt-4 mb-2"><hr class="m-0" style="opacity: 0.1;"></div>
+            </div>
 
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label"><i class="bi bi-droplet-fill text-info me-1"></i>ค่าน้ำต่อหน่วย <span class="required-dot"></span></label>
+            <!-- แถว 6: ค่าน้ำ + ค่าไฟ -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ค่าน้ำต่อหน่วย (บาท) <span class="text-danger">*</span></label>
                     {{ form.Water_Cost_Unit }}
-                    {% if form.Water_Cost_Unit.errors %}<div class="text-danger small mt-1">{{ form.Water_Cost_Unit.errors.0 }}</div>{% endif %}
                 </div>
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>ค่าไฟต่อหน่วย <span class="required-dot"></span></label>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">ค่าไฟต่อหน่วย (บาท) <span class="text-danger">*</span></label>
                     {{ form.Elec_Cost_Unit }}
-                    {% if form.Elec_Cost_Unit.errors %}<div class="text-danger small mt-1">{{ form.Elec_Cost_Unit.errors.0 }}</div>{% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 4: มิเตอร์เริ่มต้น -->
-        <div class="form-section">
-            <div class="section-title">
-                <div class="section-icon" style="background:#fff3e0; color:#e65100;">
-                    <i class="bi bi-speedometer2"></i>
-                </div>
-                <div>
-                    <h6>มิเตอร์เริ่มต้น</h6>
-                    <small>ตั้งค่าเลขมิเตอร์น้ำและไฟ ณ วันที่เริ่มสัญญา</small>
                 </div>
             </div>
 
-            <div class="row g-3">
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">หมายเลขมิเตอร์น้ำเริ่มต้น <span class="required-dot"></span></label>
+            <!-- แถว 7: มิเตอร์เริ่มต้น -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">หมายเลขมิเตอร์น้ำเริ่มต้น <span class="text-danger">*</span></label>
                     {{ form.Water_Meter_Start }}
-                    {% if form.Water_Meter_Start.errors %}<div class="text-danger small mt-1">{{ form.Water_Meter_Start.errors.0 }}</div>{% endif %}
                 </div>
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">หมายเลขมิเตอร์ไฟเริ่มต้น <span class="required-dot"></span></label>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">หมายเลขมิเตอร์ไฟเริ่มต้น <span class="text-danger">*</span></label>
                     {{ form.Elec_Meter_Start }}
-                    {% if form.Elec_Meter_Start.errors %}<div class="text-danger small mt-1">{{ form.Elec_Meter_Start.errors.0 }}</div>{% endif %}
                 </div>
             </div>
-            
-            <div class="row mt-4">
-                <div class="col-md-6 form-floating-custom">
-                    <label class="form-label">สถานะสัญญา <span class="required-dot"></span></label>
+
+            <!-- สถานะ -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">สถานะสัญญา</label>
                     {{ form.Status }}
                 </div>
             </div>
-        </div>
 
-        <!-- Error Alert -->
-        {% if form.errors %}
-        <div class="form-section" style="padding-top:0;">
-            <div class="alert alert-danger d-flex align-items-center mb-0" style="border-radius:10px; border:none; background:#fff5f5; color:#c62828;">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <span>กรุณาตรวจสอบข้อมูลให้ครบถ้วน ข้อมูลบางส่วนไม่ถูกต้อง</span>
+            <!-- Error summary -->
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                กรุณาตรวจสอบข้อมูลให้ครบถ้วน
             </div>
-        </div>
-        {% endif %}
+            {% endif %}
 
-        <!-- Submit -->
-        <div class="form-section" style="background:#fafbfc; border-top: 2px solid #f0f2f5;">
-            <div class="d-flex justify-content-between align-items-center">
-                <a href="{% url 'contract_list' %}" class="btn btn-cancel">
-                    <i class="bi bi-arrow-left me-1"></i> ยกเลิก
-                </a>
-                <button type="submit" class="btn btn-submit">
-                    <i class="bi bi-save-fill me-1"></i> บันทึกและสร้างสัญญา
+            <!-- ปุ่ม -->
+            <div class="d-flex gap-2 mt-2">
+                <button type="submit" class="btn btn-success btn-lg">
+                    💾 บันทึกข้อมูลและพิมพ์สัญญา
                 </button>
+                <a href="{% url 'contract_list' %}" class="btn btn-secondary btn-lg">ยกเลิก</a>
             </div>
-        </div>
-    </div><!-- end form-card -->
-</form>
+            <div class="text-muted small mt-2">
+                * หลังบันทึกระบบจะแสดงร่างสัญญาสำหรับให้ผู้เช่าอ่านและเซ็น
+            </div>
 
-</div><!-- end col -->
-</div><!-- end row -->
+        </form>
+    </div>
+</div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const dpOptions = {
-            dateFormat: "Y-m-d",
-            locale: "th",
-        };
-        // ถ้าใช้ flatpickr
-        if (typeof flatpickr !== 'undefined') {
-            flatpickr("#id_Start_Date", dpOptions);
-            flatpickr("#id_End_Date", dpOptions);
-        }
+// แสดงวันเวลาปัจจุบัน
+function updateClock() {
+    const now = new Date();
+    document.getElementById('datetime_now').value = now.toLocaleString('th-TH');
+}
+updateClock();
+setInterval(updateClock, 1000);
 
-        const durSelect = document.getElementById('id_duration_months');
-        const startInput = document.getElementById('id_Start_Date');
-        const endInput = document.getElementById('id_End_Date');
-        const datetimeNow = document.getElementById('datetime_now');
-
-        // แสดงวันที่และเวลา ณ ขณะนั้น
-        const now = new Date();
-        const thDate = now.toLocaleDateString('th-TH', {
-            year: 'numeric', month: 'long', day: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-        if(datetimeNow) datetimeNow.value = thDate;
-
-        function updateEndDate() {
-            if (startInput && startInput.value && durSelect && durSelect.value) {
-                const months = parseInt(durSelect.value, 10);
-                const startDate = new Date(startInput.value);
-                if (!isNaN(startDate)) {
-                    startDate.setMonth(startDate.getMonth() + months);
-                    // ปรับ format YYYY-MM-DD
-                    const y = startDate.getFullYear();
-                    const m = String(startDate.getMonth() + 1).padStart(2, '0');
-                    const d = String(startDate.getDate()).padStart(2, '0');
-                    if (endInput) {
-                        endInput.value = `${y}-${m}-${d}`;
-                        // ถ้ามี flatpickr ต้องอัพเดต instance
-                        if (endInput._flatpickr) {
-                            endInput._flatpickr.setDate(endInput.value);
-                        }
-                    }
-                }
-            }
-        }
-
-        if(durSelect && startInput){
-            durSelect.addEventListener('change', updateEndDate);
-            startInput.addEventListener('change', updateEndDate);
-        }
-    });
+// คำนวณวันสิ้นสุดสัญญาอัตโนมัติเมื่อเลือกวันเริ่มหรือระยะเวลา
+function calcEndDate() {
+    const startVal = document.getElementById('id_start_date').value;
+    const months   = parseInt(document.getElementById('id_duration').value) || 0;
+    if (!startVal || !months) return;
+    const start = new Date(startVal);
+    start.setMonth(start.getMonth() + months);
+    // format เป็น YYYY-MM-DD
+    const yyyy = start.getFullYear();
+    const mm   = String(start.getMonth() + 1).padStart(2, '0');
+    const dd   = String(start.getDate()).padStart(2, '0');
+    document.getElementById('id_end_date').value = `${yyyy}-${mm}-${dd}`;
+}
+document.getElementById('id_start_date').addEventListener('change', calcEndDate);
+document.getElementById('id_duration').addEventListener('change', calcEndDate);
 </script>
-
 {% endblock %}
