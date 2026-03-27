@@ -141,7 +141,10 @@ python setup_groups.py
 # 3. สร้าง User สำหรับแต่ละ Role
 python create_users.py
 
-# 4. Seed ข้อมูลห้องและข้อมูลตัวอย่าง
+# 4. กำหนด Role สำหรับ Manager 1-4 กับ Meter 1-4
+python setup_users.py
+
+# 5. Seed ข้อมูลห้องและข้อมูลตัวอย่าง
 python seed_rooms.py
 ```
 
@@ -162,8 +165,14 @@ python manage.py runserver
 | Username                   | Password    | Role     | สิทธิ์                 |
 | -------------------------- | ----------- | -------- | ---------------------- |
 | _(ตั้งใน createsuperuser)_ | _(ตั้งเอง)_ | ADMIN    | จัดการทุกส่วนในระบบ    |
-| `manager01`                | `pass1234`  | MANAGER  | จัดการสัญญา/ใบแจ้งหนี้ |
-| `meter01`                  | `pass1234`  | METER    | จดมิเตอร์ (หน้ามือถือ) |
+| `manager1`                | `pass1234`  | MANAGER  | จัดการสัญญา/ใบแจ้งหนี้ อาคาร 1 |
+| `manager2`                | `pass1234`  | MANAGER  | จัดการสัญญา/ใบแจ้งหนี้ อาคาร 2 |
+| `manager3`                | `pass1234`  | MANAGER  | จัดการสัญญา/ใบแจ้งหนี้ อาคาร 3 |
+| `manager4`                | `pass1234`  | MANAGER  | จัดการสัญญา/ใบแจ้งหนี้ อาคาร 4 |
+| `meter1`                  | `pass1234`  | METER    | จดมิเตอร์ (หน้ามือถือ) อาคาร 1 |
+| `meter2`                  | `pass1234`  | METER    | จดมิเตอร์ (หน้ามือถือ) อาคาร 2 |
+| `meter3`                  | `pass1234`  | METER    | จดมิเตอร์ (หน้ามือถือ) อาคาร 3 |
+| `meter4`                  | `pass1234`  | METER    | จดมิเตอร์ (หน้ามือถือ) อาคาร 4 |
 
 ---
 
