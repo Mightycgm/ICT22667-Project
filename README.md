@@ -141,7 +141,7 @@ python setup_groups.py
 # 3. สร้าง User สำหรับแต่ละ Role
 python create_users.py
 
-# 3. กำหนด Role สำหรับ Manager 1-4 กับ Meter 1-4
+# 4. กำหนด Role สำหรับ Manager 1-4 กับ Meter 1-4
 python setup_users.py
 
 # 5. Seed ข้อมูลห้องและข้อมูลตัวอย่าง
