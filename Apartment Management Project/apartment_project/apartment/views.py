@@ -943,8 +943,8 @@ from django.http import JsonResponse
 
 @login_required
 def api_rooms_available(request):
-    """JSON API สำหรับ cascading filter อาคาร → ชั้น → ห้อง"""
-    rooms = Room.objects.filter(Status='ว่าง')
+    """JSON API สำหรับ cascading filter อาคาร → ชั้น → ห้อง (เฉพาะห้องว่างที่ยังไม่ถูกจอง)"""
+    rooms = Room.objects.filter(Status='ว่าง', Status_Flag='ปกติ')
     building = request.GET.get('building')
     floor = request.GET.get('floor')
 
@@ -956,7 +956,7 @@ def api_rooms_available(request):
     # ถ้าขอแค่ buildings
     if request.GET.get('type') == 'buildings':
         user_building = get_user_building(request.user)
-        bld_qs = Room.objects.filter(Status='ว่าง')
+        bld_qs = Room.objects.filter(Status='ว่าง', Status_Flag='ปกติ')
         if user_building:
             bld_qs = bld_qs.filter(Building_No=user_building)
         buildings = bld_qs.values_list('Building_No', flat=True).distinct().order_by('Building_No')
