@@ -4,6 +4,12 @@ from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine,
 
 # ฟอร์มผู้เช่า
 class TenantForm(forms.ModelForm):
+    Email = forms.EmailField(
+        label='อีเมล',
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'example@email.com'}),
+        required=True
+    )
+
     class Meta:
         model  = Tenant
         fields = ['First_Name', 'Last_Name', 'ID_Card', 'Phone', 'Email', 'Line_ID', 'Address']
@@ -12,7 +18,6 @@ class TenantForm(forms.ModelForm):
             'Last_Name':  'นามสกุล',
             'ID_Card':    'เลขบัตรประชาชน',
             'Phone':      'เบอร์โทรติดต่อ',
-            'Email':      'อีเมล',
             'Line_ID':    'Line ID',
             'Address':    'ที่อยู่',
         }
@@ -21,7 +26,6 @@ class TenantForm(forms.ModelForm):
             'Last_Name':  forms.TextInput(attrs={'class': 'form-control'}),
             'ID_Card':    forms.TextInput(attrs={'class': 'form-control', 'maxlength': '13'}),
             'Phone':      forms.TextInput(attrs={'class': 'form-control'}),
-            'Email':      forms.EmailInput(attrs={'class': 'form-control'}),
             'Line_ID':    forms.TextInput(attrs={'class': 'form-control'}),
             'Address':    forms.TextInput(attrs={'class': 'form-control'}),
         }
@@ -83,13 +87,13 @@ class ContractForm(forms.ModelForm):
             'Status':            'สถานะสัญญา',
         }
         widgets = {
-            'Room_ID':           forms.Select(attrs={'class': 'form-select'}),
-            'Tenant_ID':         forms.Select(attrs={'class': 'form-select'}),
+            'Room_ID':           forms.Select(attrs={'class': 'form-select select2'}),
+            'Tenant_ID':         forms.Select(attrs={'class': 'form-select select2'}),
             'Start_Date':        forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id': 'id_start_date'}),
             'End_Date':          forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id': 'id_end_date'}),
-            'Rent_Price':        forms.NumberInput(attrs={'class': 'form-control'}),
-            'Deposit':           forms.NumberInput(attrs={'class': 'form-control'}),
-            'Deposit_Advance':   forms.NumberInput(attrs={'class': 'form-control'}),
+            'Rent_Price':        forms.TextInput(attrs={'class': 'form-control money-input'}),
+            'Deposit':           forms.TextInput(attrs={'class': 'form-control money-input'}),
+            'Deposit_Advance':   forms.TextInput(attrs={'class': 'form-control money-input'}),
             'Water_Cost_Unit':   forms.NumberInput(attrs={'class': 'form-control'}),
             'Elec_Cost_Unit':    forms.NumberInput(attrs={'class': 'form-control'}),
             'Water_Meter_Start': forms.NumberInput(attrs={'class': 'form-control'}),

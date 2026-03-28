@@ -56,6 +56,7 @@ urlpatterns = [
     # API
     path('api/rooms-available/', views.api_rooms_available, name='api_rooms_available'),
     path('api/utility-latest/', views.api_utility_latest, name='api_utility_latest'),
+    path('api/room-meter-latest/', views.api_room_meter_latest, name='api_room_meter_latest'),
 
     # Meter
     path('meter/',       views.meter_index, name='meter_index'),

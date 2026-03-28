@@ -300,12 +300,15 @@
             <!-- อาคาร -->
             <div class="col-md-1">
                 <label class="filter-label"><i class="bi bi-building me-1"></i> อาคาร</label>
-                <select name="building" class="form-select filter-input">
-                    <option value="">ทั้งหมด</option>
-                    {% for b in '1234' %}
+                <select name="building" class="form-select filter-input" {% if user_building %}disabled{% endif %}>
+                    {% if not user_building %}<option value="">ทั้งหมด</option>{% endif %}
+                    {% for b in buildings %}
                     <option value="{{ b }}" {% if building == b %}selected{% endif %}>{{ b }}</option>
                     {% endfor %}
                 </select>
+                {% if user_building %}
+                    <input type="hidden" name="building" value="{{ user_building }}">
+                {% endif %}
             </div>
 
             <!-- เรียงตาม -->
@@ -326,7 +329,7 @@
         </div>
 
         <!-- ล้าง filter -->
-        {% if q or month or status or building or sort != 'room' %}
+        {% if q or month or status or building and not user_building or sort != 'room' %}
         <div class="mt-3">
             <a href="{% url 'invoice_list' %}" class="btn-clear-filter">
                 <i class="bi bi-x-circle-fill"></i> ล้างตัวกรองทั้งหมด
@@ -357,8 +360,8 @@
                 {% for inv in invoices %}
                 <tr>
                     <td class="invoice-id">#{{ inv.Invoice_ID }}</td>
-                    <td class="tenant-name">{{ inv.Contract_ID.Tenant_ID }}</td>
-                    <td><span class="room-number"><i class="bi bi-door-closed-fill me-1"></i>{{ inv.Contract_ID.Room_ID }}</span></td>
+                    <td class="tenant-name">{{ inv.Contract_ID.Tenant_ID.First_Name }} {{ inv.Contract_ID.Tenant_ID.Last_Name }}</td>
+                    <td><span class="room-number"><i class="bi bi-door-closed-fill me-1"></i>{{ inv.Contract_ID.Room_ID.Room_Number }}</span></td>
                     <td>{{ inv.Billing_Date }}</td>
                     
                     <td>

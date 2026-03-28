@@ -436,30 +436,52 @@ document.getElementById('record_date').addEventListener('change', function() {
 
 // submit form
 function submitMeter() {
-    let hasError = false;
-    let errorRoom = '';
-
+    let errors = [];
     const inputs = document.querySelectorAll('.meter-input');
+    
+    // ตรวจสอบข้อมูลทีละช่อง
     for (let input of inputs) {
-        if (!input.value) continue;
-        const prev = parseFloat(input.dataset.prev) || 0;
-        const curr = parseFloat(input.value);
-        if (curr < prev) {
-            hasError = true;
-            errorRoom = input.dataset.roomNum;
+        const valStr = input.value.trim();
+        const curr   = parseFloat(valStr);
+        const prev   = parseFloat(input.dataset.prev) || 0;
+        const roomNo = input.dataset.roomNum;
+        const type   = input.name.startsWith('water') ? 'ค่าน้ำ' : 'ค่าไฟ';
+
+        // 1. ห้ามเป็นค่าว่าง
+        if (valStr === "") {
+            errors.push(`ห้อง ${roomNo}: กรุณากรอก${type}`);
             input.classList.add('is-invalid');
-            break; // Stop at first error
-        } else {
-            input.classList.remove('is-invalid');
+            continue;
         }
+
+        // 2. ห้ามเป็น 0 หรือติดลบ
+        if (curr <= 0) {
+            errors.push(`ห้อง ${roomNo}: ${type}ต้องมากกว่า 0`);
+            input.classList.add('is-invalid');
+            continue;
+        }
+
+        // 3. ห้ามต่ำกว่าค่าก่อนหน้า
+        if (curr < prev) {
+            errors.push(`ห้อง ${roomNo}: ${type}จดครั้งนี้ (${curr}) ต่ำกว่าครั้งก่อน (${prev})`);
+            input.classList.add('is-invalid');
+            continue;
+        }
+
+        input.classList.remove('is-invalid');
     }
 
-    if (hasError) {
-        alert('พบข้อผิดพลาด: ห้อง ' + errorRoom + ' มีการจดเลขมิเตอร์ต่ำกว่าเดือนก่อนหน้า กรุณาตรวจสอบอีกครั้ง');
+    if (errors.length > 0) {
+        // แสดง 3 ข้อผิดพลาดแรกถ้ามีเยอะเกินไป
+        let msg = "พบข้อผิดพลาดในการกรอกข้อมูล:\n\n";
+        errors.slice(0, 5).forEach(e => msg += "- " + e + "\n");
+        if (errors.length > 5) msg += "... และข้อผิดพลาดอื่นอีก " + (errors.length - 5) + " รายการ";
+        
+        alert(msg);
         return;
     }
 
-    if (confirm('ระบบจะทำการบันทึกรอบจดมิเตอร์เดือนนี้\n\nต้องการยืนยันหรือไม่?')) {
+    if (confirm('ยืนยันการบันทึกมิเตอร์ทั้งหมด ' + (inputs.length / 2) + ' ห้อง?')) {
         document.getElementById('meterForm').submit();
     }
 }
