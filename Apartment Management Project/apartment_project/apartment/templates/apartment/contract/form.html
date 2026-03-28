@@ -284,15 +284,22 @@ $(document).ready(function() {
     });
 
     // 4. Auto Fetch Meter
-    $('#id_Room_ID').on('change', function() {
-        const roomId = $(this).val();
+    function fetchMeter(roomId) {
         if (!roomId) return;
         $.getJSON("{% url 'api_room_meter_latest' %}", { room_id: roomId }, function(data) {
             $('#id_Water_Meter_Start').val(data.water_start);
             $('#id_Elec_Meter_Start').val(data.elec_start);
             $('#id_Water_Meter_Start, #id_Elec_Meter_Start').fadeOut(100).fadeIn(100);
         });
+    }
+    $('#id_Room_ID').on('change', function() {
+        fetchMeter($(this).val());
     });
+    // ถ้าห้องถูก pre-select มาแล้ว (เช่น มาจาก room_pk) และยังไม่มีค่ามิเตอร์ ให้ fetch ทันที
+    const preselectedRoom = $('#id_Room_ID').val();
+    if (preselectedRoom && !$('#id_Water_Meter_Start').val()) {
+        fetchMeter(preselectedRoom);
+    }
 
     // 5. Auto Calculate End Date
     function calcEndDate() {

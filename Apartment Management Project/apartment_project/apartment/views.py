@@ -41,21 +41,19 @@ def dashboard(request):
     ).update(Status='เกินกำหนด')
 
     # ห้องที่มี invoice เกินกำหนด (เฉพาะสัญญาที่ยัง active) → สีแดง
-    overdue_room_ids = list(Invoice.objects.filter(
-        Status='เกินกำหนด',
-        Contract_ID__Status='ใช้งาน'
-    ).values_list('Contract_ID__Room_ID', flat=True))
+    overdue_qs = Invoice.objects.filter(Status='เกินกำหนด', Contract_ID__Status='ใช้งาน')
+    if building: overdue_qs = overdue_qs.filter(Contract_ID__Room_ID__Building_No=building)
+    overdue_room_ids = list(overdue_qs.values_list('Contract_ID__Room_ID', flat=True))
 
     # ห้องที่มี invoice รอชำระ (ยังไม่เกิน, เฉพาะสัญญา active) → แสดง $
-    unpaid_room_ids = list(Invoice.objects.filter(
-        Status='รอชำระ',
-        Contract_ID__Status='ใช้งาน'
-    ).values_list('Contract_ID__Room_ID', flat=True))
+    unpaid_qs = Invoice.objects.filter(Status='รอชำระ', Contract_ID__Status='ใช้งาน')
+    if building: unpaid_qs = unpaid_qs.filter(Contract_ID__Room_ID__Building_No=building)
+    unpaid_room_ids = list(unpaid_qs.values_list('Contract_ID__Room_ID', flat=True))
 
     # ห้องที่มีแจ้งซ่อมค้าง → แสดง 🔧
-    repair_room_ids = list(Maintenance.objects.exclude(
-        Status='ซ่อมเสร็จ'
-    ).values_list('Room_ID', flat=True))
+    repair_qs = Maintenance.objects.exclude(Status='ซ่อมเสร็จ')
+    if building: repair_qs = repair_qs.filter(Room_ID__Building_No=building)
+    repair_room_ids = list(repair_qs.values_list('Room_ID', flat=True))
 
 
     # --- นับตาม "สีจริง" ที่แสดงใน badge ---
@@ -345,6 +343,16 @@ def contract_create(request, room_pk=None):
     if room_pk:
         room = get_object_or_404(Room, pk=room_pk, Status='ว่าง')
         initial_data['Room_ID'] = room
+        # ดึงหน่วยมิเตอร์ล่าสุดของห้องนี้ (จาก Utility เก่า หรือ Contract เก่า)
+        latest_u = Utility.objects.filter(Room_ID=room).order_by('-Bill_Month').first()
+        if latest_u:
+            initial_data['Water_Meter_Start'] = latest_u.Water_Unit_After
+            initial_data['Elec_Meter_Start']  = latest_u.Elec_Unit_After
+        else:
+            latest_c = Contract.objects.filter(Room_ID=room).order_by('-Contract_ID').first()
+            if latest_c:
+                initial_data['Water_Meter_Start'] = latest_c.Water_Meter_Start
+                initial_data['Elec_Meter_Start']  = latest_c.Elec_Meter_Start
 
     form = ContractForm(request.POST or None, initial=initial_data)
 
@@ -836,6 +844,9 @@ def maintenance_list(request):
 @role_required('ADMIN', 'MANAGER')
 def maintenance_create(request):
     form = MaintenanceForm(request.POST or None)
+    building = get_user_building(request.user)
+    if building:
+        form.fields['Room_ID'].queryset = Room.objects.filter(Building_No=building)
     if form.is_valid():
         form.save()
         return redirect('maintenance_list')
@@ -883,12 +894,16 @@ def monthly_summary(request):
     from django.db.models.functions import TruncMonth
     import json
 
+    building = get_user_building(request.user)
+
     invoices = Invoice.objects.select_related(
         'Contract_ID__Tenant_ID', 'Contract_ID__Room_ID'
     ).all().order_by('-Billing_Date')
+    if building:
+        invoices = invoices.filter(Contract_ID__Room_ID__Building_No=building)
 
     summary = (
-        Invoice.objects
+        invoices
         .annotate(month=TruncMonth('Billing_Date'))
         .values('month')
         .annotate(
@@ -940,7 +955,11 @@ def api_rooms_available(request):
 
     # ถ้าขอแค่ buildings
     if request.GET.get('type') == 'buildings':
-        buildings = Room.objects.filter(Status='ว่าง').values_list('Building_No', flat=True).distinct().order_by('Building_No')
+        user_building = get_user_building(request.user)
+        bld_qs = Room.objects.filter(Status='ว่าง')
+        if user_building:
+            bld_qs = bld_qs.filter(Building_No=user_building)
+        buildings = bld_qs.values_list('Building_No', flat=True).distinct().order_by('Building_No')
         return JsonResponse({'buildings': list(buildings)})
 
     # ถ้าขอ floors ของ building
@@ -1031,8 +1050,12 @@ def booking_create(request, room_pk=None):
         initial['Room_ID'] = room
 
     form = BookingForm(request.POST or None, initial=initial)
-    # กรองเฉพาะห้องว่าง
-    form.fields['Room_ID'].queryset = Room.objects.filter(Status='ว่าง')
+    # กรองเฉพาะห้องว่าง และ filter ตาม building ของ user
+    available_rooms = Room.objects.filter(Status='ว่าง')
+    building = get_user_building(request.user)
+    if building:
+        available_rooms = available_rooms.filter(Building_No=building)
+    form.fields['Room_ID'].queryset = available_rooms
 
     if form.is_valid():
         booking = form.save(commit=False)
@@ -1103,6 +1126,18 @@ def booking_confirm(request, pk):
             booking.save()
             return redirect('contract_print', pk=contract.Contract_ID)
     else:
+        room = booking.Room_ID
+        meter_initial = {}
+        latest_u = Utility.objects.filter(Room_ID=room).order_by('-Bill_Month').first()
+        if latest_u:
+            meter_initial['Water_Meter_Start'] = latest_u.Water_Unit_After
+            meter_initial['Elec_Meter_Start']  = latest_u.Elec_Unit_After
+        else:
+            latest_c = Contract.objects.filter(Room_ID=room).order_by('-Contract_ID').first()
+            if latest_c:
+                meter_initial['Water_Meter_Start'] = latest_c.Water_Meter_Start
+                meter_initial['Elec_Meter_Start']  = latest_c.Elec_Meter_Start
+
         contract_form = ContractForm(initial={
             'Room_ID':          booking.Room_ID,
             'Rent_Price':       4000,
@@ -1111,6 +1146,7 @@ def booking_confirm(request, pk):
             'Water_Cost_Unit':  18,
             'Elec_Cost_Unit':   8,
             'Status':           'ใช้งาน',
+            **meter_initial,
         })
         contract_form.fields['Room_ID'].queryset = Room.objects.filter(
             Room_ID=booking.Room_ID.Room_ID
@@ -1148,10 +1184,12 @@ def meter_index(request):
     else:
         prev_month = datetime.date(year, month - 1, 1)
 
-    # ดึงห้องที่มีผู้เช่าเท่านั้น จัดกลุ่มตามอาคาร/ชั้น
-    rooms = Room.objects.filter(
-        Status='มีผู้เช่า'
-    ).order_by('Building_No', 'Floor', 'Room_Number')
+    # ดึงห้องที่มีผู้เช่าเท่านั้น จัดกลุ่มตามอาคาร/ชั้น (filter ตาม building ของ user)
+    building = get_user_building(request.user)
+    rooms = Room.objects.filter(Status='มีผู้เช่า')
+    if building:
+        rooms = rooms.filter(Building_No=building)
+    rooms = rooms.order_by('Building_No', 'Floor', 'Room_Number')
 
     # ดึง utility เดือนก่อนหน้า → ใช้เป็น "เลขก่อนหน้า"
     prev_utilities = Utility.objects.filter(Bill_Month=prev_month)
@@ -1216,7 +1254,7 @@ def meter_index(request):
 
 
 @login_required
-@role_required('ADMIN', 'MANAGER')
+@role_required('ADMIN', 'MANAGER', 'METER')
 def meter_save(request):
     import datetime
     if request.method != 'POST':
