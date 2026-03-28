@@ -141,10 +141,7 @@ python setup_groups.py
 # 3. สร้าง User สำหรับแต่ละ Role
 python create_users.py
 
-# 4. กำหนด Role สำหรับ Manager 1-4 กับ Meter 1-4
-python setup_users.py
-
-# 5. Seed ข้อมูลห้องและข้อมูลตัวอย่าง
+# 4. Seed ข้อมูลห้องและข้อมูลตัวอย่าง
 python seed_rooms.py
 ```
 
@@ -181,6 +178,7 @@ python manage.py runserver
 ```
 apartment_project/
 ├── manage.py
+├── venv/                ← สร้างเองจาก ข้อที่ 2
 ├── .env                 ← สร้างเองจาก .env.example (ห้าม push ขึ้น GitHub)
 ├── .env.example         ← template สำหรับตั้งค่า
 ├── setup_groups.py      ← สร้าง Role และ Permission
