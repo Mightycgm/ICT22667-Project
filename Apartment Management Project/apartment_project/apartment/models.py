@@ -18,7 +18,7 @@ class Tenant(models.Model):
     Last_Name   = models.CharField(max_length=50)
     ID_Card     = models.CharField(max_length=13, unique=True)
     Phone       = models.CharField(max_length=20)
-    Email       = models.EmailField(max_length=50, null=True, blank=True)
+    Email       = models.EmailField(max_length=50) # บังคับใส่เพื่อส่งใบแจ้งหนี้
     Line_ID     = models.CharField(max_length=50, null=True, blank=True)   # เพิ่มใหม่
     Address     = models.CharField(max_length=255, null=True, blank=True)  # เพิ่มใหม่
 

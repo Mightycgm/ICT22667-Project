@@ -167,6 +167,15 @@
     }
     .btn-print { background: #f0f2f5; color: #5a5c6f; }
     .btn-print:hover { background: #e4e6ef; transform: translateY(-2px); color: #1e1e2d; }
+
+    /* Chart Container */
+    .chart-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        margin-bottom: 28px;
+    }
 </style>
 
 <!-- Hero Section -->
@@ -176,6 +185,18 @@
         <p>รายงานรายได้ สถานะการชำระเงิน และประวัติใบแจ้งหนี้ทั้งหมดของโครงการ</p>
     </div>
 </div>
+
+<!-- ส่วนกราฟ -->
+{% if chart_labels_json != "[]" %}
+<div class="chart-card">
+    <div class="card-header-modern px-0 pt-0 mb-4">
+        <i class="bi bi-bar-chart-line-fill"></i> กราฟเปรียบเทียบรายได้แต่ละเดือน
+    </div>
+    <div style="height: 300px;">
+        <canvas id="revenueChart"></canvas>
+    </div>
+</div>
+{% endif %}
 
 <!-- ตารางสรุปรายเดือน -->
 <div class="table-card">
@@ -242,8 +263,8 @@
                 {% for inv in invoices %}
                 <tr>
                     <td class="invoice-id">#{{ inv.Invoice_ID }}</td>
-                    <td class="tenant-name">{{ inv.Contract_ID.Tenant_ID }}</td>
-                    <td><span class="room-number"><i class="bi bi-door-closed-fill me-1"></i>{{ inv.Contract_ID.Room_ID }}</span></td>
+                    <td class="tenant-name">{{ inv.Contract_ID.Tenant_ID.First_Name }} {{ inv.Contract_ID.Tenant_ID.Last_Name }}</td>
+                    <td><span class="room-number"><i class="bi bi-door-closed-fill me-1"></i>{{ inv.Contract_ID.Room_ID.Room_Number }}</span></td>
                     <td>{{ inv.Billing_Date|date:"M Y" }}</td>
                     
                     <td class="text-end fw-bold" style="color: #2b2d42;">฿ {{ inv.Grand_Total|floatformat:2|intcomma }}</td>
@@ -286,4 +307,66 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('revenueChart');
+    if (!ctx) return;
+
+    const labels = {{ chart_labels_json|safe }};
+    const data = {{ chart_data_json|safe }};
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'รายรับ (บาท)',
+                data: data,
+                backgroundColor: 'rgba(142, 45, 226, 0.7)',
+                borderColor: 'rgba(142, 45, 226, 1)',
+                borderWidth: 1,
+                borderRadius: 8,
+                barThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '฿' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

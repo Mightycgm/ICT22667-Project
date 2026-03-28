@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models as django_models
-from django.db.models import Sum, Count, Q, Subquery, OuterRef
+from django.db.models import Sum, Count, Q, Subquery, OuterRef, Value
+from django.db.models.functions import Concat
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -61,10 +62,16 @@ def dashboard(request):
     count_white    = rooms.filter(Status='ว่าง', Status_Flag='ปกติ').count()
     count_pin      = rooms.filter(Status='ว่าง', Status_Flag='จอง').count()
     count_broom    = rooms.filter(Status_Flag='รอทำความสะอาด').count()
-    count_blue     = rooms.filter(Status='มีผู้เช่า', Status_Flag__in=['ปกติ', 'รอทำความสะอาด']).exclude(
-                         Room_ID__in=overdue_room_ids).count()
+    
+    # มีผู้เช่า: นับทุกคนที่ Status เป็น 'มีผู้เช่า' (รวมปกติ, แจ้งย้ายออก, และเกินกำหนด)
+    count_blue     = rooms.filter(Status='มีผู้เช่า').count()
+    
+    # แจ้งย้ายออก: นับเฉพาะคนที่มีแผนจะย้ายออก (แต่ยังไม่ลด count_blue)
     count_yellow   = rooms.filter(Status='มีผู้เช่า', Status_Flag='แจ้งย้ายออก').count()
+    
+    # เกินกำหนด: นับตาม Invoice (แต่ยังไม่ลด count_blue)
     count_red      = rooms.filter(Room_ID__in=overdue_room_ids).count()
+    
     count_black    = rooms.filter(Status='ซ่อมบำรุง').count()
     count_repair   = len(set(repair_room_ids))
     count_unpaid   = len(set(unpaid_room_ids))
@@ -119,13 +126,17 @@ def tenant_list(request):
     # Manager restriction
     user_building = get_user_building(request.user)
     if user_building:
+        building = user_building # Force lock
         tenants = tenants.filter(building_no=user_building)
 
     # กรองตามการค้นหา (รวมชื่อ นามสกุล และเลขห้อง)
     if query:
-        tenants = tenants.filter(
+        tenants = tenants.annotate(
+            full_name=Concat('First_Name', Value(' '), 'Last_Name')
+        ).filter(
             Q(First_Name__icontains=query) | 
             Q(Last_Name__icontains=query) |
+            Q(full_name__icontains=query) |
             Q(room_number__icontains=query)
         )
     
@@ -137,11 +148,12 @@ def tenant_list(request):
     # นำค่าตึกและชั้นทั้งหมดเพื่อไปใส่ใน Dropdown ตัวกรอง (ถ้า manager ล็อกอิน จะแสดงแค่ตึกตัวเอง)
     buildings_qs = Room.objects.values_list('Building_No', flat=True).distinct().order_by('Building_No')
     if user_building:
-        buildings_qs = buildings_qs.filter(Building_No=user_building)
+        buildings_qs = [user_building]
+    
     floors = Room.objects.values_list('Floor', flat=True).distinct().order_by('Floor')
 
-    # เรียงลำดับตามเลขห้อง
-    tenants = tenants.order_by('room_number', 'First_Name')
+    # เรียงลำดับตามตึก ชั้น และเลขห้อง
+    tenants = tenants.order_by('building_no', 'floor_no', 'room_number', 'First_Name')
 
     return render(request, 'apartment/tenant/list.html', {
         'tenants':   tenants, 
@@ -150,6 +162,7 @@ def tenant_list(request):
         'floor':     floor,
         'buildings': buildings_qs,
         'floors':    floors,
+        'user_building': user_building,
     })
 
 @login_required
@@ -186,11 +199,35 @@ def tenant_delete(request, pk):
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def room_list(request):
-    building = get_user_building(request.user)
+    building = request.GET.get('building', '')
+    floor    = request.GET.get('floor', '')
+    
+    # Manager restriction
+    user_building = get_user_building(request.user)
+    if user_building:
+        building = user_building
+
     rooms = Room.objects.all()
     if building: rooms = rooms.filter(Building_No=building)
-    rooms = rooms.order_by('Room_Number')
-    return render(request, 'apartment/room/list.html', {'rooms': rooms})
+    if floor:    rooms = rooms.filter(Floor=floor)
+    
+    rooms = rooms.order_by('Building_No', 'Floor', 'Room_Number')
+
+    # รายการอาคารและชั้นสำหรับ Filter
+    buildings_qs = Room.objects.values_list('Building_No', flat=True).distinct().order_by('Building_No')
+    if user_building:
+        buildings_qs = [user_building]
+    
+    floors = Room.objects.values_list('Floor', flat=True).distinct().order_by('Floor')
+
+    return render(request, 'apartment/room/list.html', {
+        'rooms': rooms,
+        'building': building,
+        'floor': floor,
+        'buildings': buildings_qs,
+        'floors': floors,
+        'user_building': user_building,
+    })
 
 @login_required
 @role_required('ADMIN')
@@ -223,34 +260,34 @@ def room_delete(request, pk):
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def room_detail(request, pk):
-    room     = get_object_or_404(Room, pk=pk)
+    room = get_object_or_404(Room, pk=pk)
 
-    # ดึงสัญญาที่ใช้งานอยู่ของห้องนี้
-    contract = Contract.objects.filter(
+    # 1. สัญญาปัจจุบัน (ถ้ามี)
+    active_contract = Contract.objects.filter(
         Room_ID=room, Status='ใช้งาน'
     ).select_related('Tenant_ID').first()
 
-    # ดึง invoice ของสัญญานี้
-    invoices = Invoice.objects.filter(
-        Contract_ID=contract
-    ).order_by('-Billing_Date') if contract else []
+    # 2. ประวัติสัญญาทั้งหมดของห้องนี้ (เรียงจากใหม่ไปเก่า)
+    all_contracts = Contract.objects.filter(
+        Room_ID=room
+    ).select_related('Tenant_ID').order_by('-Contract_ID')
 
-    # ดึงแจ้งซ่อมของห้องนี้
+    # 3. ดึงแจ้งซ่อมของห้องนี้
     maintenances = Maintenance.objects.filter(
         Room_ID=room
     ).order_by('-Report_Date')
 
-    # ดึงการจองที่รอยืนยัน
+    # 4. ดึงการจองที่รอยืนยัน
     booking = Booking.objects.filter(
         Room_ID=room, Status='รอยืนยัน'
     ).first()
 
     return render(request, 'apartment/room/detail.html', {
-        'room':         room,
-        'contract':     contract,
-        'invoices':     invoices,
-        'maintenances': maintenances,
-        'booking':      booking,
+        'room':            room,
+        'active_contract': active_contract,
+        'all_contracts':   all_contracts, # ส่งสัญญาทั้งหมดไปแยก Section ใน Template
+        'maintenances':    maintenances,
+        'booking':         booking,
     })
 # ==================== CONTRACT ====================
 
@@ -259,8 +296,38 @@ def room_detail(request, pk):
 def contract_list(request):
     building = get_user_building(request.user)
     contracts = Contract.objects.select_related('Tenant_ID', 'Room_ID').all()
-    if building: contracts = contracts.filter(Room_ID__Building_No=building)
-    return render(request, 'apartment/contract/list.html', {'contracts': contracts})
+    
+    # --- Filter ---
+    q      = request.GET.get('q', '')
+    status = request.GET.get('status', '')
+
+    if building:
+        contracts = contracts.filter(Room_ID__Building_No=building)
+    
+    if q:
+        contracts = contracts.annotate(
+            full_name=Concat('Tenant_ID__First_Name', Value(' '), 'Tenant_ID__Last_Name')
+        ).filter(
+            Q(Tenant_ID__First_Name__icontains=q) |
+            Q(Tenant_ID__Last_Name__icontains=q)  |
+            Q(full_name__icontains=q) |
+            Q(Room_ID__Room_Number__icontains=q)
+        )
+    
+    if status:
+        contracts = contracts.filter(Status=status)
+
+    contracts = contracts.order_by('-Contract_ID') # เรียงใหม่ล่าสุดขึ้นก่อน
+
+    # รายการสถานะสำหรับ Filter
+    status_choices = Contract.objects.values_list('Status', flat=True).distinct()
+
+    return render(request, 'apartment/contract/list.html', {
+        'contracts': contracts,
+        'q': q,
+        'status': status,
+        'status_choices': status_choices,
+    })
 
 @login_required
 @role_required('ADMIN', 'MANAGER')
@@ -361,10 +428,18 @@ def invoice_list(request):
     building = request.GET.get('building', '')
     sort     = request.GET.get('sort', 'room')
 
+    # Manager restriction: ล็อคอาคารถ้าเป็น Manager
+    user_building = get_user_building(request.user)
+    if user_building:
+        building = user_building  # Force lock to their building
+
     if q:
-        invoices = invoices.filter(
+        invoices = invoices.annotate(
+            full_name=Concat('Contract_ID__Tenant_ID__First_Name', Value(' '), 'Contract_ID__Tenant_ID__Last_Name')
+        ).filter(
             Q(Contract_ID__Tenant_ID__First_Name__icontains=q) |
             Q(Contract_ID__Tenant_ID__Last_Name__icontains=q)  |
+            Q(full_name__icontains=q) |
             Q(Contract_ID__Room_ID__Room_Number__icontains=q)
         )
     if month:
@@ -392,18 +467,30 @@ def invoice_list(request):
         (5,'พฤษภาคม'),(6,'มิถุนายน'),(7,'กรกฎาคม'),(8,'สิงหาคม'),
         (9,'กันยายน'),(10,'ตุลาคม'),(11,'พฤศจิกายน'),(12,'ธันวาคม'),
     ]
-    years = Invoice.objects.dates('Billing_Date', 'year', order='DESC')
+    
+    # รายการอาคารสำหรับ Filter
+    buildings_qs = Room.objects.values_list('Building_No', flat=True).distinct().order_by('Building_No')
+    if user_building:
+        buildings_qs = [user_building]
+
+    all_years = Invoice.objects.dates('Billing_Date', 'year', order='DESC')
+    # กรองเอาเฉพาะปีที่มากกว่า 0 อย่างเข้มงวด
+    year_list = sorted([y.year for y in all_years if y and y.year > 0], reverse=True)
+    if not year_list:
+        year_list = [today.year]
 
     return render(request, 'apartment/invoice/list.html', {
         'invoices':   invoices,
         'q':          q,
         'month':      int(month) if month else '',
-        'year':       int(year)  if year  else '',
+        'year':       int(year) if (year and year != '0') else '',
         'status':     status,
         'building':   building,
         'sort':       sort,
         'months_th':  months_th,
-        'years':      [y.year for y in years],
+        'years':      year_list,
+        'buildings':  buildings_qs,
+        'user_building': user_building, # เพื่อเช็คใน template
     })
 
 
@@ -794,6 +881,7 @@ def invoice_print(request, pk):
 @role_required('ADMIN', 'MANAGER')
 def monthly_summary(request):
     from django.db.models.functions import TruncMonth
+    import json
 
     invoices = Invoice.objects.select_related(
         'Contract_ID__Tenant_ID', 'Contract_ID__Room_ID'
@@ -808,12 +896,30 @@ def monthly_summary(request):
             count=Count('Invoice_ID'),
             paid=Count('Invoice_ID', filter=Q(Status='ชำระแล้ว')),
         )
-        .order_by('-month')
+        .order_by('month') # เรียงจากเก่าไปใหม่สำหรับกราฟ
     )
+
+    # เตรียมข้อมูลสำหรับ Chart.js
+    chart_labels = []
+    chart_data   = []
+    
+    # รายชื่อเดือนภาษาไทย
+    month_names_th = [
+        "", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+        "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ]
+
+    for row in summary:
+        m_idx = row['month'].month
+        label = f"{month_names_th[m_idx]} {row['month'].year + 543}"
+        chart_labels.append(label)
+        chart_data.append(float(row['total']))
 
     return render(request, 'apartment/report/summary.html', {
         'invoices': invoices,
-        'summary':  summary,
+        'summary':  list(summary)[::-1], # กลับด้านให้ตารางแสดงใหม่ไปเก่า
+        'chart_labels_json': json.dumps(chart_labels),
+        'chart_data_json':   json.dumps(chart_data),
     })
 
 # ==================== API ====================
@@ -877,6 +983,32 @@ def api_utility_latest(request):
             'Bill_Month': bill_month.strftime('%Y-%m-%d'),
         }
     return JsonResponse(data)
+
+@login_required
+def api_room_meter_latest(request):
+    """JSON API สำหรับดึงข้อมูลมิเตอร์ล่าสุดของห้อง เพื่อ auto-fill ในฟอร์มสร้างสัญญา"""
+    room_id = request.GET.get('room_id')
+    if not room_id:
+        return JsonResponse({'error': 'Missing room_id'}, status=400)
+    
+    # ดึง Utility ล่าสุดของห้องนี้
+    latest_u = Utility.objects.filter(Room_ID_id=room_id).order_by('-Bill_Month').first()
+    
+    if latest_u:
+        return JsonResponse({
+            'water_start': latest_u.Water_Unit_After,
+            'elec_start': latest_u.Elec_Unit_After,
+        })
+    else:
+        # ถ้ายังไม่มีประวัติ Utility เลย ให้ลองดึงจากสัญญาเก่าล่าสุด (ถ้ามี)
+        latest_c = Contract.objects.filter(Room_ID_id=room_id).order_by('-Contract_ID').first()
+        if latest_c:
+            return JsonResponse({
+                'water_start': latest_c.Water_Meter_Start,
+                'elec_start': latest_c.Elec_Meter_Start,
+            })
+    
+    return JsonResponse({'water_start': 0, 'elec_start': 0})
 
 # ==================== BOOKING ====================
 

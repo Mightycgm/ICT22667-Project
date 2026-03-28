@@ -60,6 +60,25 @@
         color: #4b6cb7;
     }
 
+    /* Filter Card */
+    .filter-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+    }
+    .form-control-custom {
+        border-radius: 8px;
+        border: 1.5px solid #e4e6ef;
+        padding: 10px 15px;
+        font-size: 0.9rem;
+    }
+    .form-control-custom:focus {
+        border-color: #4b6cb7;
+        box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.1);
+    }
+
     /* Table Card */
     .table-card {
         background: #fff;
@@ -164,6 +183,34 @@
     {% endif %}
 </div>
 
+<!-- Filter Section -->
+<div class="filter-card">
+    <form method="get" class="row g-3">
+        <div class="col-md-5">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" class="form-control form-control-custom border-start-0" placeholder="ค้นชื่อผู้เช่า หรือเลขห้อง..." value="{{ q }}">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select name="status" class="form-select form-control-custom">
+                <option value="">-- ทุกสถานะ --</option>
+                {% for s in status_choices %}
+                <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4 rounded-pill">
+                <i class="bi bi-filter me-1"></i> กรองข้อมูล
+            </button>
+            <a href="{% url 'contract_list' %}" class="btn btn-outline-secondary px-4 rounded-pill">
+                ล้างตัวกรอง
+            </a>
+        </div>
+    </form>
+</div>
+
 <!-- Data Table -->
 <div class="table-card">
     <div class="table-responsive">
@@ -184,9 +231,9 @@
                 {% for c in contracts %}
                 <tr>
                     <td class="contract-id">#{{ c.Contract_ID }}</td>
-                    <td class="fw-bold">{{ c.Tenant_ID }}</td>
+                    <td class="fw-bold">{{ c.Tenant_ID.First_Name }} {{ c.Tenant_ID.Last_Name }}</td>
                     <td class="text-center">
-                        <span class="room-badge"><i class="bi bi-door-closed-fill me-1"></i>{{ c.Room_ID }}</span>
+                        <span class="room-badge"><i class="bi bi-door-closed-fill me-1"></i>{{ c.Room_ID.Room_Number }}</span>
                     </td>
                     <td class="date-text"><i class="bi bi-calendar-check text-success me-1"></i>{{ c.Start_Date }}</td>
                     <td class="date-text"><i class="bi bi-calendar-x text-danger me-1"></i>{{ c.End_Date }}</td>
@@ -223,7 +270,7 @@
                         <div class="text-muted">
                             <i class="bi bi-file-earmark-x mb-3 d-block" style="font-size: 3.5rem; color: #e4e6ef;"></i>
                             <h6 class="fw-bold mb-1">ไม่พบข้อมูลสัญญาเช่า</h6>
-                            <p class="small mb-0">ระบบยังไม่มีข้อมูลสัญญาเช่าที่บันทึกไว้</p>
+                            <p class="small mb-0">ลองปรับการค้นหาหรือตัวกรองใหม่อีกครั้ง</p>
                         </div>
                     </td>
                 </tr>
@@ -234,3 +281,4 @@
 </div>
 
 {% endblock %}
+

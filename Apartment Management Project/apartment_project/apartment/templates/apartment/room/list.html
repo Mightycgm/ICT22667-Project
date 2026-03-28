@@ -60,6 +60,51 @@
         color: #667eea;
     }
 
+    /* Filter Card */
+    .filter-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        margin-bottom: 24px;
+    }
+    .filter-label {
+        font-weight: 700;
+        color: #5a5c6f;
+        margin-bottom: 6px;
+        display: block;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .filter-input {
+        border-radius: 10px;
+        border: 1.5px solid #e4e6ef;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        background-color: #fafbfc;
+        transition: all 0.2s;
+    }
+    .filter-input:focus {
+        border-color: #764ba2;
+        box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
+        outline: none;
+        background-color: #fff;
+    }
+    .btn-filter-submit {
+        background: #2b2d42;
+        color: #fff;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 10px 24px;
+        transition: all 0.2s;
+        border: none;
+    }
+    .btn-filter-submit:hover {
+        background: #1e1e2d;
+        transform: translateY(-2px);
+    }
+
     /* Table Card */
     .table-card {
         background: #fff;
@@ -155,6 +200,45 @@
     {% endif %}
 </div>
 
+<!-- Filter Bar -->
+<div class="filter-card">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="filter-label"><i class="bi bi-building me-1"></i>อาคาร</label>
+            <select name="building" class="form-select filter-input" {% if user_building %}disabled{% endif %}>
+                {% if not user_building %}<option value="">-- ทุกอาคาร --</option>{% endif %}
+                {% for b in buildings %}
+                <option value="{{ b }}" {% if building == b %}selected{% endif %}>อาคาร {{ b }}</option>
+                {% endfor %}
+            </select>
+            {% if user_building %}
+                <input type="hidden" name="building" value="{{ user_building }}">
+            {% endif %}
+        </div>
+        <div class="col-md-3">
+            <label class="filter-label"><i class="bi bi-layers me-1"></i>ชั้น</label>
+            <select name="floor" class="form-select filter-input">
+                <option value="">-- ทุกชั้น --</option>
+                {% for f in floors %}
+                <option value="{{ f }}" {% if floor == f %}selected{% endif %}>ชั้น {{ f }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn-filter-submit w-100">
+                <i class="bi bi-filter me-1"></i> กรองข้อมูล
+            </button>
+        </div>
+        {% if building and not user_building or floor %}
+        <div class="col-md-2">
+            <a href="{% url 'room_list' %}" class="btn btn-link text-muted text-decoration-none">
+                <i class="bi bi-x-circle me-1"></i> ล้างตัวกรอง
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
 <!-- Table Card -->
 <div class="table-card table-responsive">
     <table class="table-modern">
@@ -202,8 +286,8 @@
                 <td colspan="{% if user_role == 'ADMIN' %}6{% else %}5{% endif %}" class="text-center py-5">
                     <div class="text-muted">
                         <i class="bi bi-door-closed mb-3 d-block" style="font-size: 3rem; color: #e4e6ef;"></i>
-                        <h6 class="fw-bold mb-1">ไม่มีข้อมูลห้องพัก</h6>
-                        <p class="small mb-0">ยังไม่มีห้องพักในระบบปัจจุบัน</p>
+                        <h6 class="fw-bold mb-1">ไม่พบข้อมูลห้องพัก</h6>
+                        <p class="small mb-0">ลองปรับเปลี่ยนเงื่อนไขการกรองข้อมูล</p>
                     </div>
                 </td>
             </tr>

@@ -1,4 +1,21 @@
 {% extends 'apartment/base.html' %}
+
+{% block extra_css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+<style>
+    .select2-container--bootstrap-5 .select2-selection {
+        border-radius: 10px;
+        border: 1.5px solid #e4e6ef;
+        background-color: #fafbfc;
+        padding: 6px 14px;
+        height: auto;
+        min-height: 45px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <style>
@@ -277,33 +294,40 @@
 </div><!-- end col -->
 </div><!-- end row -->
 
+{% endblock %}
+
+{% block extra_js %}
+<!-- jQuery and Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const contractSelect = document.getElementById('id_Contract_ID');
-    const waterUsed = document.getElementById('id_Water_Unit_Used');
-    const elecUsed = document.getElementById('id_Elec_Unit_Used');
-    const billMonth = document.getElementById('id_Bill_Month');
+$(document).ready(function() {
+    // เปิดใช้งาน Select2
+    $('.select2').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'ค้นหารหัสสัญญา ห้อง หรือผู้เช่า...'
+    });
 
-    if (contractSelect) {
-        contractSelect.addEventListener('change', function() {
-            const contractId = this.value;
-            if (!contractId) return;
+    // ดึงข้อมูลมิเตอร์อัตโนมัติเมื่อเลือกสัญญา
+    $('#id_Contract_ID').on('change', function() {
+        const contractId = $(this).val();
+        if (!contractId) return;
 
-            fetch(`/api/utility-latest/?contract_id=${contractId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        console.error(data.error);
-                        return;
-                    }
-                    if (waterUsed) waterUsed.value = data.Water_Unit_Used || 0;
-                    if (elecUsed) elecUsed.value = data.Elec_Unit_Used || 0;
-                    if (billMonth && data.Bill_Month) billMonth.value = data.Bill_Month;
-                })
-                .catch(error => console.error('Error fetching utility data:', error));
+        $.getJSON("{% url 'api_utility_latest' %}", { contract_id: contractId }, function(data) {
+            if (data.error) {
+                console.error(data.error);
+                return;
+            }
+            if ($('#id_Water_Unit_Used').length) $('#id_Water_Unit_Used').val(data.Water_Unit_Used || 0);
+            if ($('#id_Elec_Unit_Used').length) $('#id_Elec_Unit_Used').val(data.Elec_Unit_Used || 0);
+            if ($('#id_Bill_Month').length && data.Bill_Month) $('#id_Bill_Month').val(data.Bill_Month);
+            
+            // เอฟเฟกต์เล็กน้อย
+            $('#id_Water_Unit_Used, #id_Elec_Unit_Used').fadeOut(100).fadeIn(100);
         });
-    }
+    });
 });
 </script>
-
 {% endblock %}

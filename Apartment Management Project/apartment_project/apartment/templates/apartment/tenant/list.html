@@ -155,6 +155,14 @@
         font-size: 0.85rem;
         display: inline-block;
     }
+    .building-text {
+        font-weight: 700;
+        color: #5a5c6f;
+    }
+    .floor-text {
+        font-weight: 600;
+        color: #8c8ea0;
+    }
     .room-badge-none {
         background: #f0f2f5;
         color: #8c8ea0;
@@ -205,12 +213,15 @@
         <div class="row g-3">
             <div class="col-md-3 col-lg-2">
                 <label class="filter-label"><i class="bi bi-building me-1"></i>อาคาร</label>
-                <select name="building" class="form-select filter-input">
-                    <option value="">-- ทุกอาคาร --</option>
+                <select name="building" class="form-select filter-input" {% if user_building %}disabled{% endif %}>
+                    {% if not user_building %}<option value="">-- ทุกอาคาร --</option>{% endif %}
                     {% for b in buildings %}
                     <option value="{{ b }}" {% if building == b %}selected{% endif %}>อาคาร {{ b }}</option>
                     {% endfor %}
                 </select>
+                {% if user_building %}
+                    <input type="hidden" name="building" value="{{ user_building }}">
+                {% endif %}
             </div>
             <div class="col-md-3 col-lg-2">
                 <label class="filter-label"><i class="bi bi-layers me-1"></i>ชั้น</label>
@@ -239,6 +250,8 @@
             <thead>
                 <tr>
                     <th>รหัส</th>
+                    <th class="text-center">อาคาร</th>
+                    <th class="text-center">ชั้น</th>
                     <th class="text-center">ห้องพัก</th>
                     <th>ชื่อผู้เช่า</th>
                     <th>นามสกุล</th>
@@ -251,6 +264,20 @@
                 {% for t in tenants %}
                 <tr>
                     <td class="tenant-id">#{{ t.Tenant_ID }}</td>
+                    <td class="text-center">
+                        {% if t.building_no %}
+                            <span class="building-text">{{ t.building_no }}</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if t.floor_no %}
+                            <span class="floor-text">{{ t.floor_no }}</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
                     <td class="text-center">
                         {% if t.room_number %}
                             <span class="room-badge"><i class="bi bi-door-closed-fill me-1"></i>{{ t.room_number }}</span>
@@ -279,7 +306,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center py-5">
+                    <td colspan="9" class="text-center py-5">
                         <div class="text-muted">
                             <i class="bi bi-person-x mb-3 d-block" style="font-size: 3.5rem; color: #e4e6ef;"></i>
                             <h6 class="fw-bold mb-1">ไม่พบข้อมูลผู้เช่า</h6>

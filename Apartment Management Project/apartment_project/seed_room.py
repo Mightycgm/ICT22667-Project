@@ -407,13 +407,14 @@ print(f"  Invoice ทั้งหมด (รวมประวัติ) : {Invo
 # ========== Booking ==========
 print("สร้างการจอง...")
 booking_rooms = random.sample(vacant_rooms, min(4, len(vacant_rooms)))
-for room in booking_rooms:
+for i, room in enumerate(booking_rooms):
     Booking.objects.create(
         Room_ID    = room,
         First_Name = random.choice(first_names),
         Last_Name  = random.choice(last_names),
         ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
         Phone      = f"08{random.randint(10000000, 99999999)}",
+        Email      = f"booking{i}@example.com",
         Status     = 'รอยืนยัน',
     )
     room.Status_Flag = 'จอง'
@@ -433,6 +434,63 @@ for room in maintenance_rooms:
         Repair_Cost    = 0,
     )
 print(f"  สร้าง {Maintenance.objects.count()} รายการแจ้งซ่อม")
+
+# ========== เพิ่มประวัติสัญญาเก่า (ย้ายออก) ตามโจทย์เพิ่มเติม ==========
+print("สร้างประวัติสัญญาเก่า (Historical Contracts)...")
+
+# เคส 1: ย้ายออกแล้วมีคนใหม่เข้าแทน (เลือกจากห้องที่มีคนเช่าอยู่ปัจจุบัน 5 ห้อง)
+for i, room in enumerate(occupied_rooms[:100]):
+    old_tenant = Tenant.objects.create(
+        First_Name = random.choice(first_names),
+        Last_Name  = random.choice(last_names),
+        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
+        Phone      = f"08{random.randint(10000000, 99999999)}",
+        Email      = f"old_tenant_extra_{i}_{room.Room_ID}@example.com",
+    )
+    Contract.objects.create(
+        Tenant_ID         = old_tenant,
+        Room_ID           = room,
+        Start_Date        = today - datetime.timedelta(days=700),
+        End_Date          = today - datetime.timedelta(days=400),
+        Rent_Price        = Decimal('4000'),
+        Deposit           = Decimal('4000'),
+        Deposit_Advance   = Decimal('2000'),
+        Water_Cost_Unit   = 18,
+        Elec_Cost_Unit    = 8,
+        Water_Meter_Start = Decimal('100'),
+        Elec_Meter_Start  = Decimal('100'),
+        Status            = 'สิ้นสุด',
+    )
+    # print(f"  - เพิ่มสัญญา 'สิ้นสุด' ให้ห้อง {room.Room_Number} (ปัจจุบันมีคนเช่าใหม่แล้ว)")
+
+# เคส 2: ย้ายออกแล้วแต่ยังไม่มีใครมาทำสัญญาใหม่ (เลือกจากห้องที่ว่างอยู่ 5 ห้อง)
+for i, room in enumerate(vacant_rooms[:10]):
+    old_tenant = Tenant.objects.create(
+        First_Name = random.choice(first_names),
+        Last_Name  = random.choice(last_names),
+        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
+        Phone      = f"08{random.randint(10000000, 99999999)}",
+        Email      = f"ex_tenant_extra_{i}_{room.Room_ID}@example.com",
+    )
+    Contract.objects.create(
+        Tenant_ID         = old_tenant,
+        Room_ID           = room,
+        Start_Date        = today - datetime.timedelta(days=300),
+        End_Date          = today - datetime.timedelta(days=60),
+        Rent_Price        = Decimal('4000'),
+        Deposit           = Decimal('4000'),
+        Deposit_Advance   = Decimal('2000'),
+        Water_Cost_Unit   = 18,
+        Elec_Cost_Unit    = 8,
+        Water_Meter_Start = Decimal('50'),
+        Elec_Meter_Start  = Decimal('50'),
+        Status            = 'สิ้นสุด',
+    )
+    # ปรับสถานะเสริมให้เป็น 'รอทำความสะอาด' เพื่อความสมจริง
+    room.Status_Flag = 'รอทำความสะอาด'
+    room.save()
+    # print(f"  - เพิ่มสัญญา 'สิ้นสุด' ให้ห้อง {room.Room_Number} (ปัจจุบันห้องว่าง)")
+
 
 # ========== สรุป ==========
 print(f"\n{'='*50}")
