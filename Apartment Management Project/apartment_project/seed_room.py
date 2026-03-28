@@ -1,4 +1,4 @@
-import os, django, random, datetime
+import os, django, random, datetime, calendar
 from decimal import Decimal
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'apartment_project.settings')
@@ -6,6 +6,7 @@ django.setup()
 
 from apartment.models import Fine, Utility, MonthlyBill, Maintenance, Invoice, Contract, Tenant, Room, Booking
 
+# ========== ลบข้อมูลเดิม ==========
 print("ลบข้อมูลเดิม...")
 Fine.objects.all().delete()
 Utility.objects.all().delete()
@@ -18,7 +19,139 @@ Tenant.objects.all().delete()
 Room.objects.all().delete()
 print("  เรียบร้อย")
 
-today = datetime.date.today()
+today        = datetime.date.today()
+PERIOD_START = datetime.date(2024, 6, 1)  # เริ่มสร้าง Invoice ตั้งแต่เดือนนี้
+
+# ========== Helpers ==========
+def next_month(d):
+    if d.month == 12:
+        return datetime.date(d.year + 1, 1, 1)
+    return datetime.date(d.year, d.month + 1, 1)
+
+def add_months(d, n):
+    m  = d.month - 1 + n
+    yr = d.year + m // 12
+    mo = m % 12 + 1
+    day = min(d.day, calendar.monthrange(yr, mo)[1])
+    return datetime.date(yr, mo, day)
+
+def month_range(start, end_incl):
+    """List of 1st-of-month dates from start to end_incl (inclusive)."""
+    result, cur = [], start.replace(day=1)
+    end = end_incl.replace(day=1)
+    while cur <= end:
+        result.append(cur)
+        cur = next_month(cur)
+    return result
+
+first_names = [
+    'สมชาย','สมหญิง','วิชัย','นภา','ประเสริฐ','มาลี','สุรชัย','นงลักษณ์',
+    'อนุชา','พิมพ์ใจ','ธนกร','ชลิตา','วรวิทย์','สุภาพร','ณัฐพล',
+    'กนกวรรณ','ภานุวัฒน์','ศิริพร','จักรพงษ์','ลลิตา','กิตติ','วิภา',
+    'ชัยวัฒน์','นิภา','สมศักดิ์','รัตนา','บุญส่ง','ศิริลักษณ์','ธีรพงษ์','วันดี',
+]
+last_names = [
+    'ใจดี','รักไทย','สุขสม','มีทรัพย์','ทองคำ','ศรีสุข','บุญมาก',
+    'พันธุ์ดี','วงศ์งาม','ชัยมงคล','ทองอินคำ','บุญช่วย','สมบูรณ์','มั่งมี',
+    'ดีงาม','สุขใจ','พัฒนา','รุ่งเรือง','ทองแดง','สีดา',
+]
+
+RENT = Decimal('4000')
+
+_tc = [0]
+def make_tenant(tag='t'):
+    i = _tc[0]; _tc[0] += 1
+    return Tenant.objects.create(
+        First_Name = random.choice(first_names),
+        Last_Name  = random.choice(last_names),
+        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
+        Phone      = f"08{random.randint(10000000, 99999999)}",
+        Email      = f"{tag}_{i}@example.com",
+        Line_ID    = f"line_{tag}_{i}",
+    )
+
+def make_contract(tenant, room, start, end, status='ใช้งาน', w_start=None, e_start=None):
+    if w_start is None: w_start = Decimal(str(random.randint(100, 500)))
+    if e_start is None: e_start = Decimal(str(random.randint(100, 500)))
+    return Contract.objects.create(
+        Tenant_ID         = tenant,
+        Room_ID           = room,
+        Start_Date        = start,
+        End_Date          = end,
+        Deposit           = RENT,
+        Deposit_Advance   = RENT / 2,
+        Rent_Price        = RENT,
+        Water_Cost_Unit   = 18,
+        Elec_Cost_Unit    = 8,
+        Water_Meter_Start = w_start,
+        Elec_Meter_Start  = e_start,
+        Status            = status,
+    )
+
+def create_invoices(contract, months, w0, e0, overdue_ids=None):
+    """
+    สร้าง Invoice + MonthlyBill + Utility สำหรับ contract ในรายการ months ที่กำหนด
+    คืนค่า (water_final, elec_final)
+    """
+    w, e = float(w0), float(e0)
+    is_overdue_room = bool(overdue_ids and contract.Room_ID_id in overdue_ids)
+    # overdue rooms: ยังไม่จ่าย 1–2 เดือนล่าสุด
+    unpaid_from = add_months(today.replace(day=1), -random.randint(1, 2)) if is_overdue_room else None
+
+    for bm in months:
+        bill_date = datetime.date(bm.year, bm.month, 25)  # ออกบิลวันที่ 25 เสมอ
+        if bill_date > today:
+            break
+
+        due_date = next_month(bm).replace(day=5)  # กำหนดชำระวันที่ 5 เดือนถัดไป
+
+        # มิเตอร์
+        wa = w + random.randint(8, 25)
+        ea = e + random.randint(50, 200)
+        wu = wa - w;  eu = ea - e
+        wt = Decimal(str(wu)) * Decimal(str(contract.Water_Cost_Unit))
+        et = Decimal(str(eu)) * Decimal(str(contract.Elec_Cost_Unit))
+        gt = contract.Rent_Price + wt + et
+
+        # สถานะ invoice
+        if due_date > today:
+            # ยังไม่ถึงกำหนดชำระ → รอชำระ
+            status = 'รอชำระ'; paid_date = None
+        elif is_overdue_room and bm >= unpaid_from:
+            # เดือนที่ยังไม่จ่าย + เลย due_date แล้ว → รอชำระ (bulk update จะเปลี่ยนเป็น เกินกำหนด)
+            status = 'รอชำระ'; paid_date = None
+        else:
+            # ชำระแล้ว (จ่ายภายในวันที่ 25–5 ของเดือนถัดไป)
+            status    = 'ชำระแล้ว'
+            paid_date = bill_date + datetime.timedelta(days=random.randint(1, 10))
+
+        inv = Invoice.objects.create(
+            Contract_ID  = contract,
+            Billing_Date = bill_date,
+            Due_Date     = due_date,
+            Grand_Total  = gt,
+            Status       = status,
+            Paid_Date    = paid_date if status == 'ชำระแล้ว' else None,
+        )
+        MonthlyBill.objects.create(Invoice_ID=inv, Bill_Month=bm, Amount=contract.Rent_Price)
+        Utility.objects.create(
+            Invoice_ID        = inv,
+            Room_ID           = contract.Room_ID,
+            Bill_Month        = bm,
+            Water_Unit_Before = Decimal(str(w)),
+            Water_Unit_After  = Decimal(str(wa)),
+            Water_Unit_Used   = Decimal(str(wu)),
+            Elec_Unit_Before  = Decimal(str(e)),
+            Elec_Unit_After   = Decimal(str(ea)),
+            Elec_Unit_Used    = Decimal(str(eu)),
+            Water_Cost_Unit   = contract.Water_Cost_Unit,
+            Elec_Cost_Unit    = contract.Elec_Cost_Unit,
+            Water_Total       = wt,
+            Elec_Total        = et,
+        )
+        w = wa; e = ea
+
+    return w, e
 
 # ========== สร้างห้อง ==========
 print("สร้างห้อง...")
@@ -39,374 +172,177 @@ print(f"  สร้างห้อง {len(all_rooms)} ห้อง")
 
 # ========== กำหนดสถานะห้อง ==========
 print("กำหนดสถานะห้อง...")
-vacant_rooms      = []
-repair_rooms      = []
-notify_out_rooms  = []
-clean_rooms       = []
-maintenance_rooms = []
+vacant_rooms = []; repair_rooms = []; notify_out_rooms = []
+clean_rooms  = []; maintenance_rooms = []
 
 for building in range(1, 5):
     b_rooms = [r for r in all_rooms if r.Building_No == str(building)]
 
     chosen = random.sample(b_rooms, 5)
-    for r in chosen:
-        r.Status = 'ว่าง'
-        r.Status_Flag = 'ปกติ'
-        vacant_rooms.append(r)
+    for r in chosen: r.Status = 'ว่าง'; r.Status_Flag = 'ปกติ'; vacant_rooms.append(r)
     b_rooms = [r for r in b_rooms if r not in chosen]
 
     chosen = random.sample(b_rooms, 3)
-    for r in chosen:
-        r.Status = 'ซ่อมบำรุง'
-        r.Status_Flag = 'ปกติ'
-        repair_rooms.append(r)
+    for r in chosen: r.Status = 'ซ่อมบำรุง'; r.Status_Flag = 'ปกติ'; repair_rooms.append(r)
     b_rooms = [r for r in b_rooms if r not in chosen]
 
     chosen = random.sample(b_rooms, random.randint(2, 3))
-    for r in chosen:
-        r.Status_Flag = 'แจ้งย้ายออก'
-        notify_out_rooms.append(r)
+    for r in chosen: r.Status_Flag = 'แจ้งย้ายออก'; notify_out_rooms.append(r)
     b_rooms = [r for r in b_rooms if r not in chosen]
 
     chosen = random.sample(b_rooms, random.randint(2, 3))
-    for r in chosen:
-        r.Status_Flag = 'รอทำความสะอาด'
-        clean_rooms.append(r)
+    for r in chosen: r.Status_Flag = 'รอทำความสะอาด'; clean_rooms.append(r)
     b_rooms = [r for r in b_rooms if r not in chosen]
 
-    chosen = random.sample(b_rooms, 5)
-    maintenance_rooms.extend(chosen)
+    maintenance_rooms.extend(random.sample(b_rooms, 5))
 
 for r in all_rooms:
     r.save()
-print(f"  ว่าง:{len(vacant_rooms)} ซ่อมบำรุง:{len(repair_rooms)} แจ้งย้ายออก:{len(notify_out_rooms)}")
-
-# ========== สร้าง Tenant + Contract ==========
-print("สร้างผู้เช่าและสัญญา...")
-first_names = ['สมชาย','สมหญิง','วิชัย','นภา','ประเสริฐ','มาลี','สุรชัย','นงลักษณ์',
-               'อนุชา','พิมพ์ใจ','ธนกร','ชลิตา','วรวิทย์','สุภาพร','ณัฐพล',
-               'กนกวรรณ','ภานุวัฒน์','ศิริพร','จักรพงษ์','ลลิตา']
-last_names  = ['ใจดี','รักไทย','สุขสม','มีทรัพย์','ทองคำ','ศรีสุข','บุญมาก',
-               'พันธุ์ดี','วงศ์งาม','ชัยมงคล','ทองอินคำ','บุญช่วย']
 
 occupied_rooms = [r for r in all_rooms if r.Status == 'มีผู้เช่า']
-contract_map   = {}
+print(f"  ว่าง:{len(vacant_rooms)} ซ่อม:{len(repair_rooms)} "
+      f"แจ้งย้ายออก:{len(notify_out_rooms)} รอทำความสะอาด:{len(clean_rooms)} "
+      f"มีผู้เช่า:{len(occupied_rooms)}")
 
-for i, room in enumerate(occupied_rooms):
-    tenant = Tenant.objects.create(
-        First_Name = random.choice(first_names),
-        Last_Name  = random.choice(last_names),
-        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
-        Phone      = f"08{random.randint(10000000, 99999999)}",
-        Email      = f"tenant{i}@example.com",
-        Line_ID    = f"line_{i}",
-    )
-    duration    = random.choices([12, 6, 3], weights=[75, 15, 10])[0]
-    months_ago  = random.randint(1, 10)
-    start_date  = (today.replace(day=1) - datetime.timedelta(days=months_ago * 30)).replace(day=1)
-    end_date    = (start_date + datetime.timedelta(days=duration * 30)).replace(day=1)
+# ========== แบ่งห้อง: moveout vs simple ==========
+# moveout_rooms → มีประวัติย้ายออก/เข้าช่วง มิ.ย. 2024–มี.ค. 2026
+# simple_rooms  → ผู้เช่าต่อเนื่อง ไม่ได้ย้าย
+MOVEOUT_SINGLE = 70   # ห้องที่ย้ายออก 1 รอบ
+MOVEOUT_DOUBLE = 35   # ห้องที่ย้ายออก 2 รอบ (ผ่านผู้เช่า 2–3 คน)
+MOVEOUT_COUNT  = MOVEOUT_SINGLE + MOVEOUT_DOUBLE
 
-    contract = Contract.objects.create(
-        Tenant_ID         = tenant,
-        Room_ID           = room,
-        Start_Date        = start_date,
-        End_Date          = end_date,
-        Deposit           = Decimal('4000'),
-        Deposit_Advance   = Decimal('2000'),
-        Rent_Price        = Decimal('4000'),
-        Water_Cost_Unit   = 18,
-        Elec_Cost_Unit    = 8,
-        Water_Meter_Start = Decimal(str(random.randint(100, 500))),
-        Elec_Meter_Start  = Decimal(str(random.randint(100, 500))),
-        Status            = 'ใช้งาน',
-    )
-    contract_map[room.Room_ID] = contract
+moveout_rooms_all = random.sample(occupied_rooms, MOVEOUT_COUNT)
+random.shuffle(moveout_rooms_all)
+double_moveout_rooms = moveout_rooms_all[:MOVEOUT_DOUBLE]
+single_moveout_rooms = moveout_rooms_all[MOVEOUT_DOUBLE:]
+simple_rooms = [r for r in occupied_rooms if r not in set(moveout_rooms_all)]
 
-print(f"  สร้าง {len(occupied_rooms)} สัญญา")
-
-# ========== สร้าง Invoice ตั้งแต่ มิถุนายน 2567 – มีนาคม 2569 ==========
-# กำหนดช่วงที่ต้องการ: มิ.ย. 2024 → มี.ค. 2026
-print("สร้าง invoice และมิเตอร์ (มิ.ย. 2024 – มี.ค. 2026)...")
-
-# รายชื่อเดือนที่จะสร้าง (bill_date = วันที่ 25 ของแต่ละเดือน)
-bill_months = []
-current = datetime.date(2024, 6, 1)
-end     = datetime.date(2026, 3, 1)
-while current <= end:
-    bill_months.append(current)
-    # ไปเดือนถัดไป
-    if current.month == 12:
-        current = datetime.date(current.year + 1, 1, 1)
-    else:
-        current = datetime.date(current.year, current.month + 1, 1)
-
-# เดือนปัจจุบัน (วันที่ 1)
-this_month = today.replace(day=1)
-
-# เตรียม running meter ต่อห้อง
-water_running = {r.Room_ID: float(contract_map[r.Room_ID].Water_Meter_Start)
-                 for r in occupied_rooms}
-elec_running  = {r.Room_ID: float(contract_map[r.Room_ID].Elec_Meter_Start)
-                 for r in occupied_rooms}
-
-# เดือนที่เกินกำหนด (10% จากเดือนล่าสุดที่ผ่านมาแล้ว)
-overdue_room_ids = set(random.sample(
-    [r.Room_ID for r in occupied_rooms],
-    max(1, int(len(occupied_rooms) * 0.10))
+# กำหนด 10% ของ simple + new-tenant rooms ให้เป็น overdue
+overdue_ids = set(random.sample(
+    [r.Room_ID for r in simple_rooms],
+    max(1, len(simple_rooms) // 10)
 ))
 
-for bill_month_start in bill_months:
-    bill_date = bill_month_start.replace(day=25)
-    next_m    = (bill_date + datetime.timedelta(days=10)).replace(day=1)
-    base_due  = next_m.replace(day=5)
+# ========== Helper: สร้างผู้เช่า 1 รายพร้อม invoice ==========
+def seed_tenant(room, start_m, exit_m, w0, e0, is_current=False, overdue_ids=None):
+    """
+    สร้าง Tenant + Contract + Invoice สำหรับ 1 ช่วงเวลา
+    start_m, exit_m = datetime.date (วันที่ 1 ของเดือน)
+    คืนค่า (w_final, e_final)
+    """
+    start   = datetime.date(start_m.year, start_m.month, random.randint(1, 15))
+    start   = max(start, datetime.date(2022, 1, 1))
+    last_d  = calendar.monthrange(exit_m.year, exit_m.month)[1]
+    end     = datetime.date(exit_m.year, exit_m.month, random.randint(25, last_d))
+    status  = 'ใช้งาน' if is_current else 'สิ้นสุด'
+    tag     = 'cur' if is_current else 'hist'
 
-    # เดือนในอนาคต → ข้าม (ยังไม่ถึงวันออกบิล)
-    if bill_date > today:
-        break
+    tenant   = make_tenant(tag)
+    contract = make_contract(tenant, room, start, end, status=status,
+                             w_start=Decimal(str(round(w0))),
+                             e_start=Decimal(str(round(e0))))
 
-    # เดือนนี้ (วันปัจจุบัน < 25) → ยังไม่ถึงรอบออกบิล → ข้าม
-    if bill_month_start == this_month and today.day < 25:
-        break
+    inv_start = max(PERIOD_START, start_m)
+    inv_end   = today.replace(day=1) if is_current else exit_m
+    w_fin, e_fin = float(contract.Water_Meter_Start), float(contract.Elec_Meter_Start)
+    if inv_start <= inv_end:
+        months = month_range(inv_start, inv_end)
+        oids   = overdue_ids if is_current else None
+        w_fin, e_fin = create_invoices(contract, months, contract.Water_Meter_Start, contract.Elec_Meter_Start, oids)
 
-    is_last_closed_month = (bill_month_start == this_month and today.day >= 25)
-    is_prev_month        = (
-        bill_month_start.year == (this_month - datetime.timedelta(days=1)).replace(day=1).year and
-        bill_month_start.month == (this_month - datetime.timedelta(days=1)).replace(day=1).month
-    )
+    return w_fin, e_fin
 
-    for room in occupied_rooms:
-        contract = contract_map[room.Room_ID]
+# ========== Simple rooms: สัญญาต่อเนื่อง ==========
+print(f"สร้างผู้เช่า simple {len(simple_rooms)} ห้อง...")
+for room in simple_rooms:
+    months_ago = random.randint(2, 30)
+    s_base     = add_months(today.replace(day=1), -months_ago)
+    start_date = datetime.date(s_base.year, s_base.month, random.randint(1, 15))
+    start_date = max(start_date, datetime.date(2022, 6, 1))
+    end_date   = add_months(start_date, random.choices([12, 18, 24, 6], weights=[35, 30, 25, 10])[0])
+    tenant     = make_tenant('s')
+    contract   = make_contract(tenant, room, start_date, end_date)
+    inv_start  = max(PERIOD_START, start_date.replace(day=1))
+    create_invoices(contract, month_range(inv_start, today.replace(day=1)),
+                    contract.Water_Meter_Start, contract.Elec_Meter_Start, overdue_ids)
+print(f"  เสร็จสิ้น")
 
-        water_before = water_running[room.Room_ID]
-        elec_before  = elec_running[room.Room_ID]
-        water_after  = water_before + random.randint(8, 25)
-        elec_after   = elec_before  + random.randint(50, 200)
-        water_used   = water_after  - water_before
-        elec_used    = elec_after   - elec_before
-        water_total  = Decimal(str(water_used)) * Decimal(str(contract.Water_Cost_Unit))
-        elec_total   = Decimal(str(elec_used))  * Decimal(str(contract.Elec_Cost_Unit))
-        grand_total  = contract.Rent_Price + water_total + elec_total
+# ========== Single moveout rooms: ย้ายออก 1 รอบ ==========
+print(f"สร้างประวัติย้ายออก 1 รอบ ({len(single_moveout_rooms)} ห้อง)...")
+exit_pool = month_range(PERIOD_START, datetime.date(2026, 2, 1))
 
-        water_running[room.Room_ID] = water_after
-        elec_running[room.Room_ID]  = elec_after
+for room in single_moveout_rooms:
+    exit_m = random.choice(exit_pool)
+    dur    = random.randint(4, 20)
+    start_m = add_months(exit_m, -dur)
 
-        # กำหนดสถานะ
-        if is_last_closed_month:
-            # เดือนปัจจุบัน (วันนี้ >= 25) → รอชำระ
-            status    = 'รอชำระ'
-            paid_date = None
-            due_date  = base_due
-        elif is_prev_month:
-            # เดือนก่อนหน้า → 10% เกินกำหนด, ที่เหลือชำระแล้ว
-            if room.Room_ID in overdue_room_ids:
-                days_past = random.randint(10, 20)
-                due_date  = base_due - datetime.timedelta(days=days_past)
-                status    = 'รอชำระ'   # จะถูก update เป็นเกินกำหนดทีหลัง
-                paid_date = None
-            else:
-                due_date  = base_due
-                status    = 'ชำระแล้ว'
-                paid_date = bill_date + datetime.timedelta(days=random.randint(1, 9))
-        else:
-            # เดือนย้อนหลัง → ชำระแล้วทั้งหมด
-            due_date  = base_due
-            status    = 'ชำระแล้ว'
-            paid_date = bill_date + datetime.timedelta(days=random.randint(1, 9))
+    w, e = seed_tenant(room, start_m, exit_m,
+                       random.randint(100, 500), random.randint(100, 500))
 
-        invoice = Invoice.objects.create(
-            Contract_ID  = contract,
-            Billing_Date = bill_date,
-            Due_Date     = due_date,
-            Grand_Total  = grand_total,
-            Status       = status,
-            Paid_Date    = paid_date if status == 'ชำระแล้ว' else None,
-        )
-        bill_month = bill_month_start
-        MonthlyBill.objects.create(
-            Invoice_ID = invoice,
-            Bill_Month = bill_month,
-            Amount     = contract.Rent_Price,
-        )
-        Utility.objects.create(
-            Invoice_ID        = invoice,
-            Room_ID           = room,
-            Bill_Month        = bill_month,
-            Water_Unit_Before = Decimal(str(water_before)),
-            Water_Unit_After  = Decimal(str(water_after)),
-            Water_Unit_Used   = Decimal(str(water_used)),
-            Elec_Unit_Used    = Decimal(str(elec_used)),
-            Water_Cost_Unit   = contract.Water_Cost_Unit,
-            Elec_Cost_Unit    = contract.Elec_Cost_Unit,
-            Water_Total       = water_total,
-            Elec_Total        = elec_total,
-        )
+    gap_m      = add_months(exit_m, random.randint(1, 3))
+    has_new    = gap_m <= today.replace(day=1) and random.random() < 0.75
+    if has_new:
+        new_end_m = add_months(gap_m, random.randint(12, 24))
+        seed_tenant(room, gap_m, new_end_m, w, e, is_current=True, overdue_ids=overdue_ids)
+    else:
+        room.Status      = 'ว่าง'
+        room.Status_Flag = random.choice(['ปกติ', 'รอทำความสะอาด'])
+        room.save()
+print(f"  เสร็จสิ้น")
 
-print(f"  สร้าง {Invoice.objects.count()} invoices")
+# ========== Double moveout rooms: ย้ายออก 2 รอบ ==========
+print(f"สร้างประวัติย้ายออก 2 รอบ ({len(double_moveout_rooms)} ห้อง)...")
+# รอบแรกต้องออกก่อน ส.ค. 2025 เพื่อให้มีพื้นที่รอบสอง
+exit_pool_early = month_range(PERIOD_START, datetime.date(2025, 8, 1))
 
-# อัปเดต invoice ที่เลย due_date → เกินกำหนด
-updated = Invoice.objects.filter(
-    Status='รอชำระ', Due_Date__lt=today
-).update(Status='เกินกำหนด')
+for room in double_moveout_rooms:
+    # ---- รอบที่ 1 ----
+    exit_m1  = random.choice(exit_pool_early)
+    dur1     = random.randint(4, 14)
+    start_m1 = add_months(exit_m1, -dur1)
+
+    w, e = seed_tenant(room, start_m1, exit_m1,
+                       random.randint(100, 500), random.randint(100, 500))
+
+    # ---- รอบที่ 2 ----
+    gap2    = random.randint(1, 2)
+    start_m2 = add_months(exit_m1, gap2)
+    # อยู่นานแค่ไหน (ต้องออกก่อน today อย่างน้อย 1 เดือน)
+    max_stay2 = max(4, (today.year - start_m2.year) * 12 + (today.month - start_m2.month) - 1)
+    dur2     = random.randint(4, max(4, min(12, max_stay2)))
+    exit_m2  = add_months(start_m2, dur2)
+
+    if start_m2 > today.replace(day=1):
+        # ไม่มีพื้นที่ → ห้องว่าง
+        room.Status      = 'ว่าง'
+        room.Status_Flag = 'รอทำความสะอาด'
+        room.save()
+        continue
+
+    exit_m2 = min(exit_m2, add_months(today.replace(day=1), -1))
+    w, e = seed_tenant(room, start_m2, exit_m2, w, e)
+
+    # ---- รอบที่ 3 (ผู้เช่าปัจจุบัน, 70% โอกาส) ----
+    gap3    = random.randint(1, 2)
+    start_m3 = add_months(exit_m2, gap3)
+    has_cur  = start_m3 <= today.replace(day=1) and random.random() < 0.70
+    if has_cur:
+        cur_end_m = add_months(start_m3, random.randint(12, 24))
+        seed_tenant(room, start_m3, cur_end_m, w, e, is_current=True, overdue_ids=overdue_ids)
+    else:
+        room.Status      = 'ว่าง'
+        room.Status_Flag = random.choice(['ปกติ', 'รอทำความสะอาด'])
+        room.save()
+print(f"  เสร็จสิ้น")
+
+# ========== อัปเดต invoice เกินกำหนด ==========
+updated = Invoice.objects.filter(Status='รอชำระ', Due_Date__lt=today).update(Status='เกินกำหนด')
 print(f"  อัปเดต {updated} invoices เป็น เกินกำหนด")
-
-# ========== สร้างประวัติย้ายออก + ผู้เช่าใหม่ ==========
-# เลือกห้องที่มีผู้เช่าแบบสุ่ม 8 ห้อง → จำลองว่ามีผู้เช่าเก่าย้ายออก + คนใหม่เข้าแทน
-print("สร้างประวัติย้ายออก + ผู้เช่าใหม่...")
-
-MOVEOUT_ROOMS = 8
-moveout_candidates = random.sample(occupied_rooms, MOVEOUT_ROOMS)
-
-moveout_water = {}
-moveout_elec  = {}
-
-for room in moveout_candidates:
-    # ---- ผู้เช่าเก่า (ย้ายออก ธ.ค. 2024) ----
-    old_tenant = Tenant.objects.create(
-        First_Name = random.choice(first_names),
-        Last_Name  = random.choice(last_names),
-        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
-        Phone      = f"08{random.randint(10000000, 99999999)}",
-        Email      = f"old_tenant_{room.Room_ID}@example.com",
-        Line_ID    = f"old_{room.Room_ID}",
-    )
-    old_water_start = Decimal(str(random.randint(100, 300)))
-    old_elec_start  = Decimal(str(random.randint(100, 300)))
-    old_contract = Contract.objects.create(
-        Tenant_ID         = old_tenant,
-        Room_ID           = room,
-        Start_Date        = datetime.date(2024, 6, 1),
-        End_Date          = datetime.date(2024, 12, 31),
-        Deposit           = Decimal('4000'),
-        Deposit_Advance   = Decimal('2000'),
-        Rent_Price        = Decimal('4000'),
-        Water_Cost_Unit   = 18,
-        Elec_Cost_Unit    = 8,
-        Water_Meter_Start = old_water_start,
-        Elec_Meter_Start  = old_elec_start,
-        Status            = 'สิ้นสุด',
-    )
-
-    # สร้าง invoice ผู้เช่าเก่า มิ.ย. – ธ.ค. 2024 (7 เดือน) → ชำระแล้วทั้งหมด
-    w_run = float(old_water_start)
-    e_run = float(old_elec_start)
-    for yr, mo in [(2024,6),(2024,7),(2024,8),(2024,9),(2024,10),(2024,11),(2024,12)]:
-        bd        = datetime.date(yr, mo, 25)
-        bm        = datetime.date(yr, mo, 1)
-        next_m    = (bd + datetime.timedelta(days=10)).replace(day=1)
-        due       = next_m.replace(day=5)
-        wa        = w_run + random.randint(8, 25)
-        ea        = e_run + random.randint(50, 200)
-        wu        = wa - w_run;  eu = ea - e_run
-        wt        = Decimal(str(wu)) * 18;  et = Decimal(str(eu)) * 8
-        gt        = Decimal('4000') + wt + et
-        inv = Invoice.objects.create(
-            Contract_ID  = old_contract,
-            Billing_Date = bd,
-            Due_Date     = due,
-            Grand_Total  = gt,
-            Status       = 'ชำระแล้ว',
-            Paid_Date    = bd + datetime.timedelta(days=random.randint(1,9)),
-        )
-        MonthlyBill.objects.create(Invoice_ID=inv, Bill_Month=bm, Amount=Decimal('4000'))
-        Utility.objects.create(
-            Invoice_ID        = inv, Room_ID=room, Bill_Month=bm,
-            Water_Unit_Before = Decimal(str(w_run)), Water_Unit_After=Decimal(str(wa)),
-            Water_Unit_Used   = Decimal(str(wu)),    Elec_Unit_Used  = Decimal(str(eu)),
-            Water_Cost_Unit   = 18, Elec_Cost_Unit=8,
-            Water_Total=wt, Elec_Total=et,
-        )
-        w_run = wa;  e_run = ea
-
-    # บันทึก meter สุดท้ายของผู้เช่าเก่า → ใช้เป็นจุดเริ่มต้นของผู้เช่าใหม่
-    moveout_water[room.Room_ID] = w_run
-    moveout_elec[room.Room_ID]  = e_run
-
-    # ---- ผู้เช่าใหม่ (เข้ามา ม.ค. 2025) ----
-    new_tenant = Tenant.objects.create(
-        First_Name = random.choice(first_names),
-        Last_Name  = random.choice(last_names),
-        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
-        Phone      = f"08{random.randint(10000000, 99999999)}",
-        Email      = f"new_tenant_{room.Room_ID}@example.com",
-        Line_ID    = f"new_{room.Room_ID}",
-    )
-    new_water_start = Decimal(str(round(w_run)))
-    new_elec_start  = Decimal(str(round(e_run)))
-    new_contract = Contract.objects.create(
-        Tenant_ID         = new_tenant,
-        Room_ID           = room,
-        Start_Date        = datetime.date(2025, 1, 1),
-        End_Date          = datetime.date(2026, 6, 30),
-        Deposit           = Decimal('4000'),
-        Deposit_Advance   = Decimal('2000'),
-        Rent_Price        = Decimal('4000'),
-        Water_Cost_Unit   = 18,
-        Elec_Cost_Unit    = 8,
-        Water_Meter_Start = new_water_start,
-        Elec_Meter_Start  = new_elec_start,
-        Status            = 'ใช้งาน',
-    )
-
-    # สร้าง invoice ผู้เช่าใหม่ ม.ค. 2025 → เดือนล่าสุด
-    nw_run = float(new_water_start)
-    ne_run = float(new_elec_start)
-    new_bill_months = []
-    nc = datetime.date(2025, 1, 1)
-    ne = this_month if today.day < 25 else today.replace(day=1)
-    while nc <= ne:
-        new_bill_months.append(nc)
-        nc = (nc.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
-
-    for bm_s in new_bill_months:
-        bd     = bm_s.replace(day=25)
-        if bd > today:
-            break
-        bm     = bm_s
-        next_m = (bd + datetime.timedelta(days=10)).replace(day=1)
-        due    = next_m.replace(day=5)
-        wa     = nw_run + random.randint(8, 25)
-        ea     = ne_run + random.randint(50, 200)
-        wu     = wa - nw_run;  eu = ea - ne_run
-        wt     = Decimal(str(wu)) * 18;  et = Decimal(str(eu)) * 8
-        gt     = Decimal('4000') + wt + et
-
-        # เดือนล่าสุด → รอชำระ, เดือนก่อนหน้า → ชำระแล้ว
-        if bm_s == this_month and today.day >= 25:
-            st = 'รอชำระ'; pd = None; du = due
-        elif bm_s == (this_month.replace(day=1) - datetime.timedelta(days=1)).replace(day=1):
-            st = 'ชำระแล้ว'; pd = bd + datetime.timedelta(days=random.randint(1,9)); du = due
-        else:
-            st = 'ชำระแล้ว'; pd = bd + datetime.timedelta(days=random.randint(1,9)); du = due
-
-        inv = Invoice.objects.create(
-            Contract_ID  = new_contract,
-            Billing_Date = bd,
-            Due_Date     = du,
-            Grand_Total  = gt,
-            Status       = st,
-            Paid_Date    = pd,
-        )
-        MonthlyBill.objects.create(Invoice_ID=inv, Bill_Month=bm, Amount=Decimal('4000'))
-        Utility.objects.create(
-            Invoice_ID        = inv, Room_ID=room, Bill_Month=bm,
-            Water_Unit_Before = Decimal(str(nw_run)), Water_Unit_After=Decimal(str(wa)),
-            Water_Unit_Used   = Decimal(str(wu)),     Elec_Unit_Used  = Decimal(str(eu)),
-            Water_Cost_Unit   = 18, Elec_Cost_Unit=8,
-            Water_Total=wt, Elec_Total=et,
-        )
-        nw_run = wa;  ne_run = ea
-
-    # อัปเดต contract_map → ชี้ไปผู้เช่าใหม่
-    contract_map[room.Room_ID] = new_contract
-
-print(f"  ห้องมีประวัติย้ายออก : {MOVEOUT_ROOMS} ห้อง")
-print(f"  Contract สิ้นสุด     : {Contract.objects.filter(Status='สิ้นสุด').count()} รายการ")
-print(f"  Contract ใช้งาน      : {Contract.objects.filter(Status='ใช้งาน').count()} รายการ")
-print(f"  Invoice ทั้งหมด (รวมประวัติ) : {Invoice.objects.count()} ฉบับ")
 
 # ========== Booking ==========
 print("สร้างการจอง...")
-booking_rooms = random.sample(vacant_rooms, min(4, len(vacant_rooms)))
+bookable = list(Room.objects.filter(Status='ว่าง', Status_Flag='ปกติ'))
+booking_rooms = random.sample(bookable, min(6, len(bookable)))
 for i, room in enumerate(booking_rooms):
     Booking.objects.create(
         Room_ID    = room,
@@ -417,99 +353,61 @@ for i, room in enumerate(booking_rooms):
         Email      = f"booking{i}@example.com",
         Status     = 'รอยืนยัน',
     )
-    room.Status_Flag = 'จอง'
-    room.save()
+    room.Status_Flag = 'จอง'; room.save()
 print(f"  สร้าง {Booking.objects.count()} การจอง")
 
 # ========== Maintenance ==========
 print("สร้างแจ้งซ่อม...")
-problems = ['ก๊อกน้ำรั่ว','แอร์ไม่เย็น','ไฟฟ้าขัดข้อง','ประตูล็อคไม่ได้',
-            'ท่อน้ำตัน','หลอดไฟขาด','หน้าต่างปิดไม่สนิท','ฝักบัวชำรุด']
+problems = [
+    'ก๊อกน้ำรั่ว','แอร์ไม่เย็น','ไฟฟ้าขัดข้อง','ประตูล็อคไม่ได้',
+    'ท่อน้ำตัน','หลอดไฟขาด','หน้าต่างปิดไม่สนิท','ฝักบัวชำรุด',
+    'พัดลมไม่หมุน','เพดานรั่ว','โถสุขภัณฑ์ชำรุด','ราวระเบียงชำรุด',
+]
+
+# รายการที่ยังค้างอยู่ (รอดำเนินการ / กำลังซ่อม)
 for room in maintenance_rooms:
     Maintenance.objects.create(
         Room_ID        = room,
         Problem_Detail = random.choice(problems),
-        Report_Date    = today - datetime.timedelta(days=random.randint(1, 14)),
+        Report_Date    = today - datetime.timedelta(days=random.randint(1, 30)),
         Status         = random.choice(['รอดำเนินการ', 'กำลังซ่อม']),
-        Repair_Cost    = 0,
+        Repair_Cost    = random.choice([0, 0, 500, 800, 1000]),
     )
-print(f"  สร้าง {Maintenance.objects.count()} รายการแจ้งซ่อม")
 
-# ========== เพิ่มประวัติสัญญาเก่า (ย้ายออก) ตามโจทย์เพิ่มเติม ==========
-print("สร้างประวัติสัญญาเก่า (Historical Contracts)...")
+# ประวัติที่ซ่อมเสร็จแล้ว (เพื่อให้มีข้อมูลย้อนหลัง)
+done_pool = [r for r in all_rooms if r not in maintenance_rooms]
+done_rooms = random.sample(done_pool, min(20, len(done_pool)))
+for room in done_rooms:
+    report_date = today - datetime.timedelta(days=random.randint(14, 300))
+    Maintenance.objects.create(
+        Room_ID        = room,
+        Problem_Detail = random.choice(problems),
+        Report_Date    = report_date,
+        Status         = 'ซ่อมเสร็จ',
+        Repair_Cost    = random.choice([300, 500, 800, 1000, 1500, 2000, 3000]),
+    )
 
-# เคส 1: ย้ายออกแล้วมีคนใหม่เข้าแทน (เลือกจากห้องที่มีคนเช่าอยู่ปัจจุบัน 5 ห้อง)
-for i, room in enumerate(occupied_rooms[:100]):
-    old_tenant = Tenant.objects.create(
-        First_Name = random.choice(first_names),
-        Last_Name  = random.choice(last_names),
-        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
-        Phone      = f"08{random.randint(10000000, 99999999)}",
-        Email      = f"old_tenant_extra_{i}_{room.Room_ID}@example.com",
-    )
-    Contract.objects.create(
-        Tenant_ID         = old_tenant,
-        Room_ID           = room,
-        Start_Date        = today - datetime.timedelta(days=700),
-        End_Date          = today - datetime.timedelta(days=400),
-        Rent_Price        = Decimal('4000'),
-        Deposit           = Decimal('4000'),
-        Deposit_Advance   = Decimal('2000'),
-        Water_Cost_Unit   = 18,
-        Elec_Cost_Unit    = 8,
-        Water_Meter_Start = Decimal('100'),
-        Elec_Meter_Start  = Decimal('100'),
-        Status            = 'สิ้นสุด',
-    )
-    # print(f"  - เพิ่มสัญญา 'สิ้นสุด' ให้ห้อง {room.Room_Number} (ปัจจุบันมีคนเช่าใหม่แล้ว)")
-
-# เคส 2: ย้ายออกแล้วแต่ยังไม่มีใครมาทำสัญญาใหม่ (เลือกจากห้องที่ว่างอยู่ 5 ห้อง)
-for i, room in enumerate(vacant_rooms[:10]):
-    old_tenant = Tenant.objects.create(
-        First_Name = random.choice(first_names),
-        Last_Name  = random.choice(last_names),
-        ID_Card    = f"{random.randint(1000000000000, 9999999999999)}",
-        Phone      = f"08{random.randint(10000000, 99999999)}",
-        Email      = f"ex_tenant_extra_{i}_{room.Room_ID}@example.com",
-    )
-    Contract.objects.create(
-        Tenant_ID         = old_tenant,
-        Room_ID           = room,
-        Start_Date        = today - datetime.timedelta(days=300),
-        End_Date          = today - datetime.timedelta(days=60),
-        Rent_Price        = Decimal('4000'),
-        Deposit           = Decimal('4000'),
-        Deposit_Advance   = Decimal('2000'),
-        Water_Cost_Unit   = 18,
-        Elec_Cost_Unit    = 8,
-        Water_Meter_Start = Decimal('50'),
-        Elec_Meter_Start  = Decimal('50'),
-        Status            = 'สิ้นสุด',
-    )
-    # ปรับสถานะเสริมให้เป็น 'รอทำความสะอาด' เพื่อความสมจริง
-    room.Status_Flag = 'รอทำความสะอาด'
-    room.save()
-    # print(f"  - เพิ่มสัญญา 'สิ้นสุด' ให้ห้อง {room.Room_Number} (ปัจจุบันห้องว่าง)")
-
+print(f"  รอดำเนินการ/กำลังซ่อม : {Maintenance.objects.filter(Status__in=['รอดำเนินการ','กำลังซ่อม']).count()}")
+print(f"  ซ่อมเสร็จ             : {Maintenance.objects.filter(Status='ซ่อมเสร็จ').count()}")
 
 # ========== สรุป ==========
-print(f"\n{'='*50}")
-print(f"ห้องทั้งหมด              : {Room.objects.count()}")
-print(f"ว่าง                     : {Room.objects.filter(Status='ว่าง').count()}")
-print(f"มีผู้เช่า (ปกติ)         : {Room.objects.filter(Status='มีผู้เช่า', Status_Flag='ปกติ').count()}")
-print(f"แจ้งย้ายออก              : {Room.objects.filter(Status_Flag='แจ้งย้ายออก').count()}")
-print(f"รอทำความสะอาด            : {Room.objects.filter(Status_Flag='รอทำความสะอาด').count()}")
-print(f"ซ่อมบำรุง                : {Room.objects.filter(Status='ซ่อมบำรุง').count()}")
-print(f"─────────────────────────────────────────────────")
-print(f"Contract ใช้งาน          : {Contract.objects.filter(Status='ใช้งาน').count()}")
-print(f"Contract สิ้นสุด (ย้ายออก): {Contract.objects.filter(Status='สิ้นสุด').count()}")
-print(f"─────────────────────────────────────────────────")
-print(f"การจอง                   : {Booking.objects.filter(Status='รอยืนยัน').count()}")
-print(f"─────────────────────────────────────────────────")
-print(f"Invoice รวมทั้งหมด        : {Invoice.objects.count()}")
-print(f"  ชำระแล้ว               : {Invoice.objects.filter(Status='ชำระแล้ว').count()}")
-print(f"  รอชำระ                 : {Invoice.objects.filter(Status='รอชำระ').count()}")
-print(f"  เกินกำหนด              : {Invoice.objects.filter(Status='เกินกำหนด').count()}")
-print(f"─────────────────────────────────────────────────")
-print(f"แจ้งซ่อม                 : {Maintenance.objects.count()}")
-print(f"{'='*50}")
+print(f"\n{'='*52}")
+print(f"ห้องทั้งหมด               : {Room.objects.count()}")
+print(f"  มีผู้เช่า (ปกติ)        : {Room.objects.filter(Status='มีผู้เช่า', Status_Flag='ปกติ').count()}")
+print(f"  แจ้งย้ายออก             : {Room.objects.filter(Status_Flag='แจ้งย้ายออก').count()}")
+print(f"  รอทำความสะอาด           : {Room.objects.filter(Status_Flag='รอทำความสะอาด').count()}")
+print(f"  ว่าง                    : {Room.objects.filter(Status='ว่าง').count()}")
+print(f"  ซ่อมบำรุง               : {Room.objects.filter(Status='ซ่อมบำรุง').count()}")
+print(f"────────────────────────────────────────────────────")
+print(f"Contract ใช้งาน           : {Contract.objects.filter(Status='ใช้งาน').count()}")
+print(f"Contract สิ้นสุด          : {Contract.objects.filter(Status='สิ้นสุด').count()}")
+print(f"────────────────────────────────────────────────────")
+print(f"การจอง (รอยืนยัน)         : {Booking.objects.filter(Status='รอยืนยัน').count()}")
+print(f"────────────────────────────────────────────────────")
+print(f"Invoice รวมทั้งหมด         : {Invoice.objects.count()}")
+print(f"  ชำระแล้ว                : {Invoice.objects.filter(Status='ชำระแล้ว').count()}")
+print(f"  รอชำระ                  : {Invoice.objects.filter(Status='รอชำระ').count()}")
+print(f"  เกินกำหนด               : {Invoice.objects.filter(Status='เกินกำหนด').count()}")
+print(f"────────────────────────────────────────────────────")
+print(f"แจ้งซ่อมทั้งหมด            : {Maintenance.objects.count()}")
+print(f"{'='*52}")
