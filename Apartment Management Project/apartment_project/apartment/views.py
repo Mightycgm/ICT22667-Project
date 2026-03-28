@@ -1050,8 +1050,8 @@ def booking_create(request, room_pk=None):
         initial['Room_ID'] = room
 
     form = BookingForm(request.POST or None, initial=initial)
-    # กรองเฉพาะห้องว่าง และ filter ตาม building ของ user
-    available_rooms = Room.objects.filter(Status='ว่าง')
+    # กรองเฉพาะห้องว่างที่ยังไม่ถูกจอง และ filter ตาม building ของ user
+    available_rooms = Room.objects.filter(Status='ว่าง', Status_Flag='ปกติ')
     building = get_user_building(request.user)
     if building:
         available_rooms = available_rooms.filter(Building_No=building)
@@ -1102,29 +1102,35 @@ def booking_confirm(request, pk):
         contract_form.fields['Tenant_ID'].required = False
 
         if contract_form.is_valid():
-            # 1. สร้าง Tenant จากข้อมูลการจอง
-            tenant = Tenant.objects.create(
-                First_Name = booking.First_Name,
-                Last_Name  = booking.Last_Name,
-                ID_Card    = booking.ID_Card,
-                Phone      = booking.Phone,
-                Email      = booking.Email   or '',
-                Line_ID    = booking.Line_ID or '',
-                Address    = booking.Address or '',
-            )
-            # 2. สร้าง Contract แล้วผูก Tenant
-            contract           = contract_form.save(commit=False)
-            contract.Tenant_ID = tenant
-            contract.save()
-            # 3. อัปเดตสถานะห้อง
-            room             = booking.Room_ID
-            room.Status      = 'มีผู้เช่า'
-            room.Status_Flag = 'ปกติ'
-            room.save()
-            # 4. ปิดการจอง
-            booking.Status = 'ยืนยันแล้ว'
-            booking.save()
-            return redirect('contract_print', pk=contract.Contract_ID)
+            room = booking.Room_ID
+            # ป้องกัน race condition: ห้องนี้มีสัญญา active อยู่แล้วหรือยัง
+            if Contract.objects.filter(Room_ID=room, Status='ใช้งาน').exists():
+                contract_form.add_error(None, 'ห้องนี้มีสัญญาใช้งานอยู่แล้ว ไม่สามารถยืนยันการจองซ้ำได้')
+            else:
+                # 1. สร้าง Tenant จากข้อมูลการจอง
+                tenant = Tenant.objects.create(
+                    First_Name = booking.First_Name,
+                    Last_Name  = booking.Last_Name,
+                    ID_Card    = booking.ID_Card,
+                    Phone      = booking.Phone,
+                    Email      = booking.Email   or '',
+                    Line_ID    = booking.Line_ID or '',
+                    Address    = booking.Address or '',
+                )
+                # 2. สร้าง Contract แล้วผูก Tenant
+                contract           = contract_form.save(commit=False)
+                contract.Tenant_ID = tenant
+                contract.save()
+                # 3. อัปเดตสถานะห้อง
+                room.Status      = 'มีผู้เช่า'
+                room.Status_Flag = 'ปกติ'
+                room.save()
+                # 4. ยกเลิกการจองอื่นๆ ของห้องเดียวกันที่ยังค้างอยู่ (ถ้ามี)
+                Booking.objects.filter(Room_ID=room, Status='รอยืนยัน').exclude(pk=booking.pk).update(Status='ยกเลิก')
+                # 5. ปิดการจองนี้
+                booking.Status = 'ยืนยันแล้ว'
+                booking.save()
+                return redirect('contract_print', pk=contract.Contract_ID)
     else:
         room = booking.Room_ID
         meter_initial = {}
