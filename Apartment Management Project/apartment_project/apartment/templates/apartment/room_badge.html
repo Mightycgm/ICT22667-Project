@@ -1,26 +1,69 @@
+<style>
+    .room-badge-group-right {
+        position: absolute; 
+        top: 5px; 
+        right: 5px; 
+        display: flex; 
+        flex-direction: row; 
+        gap: 3px;
+        z-index: 2;
+    }
+    .room-badge-group-left {
+        position: absolute; 
+        top: 5px; 
+        left: 5px; 
+        display: flex; 
+        flex-direction: row; 
+        gap: 3px;
+        z-index: 2;
+    }
+    .room-mini-badge {
+        width: 16px; 
+        height: 16px; 
+        padding: 0; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        border-radius: 50%; 
+        border: 1px solid rgba(255,255,255,0.8) !important; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15); 
+        font-size: 0.55rem;
+        transition: transform 0.2s, z-index 0s;
+        position: relative;
+    }
+    .room-mini-badge:hover { 
+        transform: translateY(-2px) scale(1.1); 
+        z-index: 10; 
+    }
+</style>
+
 <a href="{% url 'room_detail' room.Room_ID %}"
    class="room-badge-card text-decoration-none shadow-sm {{ theme }}"
-   style="flex: 1 1 0%; min-width: 50px; height: 55px; border-radius: 8px; border-width: 1px; border-style: solid; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;"
+   style="flex: 1 1 0%; min-width: 55px; min-height: 65px; padding-top: 14px; border-radius: 8px; border-width: 1px; border-style: solid; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;"
    title="ห้อง {{ room.Room_Number }} — {{ room.Status }}">
     
-    <div style="font-size: 1.1rem; font-weight: 800; line-height: 1; color: #181c32;">{{ room.Room_Number }}</div>
-    <div style="font-size: 1rem; margin-top: 2px;">
+    <div style="font-size: 1.1rem; font-weight: 800; line-height: 1; color: #181c32; z-index: 1; position: relative;">{{ room.Room_Number }}</div>
+    <div style="font-size: 1rem; margin-top: 2px; color: inherit; z-index: 1; position: relative;">
         <i class="bi {{ icon }}"></i>
     </div>
 
-    <!-- Extra Flags (Floating Notifications) -->
-    <div style="position: absolute; top: -6px; right: -6px; display: flex; gap: 4px; z-index: 2;">
-        {% if room.Room_ID in unpaid_room_ids %}
-        <span class="badge bg-warning text-dark border border-white shadow-sm rounded-circle d-flex align-items-center justify-content-center" title="ค้างชำระจากงวดก่อน" style="width: 20px; height: 20px; padding: 0;"><i class="bi bi-wallet2" style="font-size: 0.65rem;"></i></span>
-        {% endif %}
+    <!-- Extra Flags (Floating Notifications Overlapping Group - Left) -->
+    <div class="room-badge-group-left">
         {% if room.Room_ID in repair_room_ids %}
-        <span class="badge bg-danger text-white border border-white shadow-sm rounded-circle d-flex align-items-center justify-content-center" title="มีการแจ้งซ่อม" style="width: 20px; height: 20px; padding: 0;"><i class="bi bi-tools" style="font-size: 0.65rem;"></i></span>
+        <span class="badge bg-danger text-white room-mini-badge" title="มีการแจ้งซ่อม"><i class="bi bi-tools"></i></span>
         {% endif %}
         {% if room.Room_ID in clean_room_ids %}
-        <span class="badge bg-info text-white border border-white shadow-sm rounded-circle d-flex align-items-center justify-content-center" title="รอทำความสะอาด" style="width: 20px; height: 20px; padding: 0;"><i class="bi bi-stars" style="font-size: 0.65rem;"></i></span>
+        <span class="badge bg-info text-white room-mini-badge" title="รอทำความสะอาด"><i class="bi bi-stars"></i></span>
         {% endif %}
         {% if room.Status_Flag == 'แจ้งย้ายออก' and theme != 'room-theme-moving' %}
-        <span class="badge border border-white shadow-sm rounded-circle d-flex align-items-center justify-content-center" title="แจ้งย้ายออก" style="background-color: #fdf3e6; color: #d08c3f; border-color: #d08c3f !important; width: 20px; height: 20px; padding: 0;"><i class="bi bi-box-arrow-right" style="font-size: 0.65rem;"></i></span>
+        <span class="badge room-mini-badge" title="แจ้งย้ายออก" style="background-color: #fdf3e6; color: #d08c3f; border-color: #d08c3f !important;"><i class="bi bi-box-arrow-right"></i></span>
+        {% endif %}
+    </div>
+
+    <!-- Extra Flags (Floating Notifications Overlapping Group - Right) -->
+    <div class="room-badge-group-right">
+        {% if room.Room_ID in unpaid_room_ids %}
+        <span class="badge bg-warning text-dark room-mini-badge" title="ค้างชำระจากงวดก่อน"><i class="bi bi-wallet2"></i></span>
         {% endif %}
     </div>
 </a>
