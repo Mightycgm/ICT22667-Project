@@ -320,19 +320,61 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script>
-function calcEndDate() {
-    const startVal = document.getElementById('id_start_date').value;
-    const months   = parseInt(document.getElementById('id_duration').value) || 0;
-    if (!startVal || !months) return;
-    const start = new Date(startVal);
-    start.setMonth(start.getMonth() + months);
-    const yyyy = start.getFullYear();
-    const mm   = String(start.getMonth() + 1).padStart(2, '0');
-    const dd   = String(start.getDate()).padStart(2, '0');
-    document.getElementById('id_end_date').value = `${yyyy}-${mm}-${dd}`;
-}
-document.getElementById('id_start_date')?.addEventListener('change', calcEndDate);
-document.getElementById('id_duration')?.addEventListener('change', calcEndDate);
+$(document).ready(function() {
+    // 1. Auto Calculate End Date
+    function calcEndDate() {
+        const startVal = document.getElementById('id_start_date').value;
+        const months   = parseInt(document.getElementById('id_duration').value) || 0;
+        if (!startVal || !months) return;
+        const start = new Date(startVal);
+        start.setMonth(start.getMonth() + months);
+        const yyyy = start.getFullYear();
+        const mm   = String(start.getMonth() + 1).padStart(2, '0');
+        const dd   = String(start.getDate()).padStart(2, '0');
+        document.getElementById('id_end_date').value = `${yyyy}-${mm}-${dd}`;
+    }
+    document.getElementById('id_start_date')?.addEventListener('change', calcEndDate);
+    document.getElementById('id_duration')?.addEventListener('change', calcEndDate);
+
+    // 2. Comma Formatting Logic
+    function formatNumber(n) {
+        // ลบอักขระที่ไม่ใช่ตัวเลขออก
+        let val = n.replace(/\D/g, "");
+        // ใส่คอมม่าทุก 3 หลัก
+        return val.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // จัดรูปแบบตอนโหลดหน้า (เผื่อมีค่าเริ่มต้น)
+    $('.money-input').each(function() {
+        let currentVal = $(this).val();
+        if (currentVal) {
+            $(this).val(formatNumber(currentVal));
+        }
+    });
+
+    // จัดรูปแบบขณะพิมพ์
+    $('.money-input').on('input', function() {
+        let selectionStart = this.selectionStart;
+        let oldLength = this.value.length;
+        
+        let formatted = formatNumber($(this).val());
+        $(this).val(formatted);
+        
+        // เลื่อน cursor ให้สัมพันธ์กับคอมม่าที่เพิ่มเข้ามา
+        let newLength = formatted.length;
+        this.setSelectionRange(selectionStart + (newLength - oldLength), selectionStart + (newLength - oldLength));
+    });
+
+    // 3. Strip Commas Before Submit (สำคัญมากเพื่อให้ Django บันทึกได้)
+    $('form').on('submit', function() {
+        $('.money-input').each(function() {
+            let plainNumber = $(this).val().replace(/,/g, '');
+            $(this).val(plainNumber);
+        });
+    });
+});
 </script>
 {% endblock %}
