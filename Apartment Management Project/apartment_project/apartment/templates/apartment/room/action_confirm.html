@@ -121,25 +121,97 @@
         {% endif %}
     </div>
     
-    <h4 class="action-title">{{ title }}</h4>
-    
-    <p class="action-text">{{ message }}</p>
-    
-    {% if warning %}
-    <div class="action-notice">
-        <i class="bi bi-info-circle-fill me-1"></i> {{ warning }}
-    </div>
-    {% endif %}
+    {% if action == 'moveout' %}
+        <h4 class="action-title">ยืนยันย้ายออก — ห้อง {{ room.Room_Number }}</h4>
+        <p class="action-text">ปิดสัญญาและเปลี่ยนสถานะห้องเป็น "รอทำความสะอาด"</p>
 
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit" class="btn-action-confirm btn-{% if btn_color %}{{ btn_color }}{% else %}primary{% endif %}">
-            <i class="bi bi-check-lg me-1"></i> ยืนยันดำเนินการ
-        </button>
-        <a href="{% url 'room_detail' room.Room_ID %}" class="btn-action-back">
-            <i class="bi bi-arrow-left me-1"></i> ยกเลิกและกลับไปหน้าห้องพัก
-        </a>
-    </form>
+        {% if unpaid_count == 0 %}
+            {# เคส 1: ไม่มียอดค้าง #}
+            <div class="action-notice" style="background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7;">
+                <i class="bi bi-check-circle-fill me-1"></i>
+                ไม่มียอดค้างชำระ สามารถย้ายออกได้ทันที
+            </div>
+
+        {% elif can_deduct %}
+            {# เคส 2: ค้าง ≤ ประกัน+มัดจำ → หักได้เลย #}
+            <div class="action-notice" style="background:#e3f2fd; color:#1565c0; border-color:#90caf9; text-align:left;">
+                <div class="fw-bold mb-2"><i class="bi bi-calculator-fill me-1"></i> สรุปการหักจากเงินประกัน + มัดจำ</div>
+                <div class="d-flex justify-content-between"><span>เงินประกัน</span><span>{{ deposit|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between"><span>เงินมัดจำล่วงหน้า</span><span>{{ deposit_advance|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between fw-bold"><span>รวมเงินค้ำประกัน</span><span>{{ total_collateral|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between text-danger mt-1"><span>ยอดค้างชำระ ({{ unpaid_count }} ใบ)</span><span>- {{ unpaid_total|floatformat:2 }} บาท</span></div>
+                <hr style="margin:6px 0; border-color:#90caf9;">
+                <div class="d-flex justify-content-between fw-bold"><span>คืนให้ผู้เช่า</span><span class="text-success">{{ refund|floatformat:2 }} บาท</span></div>
+            </div>
+            <p style="font-size:0.85rem; color:#888;">ระบบจะ mark ใบแจ้งหนี้ค้างทั้งหมดเป็น "ชำระแล้ว" อัตโนมัติ</p>
+
+        {% elif need_extra %}
+            {# เคส 3: ค้าง > ประกัน+มัดจำ → ต้องโปะเพิ่ม #}
+            <div class="action-notice" style="text-align:left;">
+                <div class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> ยอดค้างชำระเกินกว่าเงินประกันและมัดจำรวมกัน</div>
+                <div class="d-flex justify-content-between"><span>เงินประกัน</span><span>{{ deposit|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between"><span>เงินมัดจำล่วงหน้า</span><span>{{ deposit_advance|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between fw-bold"><span>รวมเงินค้ำประกัน</span><span>{{ total_collateral|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between text-danger mt-1"><span>ยอดค้างชำระ ({{ unpaid_count }} ใบ)</span><span>{{ unpaid_total|floatformat:2 }} บาท</span></div>
+                <hr style="margin:6px 0;">
+                <div class="d-flex justify-content-between fw-bold text-danger"><span>ยอดที่ต้องโปะเพิ่ม</span><span>{{ shortfall|floatformat:2 }} บาท</span></div>
+            </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="alert alert-danger py-2" style="border-radius:8px; font-size:0.9rem;">
+            <i class="bi bi-exclamation-circle-fill me-1"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            {% if need_extra %}
+            <div style="text-align:left; margin-bottom:16px;">
+                <label style="font-size:0.85rem; font-weight:600; color:#5a5c6f; display:block; margin-bottom:6px;">
+                    ยอดเงินที่ผู้เช่าจ่ายเพิ่ม (บาท) <span style="color:#ed4c78;">*</span>
+                </label>
+                <input type="number" name="extra_payment" min="0" step="0.01" required
+                    value="{{ extra_payment|default:shortfall|floatformat:2 }}"
+                    placeholder="{{ shortfall|floatformat:2 }}"
+                    style="width:100%; border-radius:10px; border:1.5px solid #e4e6ef; padding:10px 14px; font-size:0.9rem; margin-bottom:12px;">
+                <label style="font-size:0.85rem; font-weight:600; color:#5a5c6f; display:block; margin-bottom:6px;">
+                    เหตุผล / ข้อตกลง <span style="color:#ed4c78;">*</span>
+                </label>
+                <textarea name="moveout_note" rows="3" required
+                    placeholder="เช่น ผู้เช่าโอนเงินส่วนเกิน {{ shortfall|floatformat:2 }} บาท เมื่อวันที่ ... / ตกลงหักจากเงินค้ำประกันและรับเงินสดส่วนต่างแล้ว"
+                    style="width:100%; border-radius:10px; border:1.5px solid #e4e6ef; padding:10px 14px; font-size:0.9rem; resize:vertical;"></textarea>
+            </div>
+            {% endif %}
+            <button type="submit" class="btn-action-confirm btn-danger">
+                <i class="bi bi-box-arrow-right me-1"></i> ยืนยันย้ายออก
+            </button>
+            <a href="{% url 'room_detail' room.Room_ID %}" class="btn-action-back">
+                <i class="bi bi-arrow-left me-1"></i> ยกเลิกและกลับไปหน้าห้องพัก
+            </a>
+        </form>
+
+    {% else %}
+        {# action อื่นๆ (clean, notify_out, ฯลฯ) ใช้ template เดิม #}
+        <h4 class="action-title">{{ title }}</h4>
+        <p class="action-text">{{ message }}</p>
+
+        {% if warning %}
+        <div class="action-notice">
+            <i class="bi bi-info-circle-fill me-1"></i> {{ warning }}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn-action-confirm btn-{% if btn_color %}{{ btn_color }}{% else %}primary{% endif %}">
+                <i class="bi bi-check-lg me-1"></i> ยืนยันดำเนินการ
+            </button>
+            <a href="{% url 'room_detail' room.Room_ID %}" class="btn-action-back">
+                <i class="bi bi-arrow-left me-1"></i> ยกเลิกและกลับไปหน้าห้องพัก
+            </a>
+        </form>
+    {% endif %}
 </div>
 
 {% endblock %}

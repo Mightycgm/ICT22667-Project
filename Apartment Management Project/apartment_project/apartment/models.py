@@ -76,6 +76,7 @@ class Contract(models.Model):
     Water_Meter_Start = models.DecimalField(max_digits=8, decimal_places=2, default=0)  # มิเตอร์น้ำเริ่มต้น
     Elec_Meter_Start  = models.DecimalField(max_digits=8, decimal_places=2, default=0)  # มิเตอร์ไฟเริ่มต้น
     Status           = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ใช้งาน')
+    Moveout_Note     = models.TextField(blank=True, null=True)  # บันทึกเหตุผลย้ายออก (กรณีมียอดค้างเกินประกัน)
 
     class Meta:
         db_table = 'CONTRACT'

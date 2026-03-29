@@ -248,10 +248,14 @@ $(document).ready(function() {
 
     // 2. Comma Formatting Logic
     function formatNumber(n) {
-        // ลบอักขระที่ไม่ใช่ตัวเลขออก
-        let val = n.replace(/\D/g, "");
-        // ใส่คอมม่าทุก 3 หลัก
-        return val.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        // แยกส่วนจำนวนเต็มกับทศนิยม เช่น "4000.50" → ["4000", "50"]
+        let parts = String(n).replace(/,/g, '').split('.');
+        let intNum = parseInt(parts[0], 10);
+        if (isNaN(intNum)) return n;
+        let formatted = intNum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        // ต่อทศนิยมกลับถ้ามี เช่น "4,000.50"
+        if (parts.length > 1) formatted += '.' + parts[1];
+        return formatted;
     }
 
     // จัดรูปแบบตอนโหลดหน้า (เผื่อมีค่าเริ่มต้น)

@@ -1438,28 +1438,74 @@ def room_action_moveout(request, pk):
     room     = get_object_or_404(Room, pk=pk)
     contract = Contract.objects.filter(Room_ID=room, Status='ใช้งาน').first()
 
-    # เช็ค invoice ค้างชำระ
-    unpaid_count = Invoice.objects.filter(
-        Contract_ID=contract, Status='รอชำระ'
-    ).count() if contract else 0
+    # คำนวณยอดค้างชำระรวม (รอชำระ + เกินกำหนด)
+    unpaid_invoices = Invoice.objects.filter(
+        Contract_ID=contract, Status__in=['รอชำระ', 'เกินกำหนด']
+    ) if contract else Invoice.objects.none()
+    unpaid_total    = unpaid_invoices.aggregate(total=django_models.Sum('Grand_Total'))['total'] or Decimal('0')
+    unpaid_count    = unpaid_invoices.count()
+
+    deposit         = contract.Deposit          if contract else Decimal('0')
+    deposit_advance = contract.Deposit_Advance  if contract else Decimal('0')
+    total_collateral = deposit + deposit_advance  # เงินประกัน + เงินมัดจำ
+
+    # เคส 1: ไม่มียอดค้าง
+    # เคส 2: ค้าง ≤ ประกัน+มัดจำ → หักได้เลย
+    # เคส 3: ค้าง > ประกัน+มัดจำ → ต้องโปะเพิ่ม + บันทึกเหตุผล
+    can_deduct  = unpaid_total > 0 and unpaid_total <= total_collateral
+    need_extra  = unpaid_total > total_collateral
+    refund      = total_collateral - unpaid_total if can_deduct else Decimal('0')
+    shortfall   = unpaid_total - total_collateral if need_extra else Decimal('0')
+
+    ctx_base = {
+        'room': room, 'contract': contract, 'action': 'moveout',
+        'unpaid_count': unpaid_count, 'unpaid_total': unpaid_total,
+        'deposit': deposit, 'deposit_advance': deposit_advance,
+        'total_collateral': total_collateral,
+        'can_deduct': can_deduct, 'refund': refund,
+        'need_extra': need_extra, 'shortfall': shortfall,
+    }
 
     if request.method == 'POST':
+        note        = request.POST.get('moveout_note', '').strip()
+        extra_str   = request.POST.get('extra_payment', '0').strip() or '0'
+
+        try:
+            extra_payment = Decimal(extra_str)
+        except Exception:
+            extra_payment = Decimal('0')
+
+        # Validation: ต้องมีเหตุผลเสมอถ้าค้างเกินประกัน+มัดจำ
+        if need_extra and not note:
+            return render(request, 'apartment/room/action_confirm.html',
+                          {**ctx_base, 'error': 'กรุณาระบุเหตุผล / ข้อตกลงก่อนดำเนินการ'})
+
+        # Validation: ยอดโปะ + ประกัน+มัดจำ ต้องครบยอดค้าง
+        if need_extra and (extra_payment + total_collateral) < unpaid_total:
+            remaining = unpaid_total - total_collateral - extra_payment
+            return render(request, 'apartment/room/action_confirm.html',
+                          {**ctx_base, 'error': f'ยอดรวมยังไม่ครบ ขาดอีก {remaining:,.2f} บาท', 'extra_payment': extra_str})
+
         if contract:
             contract.Status = 'หมดอายุ'
+            # บันทึก note รวมยอดโปะเพิ่ม (ถ้ามี)
+            full_note = note
+            if need_extra and extra_payment > 0:
+                full_note += f'\n[ผู้เช่าจ่ายเพิ่ม {extra_payment:,.2f} บาท + หักประกัน/มัดจำ {total_collateral:,.2f} บาท]'
+            if full_note:
+                contract.Moveout_Note = full_note
             contract.save()
+
+            # mark invoice ค้างทั้งหมดเป็น ชำระแล้ว (หักประกัน หรือโปะเพิ่มจนครบ)
+            if unpaid_total > 0 and (can_deduct or (need_extra and (extra_payment + total_collateral) >= unpaid_total)):
+                unpaid_invoices.update(Status='ชำระแล้ว', Paid_Date=datetime.date.today())
+
         room.Status      = 'ว่าง'
         room.Status_Flag = 'รอทำความสะอาด'
         room.save()
         return redirect('room_detail', pk=pk)
 
-    return render(request, 'apartment/room/action_confirm.html', {
-        'room':      room,
-        'action':    'moveout',
-        'title':     f'ยืนยันย้ายออก — ห้อง {room.Room_Number}',
-        'message':   f'ยืนยันการย้ายออกของห้อง {room.Room_Number} ? สัญญาจะถูกปิด และห้องจะเปลี่ยนเป็น "รอทำความสะอาด"',
-        'btn_color': 'danger',
-        'warning':   f'ระวัง! มีใบแจ้งหนี้ค้างชำระ {unpaid_count} ใบ กรุณาตรวจสอบก่อนย้ายออก' if unpaid_count > 0 else None,
-    })
+    return render(request, 'apartment/room/action_confirm.html', ctx_base)
 
 
 @login_required
