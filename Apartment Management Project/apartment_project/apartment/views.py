@@ -505,11 +505,40 @@ def invoice_list(request):
 @login_required
 @role_required('ADMIN', 'MANAGER')
 def invoice_create(request):
-    invoice_form = InvoiceForm(request.POST or None)
-    utility_form = UtilityForm(request.POST or None)
+    contract_id = request.GET.get('contract_id')
+    initial_invoice = {}
+    initial_utility = {}
+
+    today = datetime.date.today()
+    bill_month = today.replace(day=1)
+
+    if contract_id:
+        try:
+            contract = Contract.objects.get(pk=contract_id)
+            initial_invoice['Contract_ID'] = contract.Contract_ID
+            initial_utility['Water_Cost_Unit'] = contract.Water_Cost_Unit
+            initial_utility['Elec_Cost_Unit'] = contract.Elec_Cost_Unit
+            initial_utility['Bill_Month'] = bill_month.strftime('%Y-%m-%d')
+
+            # ดึงข้อมูล Utility ล่าสุดของสัญญาเพื่อดึงหน่วยที่ใช้ (ถ้ามี)
+            utility = Utility.objects.filter(Room_ID=contract.Room_ID).order_by('-Bill_Month').first()
+            if utility:
+                initial_utility['Water_Unit_Used'] = utility.Water_Unit_Used
+                initial_utility['Elec_Unit_Used'] = utility.Elec_Unit_Used
+                # ถ้า Utility ล่าสุดเป็นของเดือนนี้ ให้ใช้เดือนตามนั้นเลย
+                initial_utility['Bill_Month'] = utility.Bill_Month.strftime('%Y-%m-%d')
+            else:
+                initial_utility['Water_Unit_Used'] = 0
+                initial_utility['Elec_Unit_Used'] = 0
+        except Contract.DoesNotExist:
+            pass
+
+    invoice_form = InvoiceForm(request.POST or None, initial=initial_invoice)
+    utility_form = UtilityForm(request.POST or None, initial=initial_utility)
 
     # คำนวณ Due_Date อัตโนมัติ = วันที่ 5 ของเดือนถัดไป
-    today         = datetime.date.today()
+
+    today = datetime.date.today() #ดึงวันนี้เข้า
     billing_date  = today.replace(day=25)  # วันที่ 25 ของเดือนนี้
     next_month    = (today.replace(day=1) + datetime.timedelta(days=32)).replace(day=1)
     due_date      = next_month.replace(day=5)
@@ -989,18 +1018,22 @@ def api_utility_latest(request):
     # ดึงค่า Utility ล่าสุดของห้องนี้
     utility = Utility.objects.filter(Room_ID=contract.Room_ID).order_by('-Bill_Month').first()
     
+    data = {
+        'Water_Cost_Unit': contract.Water_Cost_Unit,
+        'Elec_Cost_Unit': contract.Elec_Cost_Unit,
+        'Bill_Month': bill_month.strftime('%Y-%m-%d'),
+    }
+
     if utility:
-        data = {
+        data.update({
             'Water_Unit_Used': utility.Water_Unit_Used,
             'Elec_Unit_Used': utility.Elec_Unit_Used,
-            'Bill_Month': bill_month.strftime('%Y-%m-%d'),
-        }
+        })
     else:
-        data = {
+        data.update({
             'Water_Unit_Used': 0,
             'Elec_Unit_Used': 0,
-            'Bill_Month': bill_month.strftime('%Y-%m-%d'),
-        }
+        })
     return JsonResponse(data)
 
 @login_required
