@@ -344,7 +344,7 @@
                     {% if active_contract %}
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="fw-bold"><i class="bi bi-receipt me-1"></i> ประวัติใบแจ้งหนี้</span>
-                        <a href="{% url 'invoice_create' %}" class="btn btn-success btn-sm" style="border-radius:8px;">
+                        <a href="{% url 'invoice_create' %}?contract_id={{ active_contract.Contract_ID }}" class="btn btn-success btn-sm" style="border-radius:8px;">
                             <i class="bi bi-plus-lg me-1"></i> ออกใบแจ้งหนี้</a>
                     </div>
                     <div class="table-responsive">
@@ -512,7 +512,7 @@
                     <div class="action-icon" style="background:#fff3e0; color:#e65100;"><i class="bi bi-bookmark-star"></i></div> จองห้อง
                 </a>
             {% elif room.Status == 'มีผู้เช่า' %}
-                <a href="{% url 'invoice_create' %}" class="action-btn">
+                <a href="{% url 'invoice_create' %}{% if active_contract %}?contract_id={{ active_contract.Contract_ID }}{% endif %}" class="action-btn">
                     <div class="action-icon" style="background:#e8f5e9; color:#2e7d32;"><i class="bi bi-receipt"></i></div> ออกใบแจ้งหนี้
                 </a>
                 <a href="{% url 'room_moveout' room.Room_ID %}" class="action-btn">

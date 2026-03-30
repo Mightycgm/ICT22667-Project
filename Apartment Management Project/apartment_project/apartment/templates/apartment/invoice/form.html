@@ -310,7 +310,7 @@ $(document).ready(function() {
         placeholder: 'ค้นหารหัสสัญญา ห้อง หรือผู้เช่า...'
     });
 
-    // ดึงข้อมูลมิเตอร์อัตโนมัติเมื่อเลือกสัญญา
+    // ดึงข้อมูลมิเตอร์และราคาอัตโนมัติเมื่อเลือกสัญญา
     $('#id_Contract_ID').on('change', function() {
         const contractId = $(this).val();
         if (!contractId) return;
@@ -322,12 +322,19 @@ $(document).ready(function() {
             }
             if ($('#id_Water_Unit_Used').length) $('#id_Water_Unit_Used').val(data.Water_Unit_Used || 0);
             if ($('#id_Elec_Unit_Used').length) $('#id_Elec_Unit_Used').val(data.Elec_Unit_Used || 0);
+            if ($('#id_Water_Cost_Unit').length) $('#id_Water_Cost_Unit').val(data.Water_Cost_Unit || 0);
+            if ($('#id_Elec_Cost_Unit').length) $('#id_Elec_Cost_Unit').val(data.Elec_Cost_Unit || 0);
             if ($('#id_Bill_Month').length && data.Bill_Month) $('#id_Bill_Month').val(data.Bill_Month);
             
             // เอฟเฟกต์เล็กน้อย
-            $('#id_Water_Unit_Used, #id_Elec_Unit_Used').fadeOut(100).fadeIn(100);
+            $('#id_Water_Unit_Used, #id_Elec_Unit_Used, #id_Water_Cost_Unit, #id_Elec_Cost_Unit').fadeOut(100).fadeIn(100);
         });
     });
+
+    // ถ้าเปิดหน้ามาแล้วมีรหัสสัญญาอยู่แล้ว (เช่น มาจาก Room Detail) ให้ดึงข้อมูลทันที
+    if ($('#id_Contract_ID').val()) {
+        $('#id_Contract_ID').trigger('change');
+    }
 });
 </script>
 {% endblock %}

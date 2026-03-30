@@ -1,4 +1,5 @@
 {% extends 'apartment/base.html' %}
+{% load humanize %}
 {% block content %}
 
 <style>
@@ -136,12 +137,12 @@
             {# เคส 2: ค้าง ≤ ประกัน+มัดจำ → หักได้เลย #}
             <div class="action-notice" style="background:#e3f2fd; color:#1565c0; border-color:#90caf9; text-align:left;">
                 <div class="fw-bold mb-2"><i class="bi bi-calculator-fill me-1"></i> สรุปการหักจากเงินประกัน + มัดจำ</div>
-                <div class="d-flex justify-content-between"><span>เงินประกัน</span><span>{{ deposit|floatformat:2 }} บาท</span></div>
-                <div class="d-flex justify-content-between"><span>เงินมัดจำล่วงหน้า</span><span>{{ deposit_advance|floatformat:2 }} บาท</span></div>
-                <div class="d-flex justify-content-between fw-bold"><span>รวมเงินค้ำประกัน</span><span>{{ total_collateral|floatformat:2 }} บาท</span></div>
-                <div class="d-flex justify-content-between text-danger mt-1"><span>ยอดค้างชำระ ({{ unpaid_count }} ใบ)</span><span>- {{ unpaid_total|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between"><span>เงินประกัน</span><span>{{ deposit|floatformat:2|intcomma }} บาท</span></div>
+                <div class="d-flex justify-content-between"><span>เงินมัดจำล่วงหน้า</span><span>{{ deposit_advance|floatformat:2|intcomma }} บาท</span></div>
+                <div class="d-flex justify-content-between fw-bold"><span>รวมเงินค้ำประกัน</span><span>{{ total_collateral|floatformat:2|intcomma }} บาท</span></div>
+                <div class="d-flex justify-content-between text-danger mt-1"><span>ยอดค้างชำระ ({{ unpaid_count }} ใบ)</span><span>- {{ unpaid_total|floatformat:2|intcomma }} บาท</span></div>
                 <hr style="margin:6px 0; border-color:#90caf9;">
-                <div class="d-flex justify-content-between fw-bold"><span>คืนให้ผู้เช่า</span><span class="text-success">{{ refund|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between fw-bold"><span>คืนให้ผู้เช่า</span><span class="text-success">{{ refund|floatformat:2|intcomma }} บาท</span></div>
             </div>
             <p style="font-size:0.85rem; color:#888;">ระบบจะ mark ใบแจ้งหนี้ค้างทั้งหมดเป็น "ชำระแล้ว" อัตโนมัติ</p>
 
@@ -149,12 +150,12 @@
             {# เคส 3: ค้าง > ประกัน+มัดจำ → ต้องโปะเพิ่ม #}
             <div class="action-notice" style="text-align:left;">
                 <div class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> ยอดค้างชำระเกินกว่าเงินประกันและมัดจำรวมกัน</div>
-                <div class="d-flex justify-content-between"><span>เงินประกัน</span><span>{{ deposit|floatformat:2 }} บาท</span></div>
-                <div class="d-flex justify-content-between"><span>เงินมัดจำล่วงหน้า</span><span>{{ deposit_advance|floatformat:2 }} บาท</span></div>
-                <div class="d-flex justify-content-between fw-bold"><span>รวมเงินค้ำประกัน</span><span>{{ total_collateral|floatformat:2 }} บาท</span></div>
-                <div class="d-flex justify-content-between text-danger mt-1"><span>ยอดค้างชำระ ({{ unpaid_count }} ใบ)</span><span>{{ unpaid_total|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between"><span>เงินประกัน</span><span>{{ deposit|floatformat:2|intcomma }} บาท</span></div>
+                <div class="d-flex justify-content-between"><span>เงินมัดจำล่วงหน้า</span><span>{{ deposit_advance|floatformat:2|intcomma }} บาท</span></div>
+                <div class="d-flex justify-content-between fw-bold"><span>รวมเงินค้ำประกัน</span><span>{{ total_collateral|floatformat:2|intcomma }} บาท</span></div>
+                <div class="d-flex justify-content-between text-danger mt-1"><span>ยอดค้างชำระ ({{ unpaid_count }} ใบ)</span><span>{{ unpaid_total|floatformat:2|intcomma }} บาท</span></div>
                 <hr style="margin:6px 0;">
-                <div class="d-flex justify-content-between fw-bold text-danger"><span>ยอดที่ต้องโปะเพิ่ม</span><span>{{ shortfall|floatformat:2 }} บาท</span></div>
+                <div class="d-flex justify-content-between fw-bold text-danger"><span>ยอดที่ต้องโปะเพิ่ม</span><span>{{ shortfall|floatformat:2|intcomma }} บาท</span></div>
             </div>
         {% endif %}
 
@@ -179,7 +180,7 @@
                     เหตุผล / ข้อตกลง <span style="color:#ed4c78;">*</span>
                 </label>
                 <textarea name="moveout_note" rows="3" required
-                    placeholder="เช่น ผู้เช่าโอนเงินส่วนเกิน {{ shortfall|floatformat:2 }} บาท เมื่อวันที่ ... / ตกลงหักจากเงินค้ำประกันและรับเงินสดส่วนต่างแล้ว"
+                    placeholder="เช่น ผู้เช่าโอนเงินส่วนเกิน {{ shortfall|floatformat:2|intcomma }} บาท เมื่อวันที่ ... / ตกลงหักจากเงินค้ำประกันและรับเงินสดส่วนต่างแล้ว"
                     style="width:100%; border-radius:10px; border:1.5px solid #e4e6ef; padding:10px 14px; font-size:0.9rem; resize:vertical;"></textarea>
             </div>
             {% endif %}

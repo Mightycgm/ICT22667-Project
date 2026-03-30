@@ -154,7 +154,7 @@
 <div class="row justify-content-center">
 <div class="col-lg-8">
 
-<form method="post">
+<form method="post" id="maintenanceForm">
     {% csrf_token %}
 
     <div class="form-card">
@@ -242,4 +242,49 @@
 
 </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // 1. Comma Formatting Logic (ดึงมาจาก contract/form.html)
+    function formatNumber(n) {
+        let parts = String(n).replace(/,/g, '').split('.');
+        let intNum = parseInt(parts[0], 10);
+        if (isNaN(intNum)) return n;
+        let formatted = intNum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        if (parts.length > 1) formatted += '.' + parts[1];
+        return formatted;
+    }
+
+    // จัดรูปแบบตอนโหลดหน้า
+    $('.money-input').each(function() {
+        let currentVal = $(this).val();
+        if (currentVal) {
+            $(this).val(formatNumber(currentVal));
+        }
+    });
+
+    // จัดรูปแบบขณะพิมพ์
+    $('.money-input').on('input', function() {
+        let selectionStart = this.selectionStart;
+        let oldLength = this.value.length;
+        
+        let formatted = formatNumber($(this).val());
+        $(this).val(formatted);
+        
+        let newLength = formatted.length;
+        this.setSelectionRange(selectionStart + (newLength - oldLength), selectionStart + (newLength - oldLength));
+    });
+
+    // 2. Strip Commas Before Submit
+    $('#maintenanceForm').on('submit', function() {
+        $('.money-input').each(function() {
+            let plainNumber = $(this).val().replace(/,/g, '');
+            $(this).val(plainNumber);
+        });
+    });
+});
+</script>
 {% endblock %}
