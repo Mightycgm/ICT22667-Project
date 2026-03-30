@@ -1,5 +1,6 @@
 {% extends 'apartment/base.html' %}
 {% block content %}
+{% load humanize %}
 
 <style>
     .maintenance-form-hero {
@@ -210,7 +211,7 @@
                 </div>
                 <div class="col-md-4 form-floating-custom">
                     <label class="form-label">ค่าซ่อม (บาท)</label>
-                    {{ form.Repair_Cost }}
+                    {{ form.Repair_Cost | intcomma }}
                 </div>
             </div>
         </div>

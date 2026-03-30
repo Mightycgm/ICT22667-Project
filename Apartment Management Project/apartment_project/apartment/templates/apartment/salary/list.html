@@ -1,0 +1,235 @@
+{% extends 'apartment/base.html' %}
+{% load humanize %}
+{% block content %}
+
+<style>
+    .salary-hero {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(245,158,11,0.25);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        position: relative;
+        overflow: hidden;
+    }
+    .salary-hero::before {
+        content: '';
+        position: absolute;
+        top: -60%; right: -10%;
+        width: 220px; height: 220px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-content h4 { font-weight: 800; margin: 0; font-size: 1.4rem; }
+    .hero-content p  { opacity: 0.9; margin: 6px 0 0; font-size: 0.9rem; }
+
+    .stat-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 20px 24px;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.05);
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .stat-icon {
+        width: 52px; height: 52px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    .stat-icon.amber  { background: #fef3c7; color: #d97706; }
+    .stat-icon.green  { background: #d1fae5; color: #059669; }
+    .stat-label { font-size: 0.8rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 1.4rem; font-weight: 800; color: #1f2937; margin-top: 2px; }
+
+    .table-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        overflow: hidden;
+        margin-bottom: 28px;
+    }
+    .card-header-modern {
+        background: #fff;
+        padding: 20px 24px;
+        border-bottom: 1px solid #f0f2f5;
+        font-weight: 800;
+        font-size: 1.05rem;
+        color: #2b2d42;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .table-modern thead th {
+        background: #f8f9fa;
+        color: #5a5c6f;
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 14px 20px;
+        border-bottom: 2px solid #e4e6ef;
+        border-top: none;
+    }
+    .table-modern tbody td {
+        padding: 14px 20px;
+        vertical-align: middle;
+        font-size: 0.93rem;
+        color: #2b2d42;
+        border-bottom: 1px solid #f0f2f5;
+    }
+    .table-modern tbody tr:hover td { background: #fafbfc; }
+    .table-modern tbody tr:last-child td { border-bottom: none; }
+
+    .role-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .role-MANAGER  { background: #ede9fe; color: #5b21b6; }
+    .role-STAFF    { background: #dbeafe; color: #1d4ed8; }
+    .role-SECURITY { background: #fee2e2; color: #b91c1c; }
+    .role-CLEANER  { background: #d1fae5; color: #065f46; }
+    .role-OTHER    { background: #f3f4f6; color: #374151; }
+
+    .salary-amount { font-weight: 800; color: #059669; font-size: 1rem; }
+    .btn-action {
+        width: 32px; height: 32px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-edit   { background: #eff6ff; color: #2563eb; }
+    .btn-edit:hover   { background: #dbeafe; transform: translateY(-1px); color: #1d4ed8; }
+    .btn-delete { background: #fef2f2; color: #dc2626; }
+    .btn-delete:hover { background: #fee2e2; transform: translateY(-1px); color: #b91c1c; }
+    .inactive-row td { opacity: 0.5; }
+</style>
+
+<!-- Hero -->
+<div class="salary-hero">
+    <div class="hero-content">
+        <h4><i class="bi bi-people-fill me-2"></i>จัดการเงินเดือนพนักงาน</h4>
+        <p>กำหนดและบริหารเงินเดือนของพนักงานทุกตำแหน่ง (Admin เท่านั้น)</p>
+    </div>
+    <a href="{% url 'salary_create' %}" class="btn btn-light fw-bold shadow-sm px-4">
+        <i class="bi bi-plus-lg me-1"></i> เพิ่มพนักงาน
+    </a>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-2">
+    <div class="col-12 col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon amber"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="stat-label">พนักงานทั้งหมด</div>
+                <div class="stat-value">{{ employees|length }} คน</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-person-check-fill"></i></div>
+            <div>
+                <div class="stat-label">พนักงานที่ทำงานอยู่</div>
+                <div class="stat-value">{{ employees|length }} คน</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon amber"><i class="bi bi-cash-stack"></i></div>
+            <div>
+                <div class="stat-label">ยอดเงินเดือนรวม/เดือน</div>
+                <div class="stat-value">฿ {{ total_active|floatformat:0|intcomma }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="table-card">
+    <div class="card-header-modern">
+        <span><i class="bi bi-table me-2" style="color:#f59e0b;"></i>รายการพนักงานทั้งหมด</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>ชื่อ-นามสกุล</th>
+                    <th>ตำแหน่ง</th>
+                    <th class="text-end">เงินเดือน (บาท/เดือน)</th>
+                    <th class="text-center">สถานะ</th>
+                    <th class="text-center">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr {% if not emp.Is_Active %}class="inactive-row"{% endif %}>
+                    <td style="color:#9ca3af;">{{ emp.Salary_ID }}</td>
+                    <td>
+                        <div class="fw-700" style="font-weight:700;">{{ emp.First_Name }} {{ emp.Last_Name }}</div>
+                    </td>
+                    <td>
+                        <span class="role-badge role-{{ emp.Role }}">{{ emp.get_Role_display }}</span>
+                    </td>
+                    <td class="text-end salary-amount">฿ {{ emp.Monthly_Salary|floatformat:0|intcomma }}</td>
+                    <td class="text-center">
+                        {% if emp.Is_Active %}
+                            <span style="background:#d1fae5;color:#065f46;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;">
+                                <i class="bi bi-check-circle-fill me-1"></i>ทำงานอยู่
+                            </span>
+                        {% else %}
+                            <span style="background:#f3f4f6;color:#6b7280;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;">
+                                <i class="bi bi-x-circle-fill me-1"></i>ไม่ได้ทำงาน
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="d-flex gap-1 justify-content-center">
+                            <a href="{% url 'salary_edit' emp.Salary_ID %}" class="btn-action btn-edit" title="แก้ไข">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <a href="{% url 'salary_delete' emp.Salary_ID %}" class="btn-action btn-delete" title="ลบ">
+                                <i class="bi bi-trash-fill"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="bi bi-people mb-3 d-block" style="font-size:3rem;color:#e4e6ef;"></i>
+                            <h6 class="fw-bold mb-1">ยังไม่มีข้อมูลพนักงาน</h6>
+                            <p class="small mb-3">เพิ่มข้อมูลพนักงานเพื่อให้ระบบสามารถคำนวณรายจ่ายได้</p>
+                            <a href="{% url 'salary_create' %}" class="btn btn-warning btn-sm px-4 fw-bold">
+                                <i class="bi bi-plus-lg me-1"></i> เพิ่มพนักงานคนแรก
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

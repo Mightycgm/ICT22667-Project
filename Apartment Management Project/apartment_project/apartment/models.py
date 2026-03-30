@@ -209,3 +209,27 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"จอง #{self.Booking_ID} - {self.First_Name} {self.Last_Name} ห้อง {self.Room_ID}"
+
+
+# ตาราง: เงินเดือนพนักงาน (Admin only)
+class EmployeeSalary(models.Model):
+    ROLE_CHOICES = [
+        ('MANAGER',  'ผู้จัดการ'),
+        ('STAFF',    'พนักงานทั่วไป'),
+        ('SECURITY', 'รักษาความปลอดภัย'),
+        ('CLEANER',  'แม่บ้าน/พนักงานทำความสะอาด'),
+        ('OTHER',    'อื่นๆ'),
+    ]
+    Salary_ID      = models.AutoField(primary_key=True)
+    First_Name     = models.CharField(max_length=50)
+    Last_Name      = models.CharField(max_length=50)
+    ID_Card        = models.CharField(max_length=13, unique=True, null=True, blank=True, verbose_name='เลขบัตรประชาชน')
+    Role           = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    Monthly_Salary = models.DecimalField(max_digits=10, decimal_places=2)
+    Is_Active      = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'EMPLOYEE_SALARY'
+
+    def __str__(self):
+        return f"{self.First_Name} {self.Last_Name} ({self.get_Role_display()})"

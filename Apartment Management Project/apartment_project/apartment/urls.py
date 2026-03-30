@@ -46,6 +46,12 @@ urlpatterns = [
     path('invoices/<int:pk>/print/',  views.invoice_print,    name='invoice_print'),
     path('report/summary/',           views.monthly_summary,  name='monthly_summary'),
 
+    # Salary (Admin only)
+    path('salary/',                  views.salary_list,   name='salary_list'),
+    path('salary/add/',              views.salary_create, name='salary_create'),
+    path('salary/<int:pk>/edit/',    views.salary_edit,   name='salary_edit'),
+    path('salary/<int:pk>/delete/',  views.salary_delete, name='salary_delete'),
+
     # Booking
     path('bookings/',                       views.booking_list,    name='booking_list'),
     path('bookings/add/',                   views.booking_create,  name='booking_create'),
@@ -54,6 +60,7 @@ urlpatterns = [
     path('bookings/<int:pk>/confirm/',      views.booking_confirm, name='booking_confirm'),
 
     # API
+    path('api/invoices-by-month/', views.api_invoices_by_month, name='api_invoices_by_month'),
     path('api/rooms-available/', views.api_rooms_available, name='api_rooms_available'),
     path('api/utility-latest/', views.api_utility_latest, name='api_utility_latest'),
     path('api/room-meter-latest/', views.api_room_meter_latest, name='api_room_meter_latest'),
