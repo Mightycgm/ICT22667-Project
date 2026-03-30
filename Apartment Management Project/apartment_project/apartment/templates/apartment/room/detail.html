@@ -438,8 +438,6 @@
                 <div class="tab-pane fade" id="tab-maintenance">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="fw-bold"><i class="bi bi-tools me-1"></i> ประวัติแจ้งซ่อม</span>
-                        <a href="{% url 'maintenance_create' %}" class="btn btn-danger btn-sm" style="border-radius:8px;">
-                            <i class="bi bi-plus-lg me-1"></i> แจ้งซ่อม</a>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle">
@@ -535,6 +533,10 @@
                     <div class="action-icon" style="background:#e0f7fa; color:#00838f;"><i class="bi bi-stars"></i></div> แจ้งทำความสะอาด
                 </a>
             {% endif %}
+
+            <a href="{% url 'maintenance_create' %}" class="action-btn">
+                <div class="action-icon" style="background:#ffebee; color:#c62828;"><i class="bi bi-tools"></i></div> <strong>แจ้งซ่อม</strong>
+            </a>
 
             <div style="border-top: 2px solid #f1f1f4;"></div>
             <a href="{% url 'dashboard' %}" class="action-btn">
