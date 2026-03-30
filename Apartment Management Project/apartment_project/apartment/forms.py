@@ -198,7 +198,7 @@ class MaintenanceForm(forms.ModelForm):
             'Report_Date':    forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'Status':         forms.Select(attrs={'class': 'form-select'}),
             'Resolved_Date':  forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'Repair_Cost':    forms.NumberInput(attrs={'class': 'form-control'}),
+            'Repair_Cost':    forms.TextInput(attrs={'class': 'form-control money-input'}),
         }
 
 class BookingForm(forms.ModelForm):
