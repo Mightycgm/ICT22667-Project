@@ -1,5 +1,5 @@
 from django import forms
-from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance, Booking
+from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance, Booking, EmployeeSalary
 
 
 # ฟอร์มผู้เช่า
@@ -235,4 +235,40 @@ class BookingForm(forms.ModelForm):
             raise forms.ValidationError("มีเลขบัตรประชาชนนี้อยู่ในระบบแล้ว (เป็นผู้เช่า)")
         if Booking.objects.filter(ID_Card=id_card, Status='รอยืนยัน').exists():
             raise forms.ValidationError("มีเลขบัตรประชาชนนี้อยู่ในระบบแล้ว (กำลังดำเนินการจอง)")
+        return id_card
+
+
+# ฟอร์มเงินเดือนพนักงาน
+class EmployeeSalaryForm(forms.ModelForm):
+    class Meta:
+        model  = EmployeeSalary
+        fields = ['First_Name', 'Last_Name', 'ID_Card', 'Role', 'Monthly_Salary', 'Is_Active']
+        labels = {
+            'First_Name':     'ชื่อ',
+            'Last_Name':      'นามสกุล',
+            'ID_Card':        'เลขบัตรประชาชน',
+            'Role':           'ตำแหน่ง',
+            'Monthly_Salary': 'เงินเดือน (บาท)',
+            'Is_Active':      'ยังทำงานอยู่',
+        }
+        widgets = {
+            'First_Name':     forms.TextInput(attrs={'class': 'form-control'}),
+            'Last_Name':      forms.TextInput(attrs={'class': 'form-control'}),
+            'ID_Card':        forms.TextInput(attrs={'class': 'form-control', 'maxlength': '13', 'placeholder': 'กรอกเลข 13 หลัก'}),
+            'Role':           forms.Select(attrs={'class': 'form-select'}),
+            'Monthly_Salary': forms.TextInput(attrs={'class': 'form-control money-input'}),
+            'Is_Active':      forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def clean_ID_Card(self):
+        id_card = self.cleaned_data.get('ID_Card')
+        if not id_card:
+            return id_card
+        if len(id_card) != 13 or not id_card.isdigit():
+            raise forms.ValidationError('เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก')
+        qs = EmployeeSalary.objects.filter(ID_Card=id_card)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('มีพนักงานที่ใช้เลขบัตรประชาชนนี้แล้ว')
         return id_card

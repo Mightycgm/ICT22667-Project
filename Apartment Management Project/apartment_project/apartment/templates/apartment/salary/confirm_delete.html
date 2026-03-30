@@ -1,0 +1,45 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+
+<style>
+    .delete-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        padding: 40px 36px;
+        max-width: 480px;
+        text-align: center;
+    }
+    .delete-icon {
+        width: 64px; height: 64px;
+        background: #fee2e2;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem; color: #dc2626;
+        margin: 0 auto 20px;
+    }
+</style>
+
+<div class="delete-card mx-auto">
+    <div class="delete-icon"><i class="bi bi-person-x-fill"></i></div>
+    <h5 class="fw-800 mb-2" style="font-weight:800;">{{ title }}</h5>
+    <p class="text-muted mb-1">คุณต้องการลบข้อมูลพนักงานต่อไปนี้ใช่หรือไม่?</p>
+    <div class="p-3 my-3" style="background:#fef3c7;border-radius:10px;">
+        <div class="fw-bold" style="font-size:1.05rem;">{{ object.First_Name }} {{ object.Last_Name }}</div>
+        <div class="text-muted small">{{ object.get_Role_display }} — ฿{{ object.Monthly_Salary }}</div>
+    </div>
+    <p class="small text-danger mb-4"><i class="bi bi-exclamation-triangle-fill me-1"></i>การลบนี้ไม่สามารถเรียกคืนได้</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="d-flex gap-2 justify-content-center">
+            <button type="submit" class="btn btn-danger fw-bold px-4">
+                <i class="bi bi-trash-fill me-1"></i> ยืนยันการลบ
+            </button>
+            <a href="{% url 'salary_list' %}" class="btn btn-light fw-bold px-4">
+                <i class="bi bi-x-lg me-1"></i> ยกเลิก
+            </a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

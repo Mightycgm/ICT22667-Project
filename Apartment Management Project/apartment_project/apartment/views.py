@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 from django.db import models as django_models
 from django.db.models import Sum, Count, Q, Subquery, OuterRef, Value
 from django.db.models.functions import Concat
@@ -6,8 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from decimal import Decimal
-from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance, Booking
-from .forms  import TenantForm, RoomForm, ContractForm, InvoiceForm, UtilityForm, PaymentForm, FineForm, MaintenanceForm, BookingForm
+from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance, Booking, EmployeeSalary
+from .forms  import TenantForm, RoomForm, ContractForm, InvoiceForm, UtilityForm, PaymentForm, FineForm, MaintenanceForm, BookingForm, EmployeeSalaryForm
 from .decorators import role_required
 import datetime
 from django.core.mail import send_mass_mail
@@ -899,6 +900,53 @@ def maintenance_delete(request, pk):
         item.delete()
         return redirect('maintenance_list')
     return render(request, 'apartment/maintenance/confirm_delete.html', {'object': item, 'title': 'ลบรายการแจ้งซ่อม'})
+# ==================== เงินเดือนพนักงาน (Admin only) ====================
+
+@login_required
+@role_required('ADMIN')
+def salary_list(request):
+    employees = EmployeeSalary.objects.all().order_by('Role', 'First_Name')
+    total_active = employees.filter(Is_Active=True).aggregate(total=Sum('Monthly_Salary'))['total'] or 0
+    return render(request, 'apartment/salary/list.html', {
+        'employees': employees,
+        'total_active': total_active,
+    })
+
+
+@login_required
+@role_required('ADMIN')
+def salary_create(request):
+    form = EmployeeSalaryForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'เพิ่มข้อมูลพนักงานเรียบร้อยแล้ว')
+        return redirect('salary_list')
+    return render(request, 'apartment/salary/form.html', {'form': form, 'title': 'เพิ่มพนักงาน'})
+
+
+@login_required
+@role_required('ADMIN')
+def salary_edit(request, pk):
+    employee = get_object_or_404(EmployeeSalary, pk=pk)
+    form = EmployeeSalaryForm(request.POST or None, instance=employee)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'แก้ไขข้อมูลพนักงานเรียบร้อยแล้ว')
+        return redirect('salary_list')
+    return render(request, 'apartment/salary/form.html', {'form': form, 'title': 'แก้ไขข้อมูลพนักงาน', 'employee': employee})
+
+
+@login_required
+@role_required('ADMIN')
+def salary_delete(request, pk):
+    employee = get_object_or_404(EmployeeSalary, pk=pk)
+    if request.method == 'POST':
+        employee.delete()
+        messages.success(request, 'ลบข้อมูลพนักงานเรียบร้อยแล้ว')
+        return redirect('salary_list')
+    return render(request, 'apartment/salary/confirm_delete.html', {'object': employee, 'title': 'ลบข้อมูลพนักงาน'})
+
+
 # ==================== รายงาน ====================
 
 @login_required
@@ -921,54 +969,198 @@ def invoice_print(request, pk):
 @role_required('ADMIN', 'MANAGER')
 def monthly_summary(request):
     from django.db.models.functions import TruncMonth
+    from .middleware import get_user_role
     import json
 
-    building = get_user_building(request.user)
+    building  = get_user_building(request.user)
+    user_role = get_user_role(request.user)
 
-    invoices = Invoice.objects.select_related(
-        'Contract_ID__Tenant_ID', 'Contract_ID__Room_ID'
-    ).all().order_by('-Billing_Date')
-    if building:
-        invoices = invoices.filter(Contract_ID__Room_ID__Building_No=building)
+    # ── ตัวกรอง GET ──────────────────────────────────────────────────
+    filter_year  = request.GET.get('year', '')
+    filter_month = request.GET.get('month', '')
+    sort_order   = request.GET.get('sort', 'desc')   # asc | desc
 
-    summary = (
-        invoices
-        .annotate(month=TruncMonth('Billing_Date'))
-        .values('month')
-        .annotate(
-            total=Sum('Grand_Total'),
-            count=Count('Invoice_ID'),
-            paid=Count('Invoice_ID', filter=Q(Status='ชำระแล้ว')),
-        )
-        .order_by('month') # เรียงจากเก่าไปใหม่สำหรับกราฟ
-    )
-
-    # เตรียมข้อมูลสำหรับ Chart.js
-    chart_labels = []
-    chart_data   = []
-    
-    # รายชื่อเดือนภาษาไทย
     month_names_th = [
         "", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
         "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
     ]
 
-    for row in summary:
-        m_idx = row['month'].month
-        label = f"{month_names_th[m_idx]} {row['month'].year + 543}"
-        chart_labels.append(label)
-        chart_data.append(float(row['total']))
+    # ── ฐาน queryset ─────────────────────────────────────────────────
+    invoices_qs = Invoice.objects.select_related(
+        'Contract_ID__Tenant_ID', 'Contract_ID__Room_ID'
+    ).all()
+    if building:
+        invoices_qs = invoices_qs.filter(Contract_ID__Room_ID__Building_No=building)
+    if filter_year:
+        invoices_qs = invoices_qs.filter(Billing_Date__year=filter_year)
+    if filter_month:
+        invoices_qs = invoices_qs.filter(Billing_Date__month=filter_month)
+
+    order_prefix = '' if sort_order == 'asc' else '-'
+    invoices_qs  = invoices_qs.order_by(f'{order_prefix}Billing_Date')
+
+    # ── ข้อมูลรายรับจาก Invoice (paid) ───────────────────────────────
+    paid_statuses = ['ชำระแล้ว', 'จ่ายล่าช้า']
+
+    # ค่าเช่า (MonthlyBill) — เฉพาะที่ชำระแล้ว
+    rent_qs = MonthlyBill.objects.filter(Invoice_ID__in=invoices_qs.filter(Status__in=paid_statuses))
+    if filter_year:
+        rent_qs = rent_qs.filter(Invoice_ID__Billing_Date__year=filter_year)
+    if filter_month:
+        rent_qs = rent_qs.filter(Invoice_ID__Billing_Date__month=filter_month)
+    total_rent = rent_qs.aggregate(t=Sum('Amount'))['t'] or 0
+
+    # ค่าปรับ — เฉพาะที่ชำระแล้ว
+    fine_qs = Fine.objects.filter(Invoice_ID__in=invoices_qs.filter(Status__in=paid_statuses))
+    total_fine = fine_qs.aggregate(t=Sum('Amount'))['t'] or 0
+
+    # ค่าน้ำ/ไฟที่เรียกเก็บจากผู้เช่า (paid)
+    util_income_qs = Utility.objects.filter(Invoice_ID__in=invoices_qs.filter(Status__in=paid_statuses))
+    total_util_income = util_income_qs.aggregate(
+        w=Sum('Water_Total'), e=Sum('Elec_Total')
+    )
+    total_util_income_amt = (total_util_income['w'] or 0) + (total_util_income['e'] or 0)
+
+    total_income = total_rent + total_fine + total_util_income_amt
+
+    # ── รายจ่าย ───────────────────────────────────────────────────────
+    # ค่าน้ำ/ไฟที่ต้องจ่ายให้การไฟฟ้า/ประปา (ทุก Utility ในช่วงที่กรอง)
+    util_exp_qs = Utility.objects.filter(Invoice_ID__in=invoices_qs)
+    util_exp    = util_exp_qs.aggregate(w=Sum('Water_Total'), e=Sum('Elec_Total'))
+    total_utility_exp = (util_exp['w'] or 0) + (util_exp['e'] or 0)
+
+    # ค่าซ่อม — Maintenance ที่ซ่อมเสร็จ กรองตาม Resolved_Date ถ้ากรองเดือน/ปี
+    maint_qs = Maintenance.objects.filter(Status='ซ่อมเสร็จ')
+    if building:
+        maint_qs = maint_qs.filter(Room_ID__Building_No=building)
+    if filter_year:
+        maint_qs = maint_qs.filter(Resolved_Date__year=filter_year)
+    if filter_month:
+        maint_qs = maint_qs.filter(Resolved_Date__month=filter_month)
+    total_repair = maint_qs.aggregate(t=Sum('Repair_Cost'))['t'] or 0
+
+    # เงินเดือนพนักงาน (ADMIN เห็นเท่านั้น) — รวมทุกเดือนถ้าไม่ได้กรอง
+    total_salary = 0
+    employees    = []
+    if user_role == 'ADMIN':
+        employees   = EmployeeSalary.objects.filter(Is_Active=True).order_by('Role')
+        month_count = 1
+        if filter_year and not filter_month:
+            month_count = 12
+        total_salary = (employees.aggregate(t=Sum('Monthly_Salary'))['t'] or 0) * month_count
+
+    total_expense = total_utility_exp + total_repair + total_salary
+    net_profit    = total_income - total_expense
+
+    # ── สรุปรายเดือน ──────────────────────────────────────────────────
+    summary_qs = (
+        invoices_qs
+        .annotate(month=TruncMonth('Billing_Date'))
+        .values('month')
+        .annotate(
+            total_income=Sum('Grand_Total', filter=Q(Status__in=paid_statuses)),
+            count=Count('Invoice_ID'),
+            paid=Count('Invoice_ID', filter=Q(Status__in=paid_statuses)),
+        )
+        .order_by('month' if sort_order == 'asc' else '-month')
+    )
+
+    # เตรียมข้อมูลกราฟ (เรียงเก่า→ใหม่เสมอ)
+    summary_for_chart = list(summary_qs.order_by('month'))
+    chart_labels, chart_income_data, chart_expense_data = [], [], []
+
+    for row in summary_for_chart:
+        m   = row['month']
+        lbl = f"{month_names_th[m.month]} {m.year + 543}"
+        chart_labels.append(lbl)
+        chart_income_data.append(float(row['total_income'] or 0))
+
+        # คำนวณรายจ่ายต่อเดือนสำหรับกราฟ
+        m_util = Utility.objects.filter(
+            Invoice_ID__in=invoices_qs,
+            Bill_Month__year=m.year, Bill_Month__month=m.month
+        ).aggregate(w=Sum('Water_Total'), e=Sum('Elec_Total'))
+        m_repair = Maintenance.objects.filter(
+            Status='ซ่อมเสร็จ',
+            Resolved_Date__year=m.year, Resolved_Date__month=m.month,
+            **({'Room_ID__Building_No': building} if building else {})
+        ).aggregate(t=Sum('Repair_Cost'))['t'] or 0
+        m_salary = float(total_salary / max(len(summary_for_chart), 1)) if user_role == 'ADMIN' else 0
+        m_exp    = float((m_util['w'] or 0) + (m_util['e'] or 0)) + float(m_repair) + m_salary
+        chart_expense_data.append(round(m_exp, 2))
+
+    # ปีที่มีข้อมูล (สำหรับ filter dropdown)
+    available_years = (
+        Invoice.objects.filter(**({'Contract_ID__Room_ID__Building_No': building} if building else {}))
+        .dates('Billing_Date', 'year')
+    )
+    years = [d.year for d in available_years]
+
+    # จำนวน invoice รวม (ไม่ดึง objects ทั้งหมด — เพื่อ performance)
+    total_invoice_count = invoices_qs.count()
 
     return render(request, 'apartment/report/summary.html', {
-        'invoices': invoices,
-        'summary':  list(summary)[::-1], # กลับด้านให้ตารางแสดงใหม่ไปเก่า
-        'chart_labels_json': json.dumps(chart_labels),
-        'chart_data_json':   json.dumps(chart_data),
+        'summary':            list(summary_qs),
+        'employees':          employees,
+        'total_invoice_count': total_invoice_count,
+        # totals
+        'total_rent':         total_rent,
+        'total_fine':         total_fine,
+        'total_util_income':  total_util_income_amt,
+        'total_income':       total_income,
+        'total_utility_exp':  total_utility_exp,
+        'total_repair':       total_repair,
+        'total_salary':       total_salary,
+        'total_expense':      total_expense,
+        'net_profit':         net_profit,
+        # chart — ส่ง raw list ด้วย เพื่อให้ JS filter เดือนที่ต้องการได้
+        'chart_labels_json':       json.dumps(chart_labels),
+        'chart_income_json':       json.dumps(chart_income_data),
+        'chart_expense_json':      json.dumps(chart_expense_data),
+        # filters
+        'filter_year':        filter_year,
+        'filter_month':       filter_month,
+        'sort_order':         sort_order,
+        'available_years':    years,
+        'month_names_th':     month_names_th,
+        'user_role':          user_role,
     })
 
 # ==================== API ====================
 
 from django.http import JsonResponse
+
+
+@login_required
+@role_required('ADMIN', 'MANAGER')
+def api_invoices_by_month(request):
+    """AJAX: คืน JSON รายการ Invoice ของเดือน/ปีที่ระบุ"""
+    year  = request.GET.get('year')
+    month = request.GET.get('month')
+    if not year or not month:
+        return JsonResponse({'error': 'year and month required'}, status=400)
+
+    building = get_user_building(request.user)
+    qs = Invoice.objects.select_related(
+        'Contract_ID__Tenant_ID', 'Contract_ID__Room_ID'
+    ).filter(Billing_Date__year=year, Billing_Date__month=month)
+    if building:
+        qs = qs.filter(Contract_ID__Room_ID__Building_No=building)
+    qs = qs.order_by('Billing_Date', 'Invoice_ID')
+
+    data = []
+    for inv in qs:
+        data.append({
+            'id':        inv.Invoice_ID,
+            'tenant':    f"{inv.Contract_ID.Tenant_ID.First_Name} {inv.Contract_ID.Tenant_ID.Last_Name}",
+            'room':      inv.Contract_ID.Room_ID.Room_Number,
+            'date':      inv.Billing_Date.strftime('%d/%m/%Y'),
+            'total':     float(inv.Grand_Total),
+            'status':    inv.Status,
+            'print_url': f"/invoices/{inv.Invoice_ID}/print/",
+        })
+    return JsonResponse({'invoices': data})
+
 
 @login_required
 def api_rooms_available(request):
