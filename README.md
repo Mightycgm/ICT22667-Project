@@ -142,7 +142,7 @@ python setup_groups.py
 python create_users.py
 
 # 4. Seed ข้อมูลห้องและข้อมูลตัวอย่าง
-python seed_rooms.py
+python seed_room.py
 ```
 
 ---
