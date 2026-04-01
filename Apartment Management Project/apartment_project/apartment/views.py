@@ -1126,6 +1126,351 @@ def monthly_summary(request):
         'user_role':          user_role,
     })
 
+# ==================== EXPORT EXCEL ====================
+
+@login_required
+@role_required('ADMIN', 'MANAGER', 'METER')
+def export_summary_excel(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from django.http import HttpResponse
+    from .middleware import get_user_role
+    import io
+
+    building  = get_user_building(request.user)
+    user_role = get_user_role(request.user)
+
+    export_type    = request.GET.get('export_type', 'monthly')
+    export_year    = request.GET.get('export_year', '')
+    compare_year1  = request.GET.get('compare_year1', '')
+    compare_month1 = request.GET.get('compare_month1', '')
+    compare_year2  = request.GET.get('compare_year2', '')
+    compare_month2 = request.GET.get('compare_month2', '')
+
+    inc_income    = request.GET.get('inc_income',    '1') == '1'
+    inc_expense   = request.GET.get('inc_expense',   '1') == '1'
+    inc_profit    = request.GET.get('inc_profit',    '1') == '1'
+    inc_change    = request.GET.get('inc_change',    '1') == '1'
+    inc_breakdown = request.GET.get('inc_breakdown', '0') == '1'
+    inc_salary    = request.GET.get('inc_salary',    '0') == '1' and user_role == 'ADMIN'
+
+    paid_statuses = ['ชำระแล้ว', 'จ่ายล่าช้า']
+    month_names_th = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+                      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+    MONTHS_IN_Q = {1: [1,2,3], 2: [4,5,6], 3: [7,8,9], 4: [10,11,12]}
+
+    def get_period_data(year=None, month=None, quarter=None):
+        inv_qs = Invoice.objects.all()
+        if building:
+            inv_qs = inv_qs.filter(Contract_ID__Room_ID__Building_No=building)
+        if year:
+            inv_qs = inv_qs.filter(Billing_Date__year=int(year))
+        if month:
+            inv_qs = inv_qs.filter(Billing_Date__month=int(month))
+        if quarter:
+            inv_qs = inv_qs.filter(Billing_Date__month__in=MONTHS_IN_Q[quarter])
+
+        paid_inv = inv_qs.filter(Status__in=paid_statuses)
+        rent     = MonthlyBill.objects.filter(Invoice_ID__in=paid_inv).aggregate(t=Sum('Amount'))['t'] or 0
+        fine     = Fine.objects.filter(Invoice_ID__in=paid_inv).aggregate(t=Sum('Amount'))['t'] or 0
+        ui       = Utility.objects.filter(Invoice_ID__in=paid_inv).aggregate(w=Sum('Water_Total'), e=Sum('Elec_Total'))
+        util_inc = (ui['w'] or 0) + (ui['e'] or 0)
+        income   = rent + fine + util_inc
+
+        ue       = Utility.objects.filter(Invoice_ID__in=inv_qs).aggregate(w=Sum('Water_Total'), e=Sum('Elec_Total'))
+        util_exp = (ue['w'] or 0) + (ue['e'] or 0)
+
+        maint_qs = Maintenance.objects.filter(Status='ซ่อมเสร็จ')
+        if building:
+            maint_qs = maint_qs.filter(Room_ID__Building_No=building)
+        if year:
+            maint_qs = maint_qs.filter(Resolved_Date__year=int(year))
+        if month:
+            maint_qs = maint_qs.filter(Resolved_Date__month=int(month))
+        if quarter:
+            maint_qs = maint_qs.filter(Resolved_Date__month__in=MONTHS_IN_Q[quarter])
+        repair = maint_qs.aggregate(t=Sum('Repair_Cost'))['t'] or 0
+
+        salary = 0
+        if user_role == 'ADMIN':
+            mul = 1 if month else (3 if quarter else 12)
+            salary = (EmployeeSalary.objects.filter(Is_Active=True).aggregate(t=Sum('Monthly_Salary'))['t'] or 0) * mul
+
+        expense = util_exp + repair + salary
+        return {
+            'income': float(income), 'expense': float(expense),
+            'profit': float(income - expense),
+            'rent': float(rent), 'fine': float(fine), 'util_income': float(util_inc),
+            'util_exp': float(util_exp), 'repair': float(repair), 'salary': float(salary),
+        }
+
+    def calc_pct(old, new):
+        if old == 0:
+            return None
+        return (new - old) / abs(old)
+
+    # ── Style helpers ──
+    C_DARK_PURPLE = 'FF4A00E0'
+    C_LIGHT_PURPLE = 'FFede9fe'
+    C_GREEN  = 'FF059669'
+    C_RED    = 'FFdc2626'
+    C_LGREEN = 'FFd1fae5'
+    C_LRED   = 'FFfee2e2'
+    C_GRAY   = 'FF6b7280'
+    C_WHITE  = 'FFFFFFFF'
+    C_ALT    = 'FFF9FAFB'
+
+    thin = Border(
+        left=Side(style='thin', color='FFE5E7EB'), right=Side(style='thin', color='FFE5E7EB'),
+        top=Side(style='thin', color='FFE5E7EB'),  bottom=Side(style='thin', color='FFE5E7EB'),
+    )
+    center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    right  = Alignment(horizontal='right',  vertical='center')
+    left   = Alignment(horizontal='left',   vertical='center')
+
+    def hfont(bold=True, size=10, color=C_WHITE): return Font(name='Calibri', bold=bold, size=size, color=color)
+    def fill(color): return PatternFill('solid', fgColor=color)
+    def sc(cell, fnt=None, fl=None, aln=None, fmt=None):
+        cell.border = thin
+        if fnt: cell.font = fnt
+        if fl:  cell.fill = fl
+        if aln: cell.alignment = aln
+        if fmt: cell.number_format = fmt
+
+    NUM  = '#,##0.00'
+    PCT  = '+0.00%;-0.00%;0.00%'
+
+    wb = openpyxl.Workbook()
+
+    # ── Available years ──
+    base_inv = Invoice.objects.all()
+    if building:
+        base_inv = base_inv.filter(Contract_ID__Room_ID__Building_No=building)
+    all_years = sorted(base_inv.values_list('Billing_Date__year', flat=True).distinct())
+
+    def make_title_row(ws, text, ncols):
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ncols)
+        c = ws.cell(row=1, column=1, value=text)
+        c.font = hfont(size=14); c.fill = fill(C_DARK_PURPLE); c.alignment = center; c.border = thin
+        ws.row_dimensions[1].height = 34
+        import datetime
+        ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=ncols)
+        s = ws.cell(row=2, column=1, value=f'สร้างเมื่อ: {datetime.date.today().strftime("%d/%m/") + str(datetime.date.today().year + 543)}')
+        s.font = Font(name='Calibri', size=9, color=C_GRAY); s.fill = fill(C_LIGHT_PURPLE); s.alignment = center
+
+    def header_row(ws, row_no, headers):
+        for i, h in enumerate(headers, 1):
+            c = ws.cell(row=row_no, column=i, value=h)
+            sc(c, fnt=hfont(), fl=fill(C_DARK_PURPLE), aln=center)
+        ws.row_dimensions[row_no].height = 22
+
+    # ─────────────────────────────────────────────────────────────────
+    # Monthly / Quarterly / Annual   →  one sheet
+    # ─────────────────────────────────────────────────────────────────
+    if export_type in ('monthly', 'quarterly', 'annual'):
+        ws = wb.active
+        title_map = {
+            'monthly':  f'รายงานรายเดือน{" ปี " + str(int(export_year)+543) if export_year else ""}',
+            'quarterly':f'รายงานรายไตรมาส{" ปี " + str(int(export_year)+543) if export_year else ""}',
+            'annual':   'รายงานสรุปรายปี',
+        }
+        ws.title = {'monthly':'รายเดือน','quarterly':'รายไตรมาส','annual':'รายปี'}[export_type]
+
+        # Build header list
+        headers = ['งวด']
+        col_map = {}
+        ci = 2
+        if inc_income:    headers.append('รายรับ (฿)');     col_map['income']     = ci; ci += 1
+        if inc_expense:   headers.append('รายจ่าย (฿)');    col_map['expense']    = ci; ci += 1
+        if inc_profit:    headers.append('กำไรสุทธิ (฿)');  col_map['profit']     = ci; ci += 1
+        if inc_change and inc_income:
+            headers.append('% เปลี่ยนแปลง รายรับ'); col_map['inc_pct'] = ci; ci += 1
+        if inc_change and inc_profit:
+            headers.append('% เปลี่ยนแปลง กำไร');  col_map['prf_pct'] = ci; ci += 1
+        if inc_breakdown:
+            for h, k in [('ค่าเช่า','rent'),('ค่าน้ำ/ไฟ(เก็บ)','util_income'),
+                         ('ค่าปรับ','fine'),('ค่าน้ำ/ไฟ(จ่าย)','util_exp'),('ค่าซ่อม','repair')]:
+                headers.append(h); col_map[k] = ci; ci += 1
+            if inc_salary:
+                headers.append('เงินเดือน'); col_map['salary'] = ci; ci += 1
+
+        ncols = len(headers)
+        make_title_row(ws, title_map[export_type], ncols)
+        header_row(ws, 4, headers)
+        ws.column_dimensions['A'].width = 20
+        for c_i in range(2, ci):
+            ws.column_dimensions[get_column_letter(c_i)].width = 20
+
+        # Build periods list
+        if export_type == 'monthly':
+            years_use = [int(export_year)] if export_year else all_years
+            periods = [{'label': f'{month_names_th[m]} {y+543}', 'year': y, 'month': m}
+                       for y in years_use for m in range(1, 13)]
+        elif export_type == 'quarterly':
+            years_use = [int(export_year)] if export_year else all_years
+            periods = [{'label': f'Q{q} ปี {y+543}', 'year': y, 'quarter': q}
+                       for y in years_use for q in range(1, 5)]
+        else:
+            periods = [{'label': f'ปี {y+543}', 'year': y} for y in all_years]
+
+        prev_data = None
+        row_i = 5
+        tot_inc = tot_exp = tot_prf = 0
+
+        for pi, period in enumerate(periods):
+            data = get_period_data(year=period.get('year'), month=period.get('month'), quarter=period.get('quarter'))
+            if export_type != 'monthly' and data['income'] == 0 and data['expense'] == 0:
+                prev_data = data; continue
+
+            row_fill = fill(C_ALT) if pi % 2 == 0 else fill(C_WHITE)
+
+            c = ws.cell(row=row_i, column=1, value=period['label'])
+            sc(c, fnt=hfont(bold=True, color='FF2b2d42'), fl=row_fill, aln=left)
+
+            if inc_income:
+                c = ws.cell(row=row_i, column=col_map['income'], value=data['income'])
+                sc(c, fnt=hfont(color=C_GREEN), fl=fill(C_LGREEN), aln=right, fmt=NUM)
+            if inc_expense:
+                c = ws.cell(row=row_i, column=col_map['expense'], value=data['expense'])
+                sc(c, fnt=hfont(color=C_RED), fl=fill(C_LRED), aln=right, fmt=NUM)
+            if inc_profit:
+                pf = C_GREEN if data['profit'] >= 0 else C_RED
+                pfl = fill(C_LGREEN) if data['profit'] >= 0 else fill(C_LRED)
+                c = ws.cell(row=row_i, column=col_map['profit'], value=data['profit'])
+                sc(c, fnt=hfont(color=pf), fl=pfl, aln=right, fmt=NUM)
+            if inc_change and 'inc_pct' in col_map and prev_data:
+                pct = calc_pct(prev_data['income'], data['income'])
+                if pct is not None:
+                    c = ws.cell(row=row_i, column=col_map['inc_pct'], value=pct)
+                    sc(c, fnt=hfont(color=C_GREEN if pct >= 0 else C_RED), fl=row_fill, aln=center, fmt=PCT)
+            if inc_change and 'prf_pct' in col_map and prev_data:
+                pct = calc_pct(prev_data['profit'], data['profit'])
+                if pct is not None:
+                    c = ws.cell(row=row_i, column=col_map['prf_pct'], value=pct)
+                    sc(c, fnt=hfont(color=C_GREEN if pct >= 0 else C_RED), fl=row_fill, aln=center, fmt=PCT)
+            if inc_breakdown:
+                for key in ['rent','util_income','fine','util_exp','repair']:
+                    if key in col_map:
+                        c = ws.cell(row=row_i, column=col_map[key], value=data[key])
+                        sc(c, fnt=hfont(bold=False, color='FF374151'), fl=row_fill, aln=right, fmt=NUM)
+                if inc_salary and 'salary' in col_map:
+                    c = ws.cell(row=row_i, column=col_map['salary'], value=data['salary'])
+                    sc(c, fnt=hfont(bold=False, color='FF374151'), fl=row_fill, aln=right, fmt=NUM)
+
+            tot_inc += data['income']; tot_exp += data['expense']; tot_prf += data['profit']
+            prev_data = data; row_i += 1
+
+        # Total row
+        tf = fill(C_LIGHT_PURPLE)
+        c = ws.cell(row=row_i, column=1, value='รวมทั้งหมด')
+        sc(c, fnt=hfont(bold=True, size=11, color='FF4A00E0'), fl=tf, aln=left)
+        if inc_income:
+            c = ws.cell(row=row_i, column=col_map['income'], value=tot_inc)
+            sc(c, fnt=hfont(bold=True, size=11, color=C_GREEN), fl=tf, aln=right, fmt=NUM)
+        if inc_expense:
+            c = ws.cell(row=row_i, column=col_map['expense'], value=tot_exp)
+            sc(c, fnt=hfont(bold=True, size=11, color=C_RED), fl=tf, aln=right, fmt=NUM)
+        if inc_profit:
+            c = ws.cell(row=row_i, column=col_map['profit'], value=tot_prf)
+            pf = C_GREEN if tot_prf >= 0 else C_RED
+            sc(c, fnt=hfont(bold=True, size=11, color=pf), fl=tf, aln=right, fmt=NUM)
+        ws.row_dimensions[row_i].height = 24
+        ws.freeze_panes = 'A5'
+
+    # ─────────────────────────────────────────────────────────────────
+    # Comparison  →  one sheet
+    # ─────────────────────────────────────────────────────────────────
+    elif export_type == 'comparison':
+        ws = wb.active
+        ws.title = 'เปรียบเทียบ 2 ช่วง'
+
+        def period_label(year, month):
+            if year and month:
+                return f'{month_names_th[int(month)]} {int(year)+543}'
+            elif year:
+                return f'ปี {int(year)+543}'
+            return 'ทุกช่วง'
+
+        label1 = period_label(compare_year1, compare_month1)
+        label2 = period_label(compare_year2, compare_month2)
+        data1  = get_period_data(year=compare_year1 or None, month=compare_month1 or None)
+        data2  = get_period_data(year=compare_year2 or None, month=compare_month2 or None)
+
+        headers = ['รายการ', label1, label2, 'เปลี่ยนแปลง (฿)', '% เปลี่ยนแปลง', 'แนวโน้ม']
+        ncols = 6
+        make_title_row(ws, f'รายงานเปรียบเทียบ: {label1} vs {label2}', ncols)
+        header_row(ws, 4, headers)
+
+        ws.column_dimensions['A'].width = 26
+        for ltr in 'BCDEF':
+            ws.column_dimensions[ltr].width = 22
+
+        rows_def = [
+            ('รายรับรวม',           data1['income'],      data2['income'],      True,  True),
+            ('  └ ค่าเช่า',         data1['rent'],        data2['rent'],        False, True),
+            ('  └ ค่าน้ำ/ไฟ (เก็บ)',data1['util_income'], data2['util_income'], False, True),
+            ('  └ ค่าปรับ',         data1['fine'],        data2['fine'],        False, True),
+            ('รายจ่ายรวม',          data1['expense'],     data2['expense'],     True,  False),
+            ('  └ ค่าน้ำ/ไฟ (จ่าย)',data1['util_exp'],   data2['util_exp'],    False, False),
+            ('  └ ค่าซ่อมบำรุง',    data1['repair'],      data2['repair'],      False, False),
+        ]
+        if user_role == 'ADMIN':
+            rows_def.append(('  └ เงินเดือน', data1['salary'], data2['salary'], False, False))
+        rows_def.append(('กำไรสุทธิ', data1['profit'], data2['profit'], True, True))
+
+        for ri, (label, v1, v2, is_section, is_inc) in enumerate(rows_def, 5):
+            row_fl = fill(C_LIGHT_PURPLE) if is_section else (fill(C_LGREEN) if is_inc else fill(C_LRED))
+            fnt_sz = 11 if is_section else 10
+
+            c = ws.cell(row=ri, column=1, value=label)
+            sc(c, fnt=hfont(bold=is_section, size=fnt_sz, color='FF2b2d42'), fl=row_fl, aln=left)
+
+            for col_no, val in [(2, v1), (3, v2)]:
+                c = ws.cell(row=ri, column=col_no, value=val)
+                sc(c, fnt=hfont(bold=is_section, size=fnt_sz, color='FF2b2d42'), fl=row_fl, aln=right, fmt=NUM)
+
+            diff = v2 - v1
+            c = ws.cell(row=ri, column=4, value=diff)
+            sc(c, fnt=hfont(bold=is_section, size=fnt_sz, color=C_GREEN if diff >= 0 else C_RED),
+               fl=row_fl, aln=right, fmt='+#,##0.00;-#,##0.00;0.00')
+
+            pct = calc_pct(v1, v2)
+            if pct is not None:
+                c = ws.cell(row=ri, column=5, value=pct)
+                sc(c, fnt=hfont(bold=is_section, size=fnt_sz, color=C_GREEN if pct >= 0 else C_RED),
+                   fl=row_fl, aln=center, fmt=PCT)
+
+            trend = '▲ เพิ่มขึ้น' if diff > 0 else ('▼ ลดลง' if diff < 0 else '─ คงที่')
+            c = ws.cell(row=ri, column=6, value=trend)
+            sc(c, fnt=hfont(bold=False, size=fnt_sz, color=C_GREEN if diff > 0 else (C_RED if diff < 0 else C_GRAY)),
+               fl=row_fl, aln=center)
+            ws.row_dimensions[ri].height = 20
+
+        ws.freeze_panes = 'A5'
+
+    # ── Build response ──
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    fname_map = {
+        'monthly':    f'report_monthly{"_" + export_year if export_year else ""}.xlsx',
+        'comparison': f'report_compare.xlsx',
+        'quarterly':  f'report_quarterly{"_" + export_year if export_year else ""}.xlsx',
+        'annual':     'report_annual.xlsx',
+    }
+    fname = fname_map.get(export_type, 'report.xlsx')
+
+    from django.http import HttpResponse
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
+
 # ==================== API ====================
 
 from django.http import JsonResponse
