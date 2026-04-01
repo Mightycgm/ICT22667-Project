@@ -43,8 +43,9 @@ urlpatterns = [
     path('maintenance/<int:pk>/delete/', views.maintenance_delete, name='maintenance_delete'),
 
     # Print + Report
-    path('invoices/<int:pk>/print/',  views.invoice_print,    name='invoice_print'),
-    path('report/summary/',           views.monthly_summary,  name='monthly_summary'),
+    path('invoices/<int:pk>/print/',  views.invoice_print,        name='invoice_print'),
+    path('report/summary/',           views.monthly_summary,      name='monthly_summary'),
+    path('report/export-excel/',      views.export_summary_excel, name='export_summary_excel'),
 
     # Salary (Admin only)
     path('salary/',                  views.salary_list,   name='salary_list'),

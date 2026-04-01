@@ -197,6 +197,97 @@
 .profit-strip.positive { background: linear-gradient(90deg,#d1fae5,#a7f3d0); color: #065f46; }
 .profit-strip.negative { background: linear-gradient(90deg,#fee2e2,#fecaca); color: #991b1b; }
 .profit-strip .big { font-size: 1.6rem; }
+
+/* ── Export Modal ── */
+.export-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    z-index: 9999; align-items: center; justify-content: center;
+    backdrop-filter: blur(3px);
+}
+.export-modal-overlay.show { display: flex; }
+.export-modal {
+    background: #fff; border-radius: 20px; width: 100%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(74,0,224,.18);
+    animation: slideUp .22s ease;
+}
+@keyframes slideUp { from { transform: translateY(24px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+.export-modal-header {
+    background: linear-gradient(135deg,#8E2DE2,#4A00E0); color:#fff;
+    padding: 20px 24px 16px; border-radius: 20px 20px 0 0;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.export-modal-header h5 { margin:0; font-weight:800; font-size:1.1rem; }
+.export-modal-close {
+    background: rgba(255,255,255,.18); border: none; color:#fff; width:32px; height:32px;
+    border-radius: 50%; cursor: pointer; font-size: 1rem; display:flex;
+    align-items:center; justify-content:center; transition: background .15s;
+}
+.export-modal-close:hover { background: rgba(255,255,255,.32); }
+.export-modal-body { padding: 22px 24px 8px; }
+.export-modal-footer { padding: 12px 24px 20px; display:flex; justify-content:flex-end; gap:10px; }
+
+/* Export Type Tabs */
+.export-type-tabs { display:flex; gap:0; background:#f3f4f6; border-radius:12px;
+    padding:4px; margin-bottom:20px; flex-wrap:wrap; }
+.export-type-tab {
+    flex:1; padding:9px 10px; border-radius:9px; font-size:.8rem; font-weight:700;
+    border:none; background:transparent; color:#6b7280; cursor:pointer;
+    transition:all .18s; text-align:center; min-width:100px; white-space:nowrap;
+}
+.export-type-tab.active { background:#fff; color:#4A00E0;
+    box-shadow:0 2px 8px rgba(74,0,224,.14); }
+
+/* Export sections */
+.export-section { margin-bottom:18px; }
+.export-section-label {
+    font-size:.75rem; font-weight:800; color:#6b7280; text-transform:uppercase;
+    letter-spacing:.5px; margin-bottom:10px; display:flex; align-items:center; gap:6px;
+}
+.export-period-panel { display:none; }
+.export-period-panel.active { display:block; }
+
+/* Comparison slots */
+.cmp-slots { display:flex; gap:12px; flex-wrap:wrap; }
+.cmp-slot {
+    flex:1; min-width:200px; background:#f9fafb; border:2px solid #e5e7eb;
+    border-radius:12px; padding:14px 16px; position:relative;
+}
+.cmp-slot-label { font-size:.75rem; font-weight:800; text-transform:uppercase;
+    letter-spacing:.4px; margin-bottom:8px; }
+.cmp-slot.slot-a { border-color:#3b82f6; background:#eff6ff; }
+.cmp-slot.slot-b { border-color:#f59e0b; background:#fffbeb; }
+.cmp-slot.slot-a .cmp-slot-label { color:#1d4ed8; }
+.cmp-slot.slot-b .cmp-slot-label { color:#b45309; }
+.cmp-select { width:100%; border:1.5px solid #e5e7eb; border-radius:8px;
+    padding:6px 9px; font-size:.85rem; background:#fff; margin-bottom:6px; }
+
+/* Checkboxes */
+.export-checks { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.export-check-item {
+    display:flex; align-items:center; gap:8px; padding:9px 12px;
+    border:1.5px solid #e5e7eb; border-radius:10px; cursor:pointer;
+    transition: border-color .15s, background .15s; font-size:.85rem; font-weight:600;
+    color:#374151; background:#fafafa;
+}
+.export-check-item:hover { border-color:#8E2DE2; background:#faf5ff; }
+.export-check-item input[type=checkbox] { accent-color:#8E2DE2; width:16px; height:16px; }
+.export-check-item.checked { border-color:#8E2DE2; background:#faf5ff; color:#4A00E0; }
+
+/* Download button */
+.btn-download-excel {
+    background: linear-gradient(135deg,#217346,#1e6b3e); color:#fff; border:none;
+    padding:11px 24px; border-radius:12px; font-weight:800; font-size:.95rem;
+    cursor:pointer; display:flex; align-items:center; gap:8px;
+    box-shadow: 0 4px 14px rgba(33,115,70,.3); transition: all .18s;
+}
+.btn-download-excel:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(33,115,70,.38); }
+.btn-export-open {
+    background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.5);
+    color:#fff; padding:9px 20px; border-radius:12px; font-weight:700;
+    font-size:.88rem; cursor:pointer; display:flex; align-items:center; gap:8px;
+    transition: background .18s; backdrop-filter:blur(4px);
+}
+.btn-export-open:hover { background: rgba(255,255,255,.25); }
 </style>
 
 <!-- ══ Hero ══ -->
@@ -205,11 +296,16 @@
         <h4><i class="bi bi-graph-up-arrow me-2"></i>รายงานสรุปรายรับ-รายจ่าย</h4>
         <p>ภาพรวมการเงิน รายรับ รายจ่าย และกำไรสุทธิของโครงการ</p>
     </div>
-    {% if user_role == 'ADMIN' %}
-    <a href="{% url 'salary_list' %}" class="btn btn-light fw-bold px-4 shadow-sm">
-        <i class="bi bi-people-fill me-1"></i> จัดการเงินเดือน
-    </a>
-    {% endif %}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button class="btn-export-open" onclick="openExportModal()">
+            <i class="bi bi-file-earmark-excel-fill"></i> Export Excel
+        </button>
+        {% if user_role == 'ADMIN' %}
+        <a href="{% url 'salary_list' %}" class="btn btn-light fw-bold px-4 shadow-sm">
+            <i class="bi bi-people-fill me-1"></i> จัดการเงินเดือน
+        </a>
+        {% endif %}
+    </div>
 </div>
 
 <!-- ══ Filter Bar ══ -->
@@ -472,6 +568,156 @@
     </div>
 </div>
 {% endif %}
+
+<!-- ══ Export Excel Modal ══ -->
+<div class="export-modal-overlay" id="exportModalOverlay" onclick="closeExportOnBg(event)">
+  <div class="export-modal">
+    <div class="export-modal-header">
+      <h5><i class="bi bi-file-earmark-excel-fill me-2"></i>Export รายงานเป็น Excel</h5>
+      <button class="export-modal-close" onclick="closeExportModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="export-modal-body">
+      <!-- ── รูปแบบรายงาน ── -->
+      <div class="export-section">
+        <div class="export-section-label"><i class="bi bi-layout-text-window-reverse"></i> รูปแบบรายงาน</div>
+        <div class="export-type-tabs">
+          <button class="export-type-tab active" onclick="switchExportTab('monthly',this)">📅 รายเดือน</button>
+          <button class="export-type-tab" onclick="switchExportTab('comparison',this)">⚖️ เปรียบเทียบ 2 ช่วง</button>
+          <button class="export-type-tab" onclick="switchExportTab('quarterly',this)">📊 รายไตรมาส</button>
+          <button class="export-type-tab" onclick="switchExportTab('annual',this)">📆 รายปี</button>
+        </div>
+      </div>
+
+      <!-- ── Period panels ── -->
+
+      <!-- monthly -->
+      <div class="export-period-panel active" id="panel-monthly">
+        <div class="export-section">
+          <div class="export-section-label"><i class="bi bi-calendar3"></i> เลือกปี</div>
+          <select class="cmp-select" id="sel-monthly-year" style="max-width:200px;">
+            <option value="">ทุกปี</option>
+            {% for y in available_years %}
+            <option value="{{ y }}" {% if filter_year == y|stringformat:"s" %}selected{% endif %}>{{ y|add:543 }}</option>
+            {% endfor %}
+          </select>
+          <div style="font-size:.78rem;color:#9ca3af;margin-top:6px;">
+            <i class="bi bi-info-circle me-1"></i>จะสร้าง 1 Sheet สรุปรายเดือน พร้อม % เปลี่ยนแปลง MoM
+          </div>
+        </div>
+      </div>
+
+      <!-- comparison -->
+      <div class="export-period-panel" id="panel-comparison">
+        <div class="export-section">
+          <div class="export-section-label"><i class="bi bi-arrow-left-right"></i> เลือก 2 ช่วงเวลา</div>
+          <div class="cmp-slots">
+            <div class="cmp-slot slot-a">
+              <div class="cmp-slot-label">🔵 ช่วงที่ 1 (เดิม)</div>
+              <select class="cmp-select" id="cmp-year1">
+                <option value="">เลือกปี</option>
+                {% for y in available_years %}<option value="{{ y }}">{{ y|add:543 }}</option>{% endfor %}
+              </select>
+              <select class="cmp-select" id="cmp-month1">
+                <option value="">ทั้งปี</option>
+                <option value="1">ม.ค.</option><option value="2">ก.พ.</option><option value="3">มี.ค.</option>
+                <option value="4">เม.ย.</option><option value="5">พ.ค.</option><option value="6">มิ.ย.</option>
+                <option value="7">ก.ค.</option><option value="8">ส.ค.</option><option value="9">ก.ย.</option>
+                <option value="10">ต.ค.</option><option value="11">พ.ย.</option><option value="12">ธ.ค.</option>
+              </select>
+            </div>
+            <div class="cmp-slot slot-b">
+              <div class="cmp-slot-label">🟡 ช่วงที่ 2 (ใหม่)</div>
+              <select class="cmp-select" id="cmp-year2">
+                <option value="">เลือกปี</option>
+                {% for y in available_years %}<option value="{{ y }}">{{ y|add:543 }}</option>{% endfor %}
+              </select>
+              <select class="cmp-select" id="cmp-month2">
+                <option value="">ทั้งปี</option>
+                <option value="1">ม.ค.</option><option value="2">ก.พ.</option><option value="3">มี.ค.</option>
+                <option value="4">เม.ย.</option><option value="5">พ.ค.</option><option value="6">มิ.ย.</option>
+                <option value="7">ก.ค.</option><option value="8">ส.ค.</option><option value="9">ก.ย.</option>
+                <option value="10">ต.ค.</option><option value="11">พ.ย.</option><option value="12">ธ.ค.</option>
+              </select>
+            </div>
+          </div>
+          <div style="font-size:.78rem;color:#9ca3af;margin-top:8px;">
+            <i class="bi bi-info-circle me-1"></i>เปรียบเทียบทุกรายการ พร้อม % เปลี่ยนแปลงและแนวโน้ม ▲▼
+          </div>
+        </div>
+      </div>
+
+      <!-- quarterly -->
+      <div class="export-period-panel" id="panel-quarterly">
+        <div class="export-section">
+          <div class="export-section-label"><i class="bi bi-calendar3"></i> เลือกปี</div>
+          <select class="cmp-select" id="sel-quarterly-year" style="max-width:200px;">
+            <option value="">ทุกปี</option>
+            {% for y in available_years %}<option value="{{ y }}" {% if filter_year == y|stringformat:"s" %}selected{% endif %}>{{ y|add:543 }}</option>{% endfor %}
+          </select>
+          <div style="font-size:.78rem;color:#9ca3af;margin-top:6px;">
+            <i class="bi bi-info-circle me-1"></i>จะสร้าง Sheet รวม Q1–Q4 พร้อม % เปลี่ยนแปลงรายไตรมาส
+          </div>
+        </div>
+      </div>
+
+      <!-- annual -->
+      <div class="export-period-panel" id="panel-annual">
+        <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:14px 16px;font-size:.88rem;color:#065f46;">
+          <i class="bi bi-check-circle-fill me-2"></i>จะ Export ทุกปีที่มีข้อมูล พร้อม % เปลี่ยนแปลง YoY
+        </div>
+      </div>
+
+      <!-- ── ข้อมูลที่ต้องการ ── -->
+      <div class="export-section" style="margin-top:20px;">
+        <div class="export-section-label"><i class="bi bi-list-check"></i> ข้อมูลที่ต้องการใน Excel</div>
+        <div class="export-checks">
+          <label class="export-check-item checked" id="lbl-income">
+            <input type="checkbox" id="chk-income" checked onchange="toggleCheckStyle('lbl-income',this)">
+            <i class="bi bi-arrow-down-circle-fill" style="color:#059669;"></i> รายรับรวม
+          </label>
+          <label class="export-check-item checked" id="lbl-expense">
+            <input type="checkbox" id="chk-expense" checked onchange="toggleCheckStyle('lbl-expense',this)">
+            <i class="bi bi-arrow-up-circle-fill" style="color:#dc2626;"></i> รายจ่ายรวม
+          </label>
+          <label class="export-check-item checked" id="lbl-profit">
+            <input type="checkbox" id="chk-profit" checked onchange="toggleCheckStyle('lbl-profit',this)">
+            <i class="bi bi-graph-up-arrow" style="color:#4A00E0;"></i> กำไรสุทธิ
+          </label>
+          <label class="export-check-item checked" id="lbl-change">
+            <input type="checkbox" id="chk-change" checked onchange="toggleCheckStyle('lbl-change',this)">
+            <i class="bi bi-percent" style="color:#f59e0b;"></i> % เปลี่ยนแปลง
+          </label>
+          <label class="export-check-item" id="lbl-breakdown">
+            <input type="checkbox" id="chk-breakdown" onchange="toggleCheckStyle('lbl-breakdown',this)">
+            <i class="bi bi-card-list" style="color:#8b5cf6;"></i> รายละเอียดแยกประเภท
+          </label>
+          {% if user_role == 'ADMIN' %}
+          <label class="export-check-item" id="lbl-salary">
+            <input type="checkbox" id="chk-salary" onchange="toggleCheckStyle('lbl-salary',this)">
+            <i class="bi bi-people-fill" style="color:#f59e0b;"></i> เงินเดือนพนักงาน
+          </label>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- ── Preview hint ── -->
+      <div id="export-preview-hint" style="background:#faf5ff;border:1.5px solid #ddd6fe;border-radius:12px;padding:12px 16px;font-size:.82rem;color:#5b21b6;margin-top:4px;">
+        <i class="bi bi-eye me-2"></i><strong>ตัวอย่าง Sheet ที่จะสร้าง:</strong>
+        <span id="preview-sheet-list"> สรุปรายเดือน (พร้อม % MoM)</span>
+      </div>
+    </div>
+
+    <div class="export-modal-footer">
+      <button onclick="closeExportModal()" style="background:#f3f4f6;border:none;padding:10px 20px;border-radius:10px;font-weight:600;color:#6b7280;cursor:pointer;">
+        <i class="bi bi-x me-1"></i>ยกเลิก
+      </button>
+      <button class="btn-download-excel" onclick="doExportExcel()">
+        <i class="bi bi-file-earmark-excel-fill"></i> ดาวน์โหลด Excel
+      </button>
+    </div>
+  </div>
+</div>
 
 {% endblock %}
 
@@ -776,5 +1022,84 @@
         renderCompareChart();
     }
 })();
+
+/* ═══════════════════════════════════════════════
+   Export Excel Modal
+═══════════════════════════════════════════════ */
+let currentExportTab = 'monthly';
+
+function openExportModal() {
+    document.getElementById('exportModalOverlay').classList.add('show');
+}
+function closeExportModal() {
+    document.getElementById('exportModalOverlay').classList.remove('show');
+}
+function closeExportOnBg(e) {
+    if (e.target === document.getElementById('exportModalOverlay')) closeExportModal();
+}
+
+function switchExportTab(tab, btn) {
+    currentExportTab = tab;
+    document.querySelectorAll('.export-type-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.export-period-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    updatePreviewHint();
+}
+
+function toggleCheckStyle(labelId, checkbox) {
+    const lbl = document.getElementById(labelId);
+    if (checkbox.checked) lbl.classList.add('checked');
+    else lbl.classList.remove('checked');
+    updatePreviewHint();
+}
+
+function updatePreviewHint() {
+    const typeNames = {
+        monthly:    'สรุปรายเดือน (พร้อม % MoM)',
+        comparison: 'เปรียบเทียบ 2 ช่วง (ตาราง + % เปลี่ยนแปลง + แนวโน้ม)',
+        quarterly:  'สรุปรายไตรมาส (Q1–Q4, พร้อม % QoQ)',
+        annual:     'สรุปรายปี (พร้อม % YoY)',
+    };
+    const extras = [];
+    if (document.getElementById('chk-breakdown') && document.getElementById('chk-breakdown').checked)
+        extras.push('แยกประเภทรายรับ-รายจ่าย');
+    if (document.getElementById('chk-salary') && document.getElementById('chk-salary').checked)
+        extras.push('เงินเดือนพนักงาน');
+
+    let text = typeNames[currentExportTab] || '';
+    if (extras.length) text += ' + ' + extras.join(' + ');
+    document.getElementById('preview-sheet-list').textContent = ' ' + text;
+}
+
+function doExportExcel() {
+    const params = new URLSearchParams();
+    params.set('export_type', currentExportTab);
+
+    if (currentExportTab === 'monthly') {
+        params.set('export_year', document.getElementById('sel-monthly-year').value);
+    } else if (currentExportTab === 'quarterly') {
+        params.set('export_year', document.getElementById('sel-quarterly-year').value);
+    } else if (currentExportTab === 'comparison') {
+        params.set('compare_year1',  document.getElementById('cmp-year1').value);
+        params.set('compare_month1', document.getElementById('cmp-month1').value);
+        params.set('compare_year2',  document.getElementById('cmp-year2').value);
+        params.set('compare_month2', document.getElementById('cmp-month2').value);
+    }
+
+    const checks = ['income','expense','profit','change','breakdown','salary'];
+    checks.forEach(k => {
+        const el = document.getElementById('chk-' + k);
+        if (el) params.set('inc_' + k, el.checked ? '1' : '0');
+    });
+
+    window.location.href = '{% url "export_summary_excel" %}?' + params.toString();
+    closeExportModal();
+}
+
+// Keyboard close
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeExportModal();
+});
 </script>
 {% endblock %}
