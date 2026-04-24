@@ -13,6 +13,7 @@
 | Database     | MySQL ผ่าน XAMPP               |
 | Frontend     | Django Templates + Bootstrap 5 |
 | DB Connector | mysqlclient                    |
+| Excel Export | openpyxl                       |
 
 ---
 
@@ -52,7 +53,7 @@ source venv/bin/activate
 เมื่อมีคำว่า (venv) ขึ้นนำหน้า Terminal แล้ว ให้ทำการติดตั้ง Packages:
 
 ```bash
-pip install django==4.2.29 mysqlclient python-dotenv
+pip install -r requirements.txt
 ```
 
 ---
@@ -142,7 +143,7 @@ python setup_groups.py
 python create_users.py
 
 # 4. Seed ข้อมูลห้องและข้อมูลตัวอย่าง
-python seed_rooms.py
+python seed_room.py
 ```
 
 ---
