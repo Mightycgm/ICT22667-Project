@@ -76,4 +76,6 @@ urlpatterns = [
     path('rooms/<int:pk>/notify-out/',  views.room_action_notify_out,  name='room_notify_out'),
     path('rooms/<int:pk>/clean/',       views.room_action_clean,       name='room_clean'),
     path('rooms/<int:pk>/done-clean/',  views.room_action_done_clean,  name='room_done_clean'),
+    path('rooms/<int:pk>/maintenance/',      views.room_action_maintenance,      name='room_maintenance'),
+    path('rooms/<int:pk>/done-maintenance/', views.room_action_done_maintenance, name='room_done_maintenance'),
 ]

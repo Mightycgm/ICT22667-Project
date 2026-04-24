@@ -522,6 +522,10 @@
                 <a href="{% url 'room_notify_out' room.Room_ID %}" class="action-btn">
                     <div class="action-icon" style="background:#fff3e0; color:#e65100;"><i class="bi bi-bell"></i></div> แจ้งย้ายออก
                 </a>
+            {% elif room.Status == 'ซ่อมบำรุง' %}
+                <a href="{% url 'room_done_maintenance' room.Room_ID %}" class="action-btn">
+                    <div class="action-icon" style="background:#e8f5e9; color:#2e7d32;"><i class="bi bi-door-open-fill"></i></div> <strong style="color:#2e7d32;">เปิดห้อง (คืนสถานะว่าง)</strong>
+                </a>
             {% endif %}
             
             {% if room.Status_Flag == 'รอทำความสะอาด' %}
@@ -537,6 +541,12 @@
             <a href="{% url 'maintenance_create' %}" class="action-btn">
                 <div class="action-icon" style="background:#ffebee; color:#c62828;"><i class="bi bi-tools"></i></div> <strong>แจ้งซ่อม</strong>
             </a>
+
+            {% if room.Status == 'ว่าง' %}
+            <a href="{% url 'room_maintenance' room.Room_ID %}" class="action-btn">
+                <div class="action-icon" style="background:#e9ecef; color:#1e2022;"><i class="bi bi-cone-striped"></i></div> ปิดปรับปรุง
+            </a>
+            {% endif %}
 
             <div style="border-top: 2px solid #f1f1f4;"></div>
             <a href="{% url 'dashboard' %}" class="action-btn">

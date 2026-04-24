@@ -94,6 +94,48 @@
             <small>หากมีข้อสงสัยกรุณาติดต่อเจ้าหน้าที่</small>
         </div>
 
+        <!-- ช่องทางการชำระเงิน + QR Code -->
+        {% if bank_info %}
+        <table style="width:100%; margin-top:24px; border-collapse:collapse;">
+            <tr>
+                <td style="width:60%; vertical-align:top; padding-right:12px;">
+                    <div style="border:1px solid #ddd; border-radius:8px; padding:16px;">
+                        <p style="margin:0 0 12px; font-weight:bold; font-size:15px;">💳 ช่องทางการชำระเงิน</p>
+                        <table style="width:100%; font-size:14px; border-collapse:collapse;">
+                            <tr>
+                                <td style="color:#666; padding:4px 0; width:100px;">ธนาคาร</td>
+                                <td style="padding:4px 0;"><strong>{{ bank_info.bank_name }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="color:#666; padding:4px 0;">ชื่อบัญชี</td>
+                                <td style="padding:4px 0;"><strong>{{ bank_info.account_name }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="color:#666; padding:4px 0;">เลขบัญชี</td>
+                                <td style="padding:4px 0;"><strong style="font-size:16px; letter-spacing:1px;">{{ bank_info.account_no }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="color:#666; padding:4px 0;">PromptPay</td>
+                                <td style="padding:4px 0;"><strong>{{ bank_info.promptpay_no }}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+                <td style="width:40%; vertical-align:top;">
+                    <div style="border:1px solid #ddd; border-radius:8px; padding:16px; text-align:center;">
+                        <p style="margin:0 0 8px; font-weight:bold; font-size:15px;">QR Code ชำระเงิน</p>
+                        <img src="https://promptpay.io/{{ bank_info.promptpay_no }}/{{ invoice.Grand_Total }}.png"
+                             alt="QR PromptPay"
+                             style="width:160px; height:160px;">
+                        <p style="font-size:12px; color:#666; margin:8px 0 0;">
+                            ยอด <strong>{{ invoice.Grand_Total|intcomma }} บาท</strong>
+                        </p>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        {% endif %}
+
         <div class="footer">
             <p>อีเมลนี้ส่งจากระบบอพาร์ทเม้นต์อัตโนมัติ กรุณาอย่าตอบกลับ</p>
         </div>
