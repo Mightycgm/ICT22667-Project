@@ -1,0 +1,246 @@
+{% extends 'apartment/base.html' %}
+{% block content %}
+
+<style>
+    .action-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 60vh;
+        padding: 20px;
+    }
+    .action-card {
+        background: #fff;
+        border-radius: 24px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        padding: 40px;
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .action-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+    }
+    .icon-wrapper {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+        color: #f59e0b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        margin: 0 auto 24px;
+        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
+        animation: pulse-icon 2s ease-in-out infinite;
+    }
+    @keyframes pulse-icon {
+        0%, 100% { box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2); }
+        50% { box-shadow: 0 8px 32px rgba(245, 158, 11, 0.35); }
+    }
+    .action-title {
+        font-weight: 800;
+        color: #2b2d42;
+        margin-bottom: 8px;
+        font-size: 1.5rem;
+    }
+    .action-subtitle {
+        color: #9ca3af;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+    }
+    .action-desc {
+        color: #5a5c6f;
+        font-size: 1.05rem;
+        margin-bottom: 28px;
+        line-height: 1.6;
+    }
+    .target-highlight {
+        display: inline-block;
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 700;
+        color: #92400e;
+        margin-top: 10px;
+        border: 1px solid #fbbf24;
+    }
+
+    /* Related items section */
+    .related-section {
+        text-align: left;
+        margin: 24px 0;
+        background: #fafbfc;
+        border-radius: 16px;
+        padding: 20px 24px;
+        border: 1px solid #f0f1f5;
+    }
+    .related-section-title {
+        font-weight: 700;
+        color: #374151;
+        font-size: 0.95rem;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .related-section-title i {
+        color: #f59e0b;
+    }
+    .related-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background: #fff;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        border: 1px solid #f0f1f5;
+        transition: all 0.2s ease;
+    }
+    .related-item:last-child {
+        margin-bottom: 0;
+    }
+    .related-item:hover {
+        border-color: #ddd;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .related-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    .related-icon.contract { background: #dbeafe; color: #2563eb; }
+    .related-icon.invoice { background: #fce7f3; color: #db2777; }
+    .related-icon.utility { background: #d1fae5; color: #059669; }
+    .related-icon.maintenance { background: #e0e7ff; color: #4f46e5; }
+    .related-icon.booking { background: #fef3c7; color: #d97706; }
+    .related-icon.fine { background: #fee2e2; color: #dc2626; }
+    .related-icon.monthly { background: #f3e8ff; color: #7c3aed; }
+    .related-icon.default { background: #f3f4f6; color: #6b7280; }
+    .related-text {
+        font-size: 0.9rem;
+        color: #4b5563;
+        font-weight: 500;
+    }
+    .related-count {
+        margin-left: auto;
+        background: #fef3c7;
+        color: #92400e;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    /* Instruction box */
+    .instruction-box {
+        background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 28px;
+        text-align: left;
+    }
+    .instruction-box .instruction-title {
+        font-weight: 700;
+        color: #1e40af;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .instruction-box .instruction-text {
+        color: #3b82f6;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .btn-action-secondary {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        color: #495057;
+        font-weight: 700;
+        padding: 14px 24px;
+        border-radius: 12px;
+        border: none;
+        transition: all 0.3s ease;
+        width: 100%;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 1.05rem;
+    }
+    .btn-action-secondary:hover {
+        background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+        color: #2b2d42;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+</style>
+
+<div class="action-container">
+    <div class="action-card">
+        <div class="icon-wrapper">
+            <i class="bi bi-shield-exclamation"></i>
+        </div>
+        
+        <h3 class="action-title">ไม่สามารถลบข้อมูลนี้ได้</h3>
+        <div class="action-subtitle">ข้อมูลนี้ยังมีการเชื่อมโยงกับข้อมูลอื่นในระบบ</div>
+        
+        <div class="action-desc">
+            ไม่สามารถลบ<strong>{{ object_type }}</strong>ด้านล่างนี้ได้ เนื่องจากยังมีข้อมูลอื่นอ้างอิงถึงอยู่
+            <div class="target-highlight">
+                <i class="bi bi-lock-fill me-2"></i>{{ object_name }}
+            </div>
+        </div>
+
+        {% if related_objects %}
+        <div class="related-section">
+            <div class="related-section-title">
+                <i class="bi bi-diagram-3-fill"></i> ข้อมูลที่เชื่อมโยงอยู่
+            </div>
+            {% for item in related_objects %}
+            <div class="related-item">
+                <div class="related-icon {{ item.css_class }}">
+                    <i class="bi {{ item.icon }}"></i>
+                </div>
+                <span class="related-text">{{ item.label }}</span>
+                <span class="related-count">{{ item.count }} รายการ</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="instruction-box">
+            <div class="instruction-title">
+                <i class="bi bi-info-circle-fill"></i> สิ่งที่ต้องทำก่อน
+            </div>
+            <p class="instruction-text">
+                {{ instruction }}
+            </p>
+        </div>
+
+        <a href="{{ back_url }}" class="btn-action-secondary">
+            <i class="bi bi-arrow-left-circle me-2"></i>กลับหน้าเดิม
+        </a>
+    </div>
+</div>
+{% endblock %}

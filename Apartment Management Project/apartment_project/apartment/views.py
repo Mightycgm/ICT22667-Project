@@ -4,15 +4,52 @@ from django.db import models as django_models
 from django.db.models import Sum, Count, Q, Subquery, OuterRef, Value
 from django.db.models.functions import Concat
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from decimal import Decimal
+from django.db.models import ProtectedError
 from .models import Tenant, Room, Contract, Invoice, MonthlyBill, Utility, Fine, Maintenance, Booking, EmployeeSalary
 from .forms  import TenantForm, RoomForm, ContractForm, InvoiceForm, UtilityForm, PaymentForm, FineForm, MaintenanceForm, BookingForm, EmployeeSalaryForm
 from .decorators import role_required
 import datetime
 from django.core.mail import send_mass_mail
 import time
+
+# ==================== HELPER: ดึงข้อมูลที่เชื่อมโยงเพื่อแสดงตอนลบไม่ได้ ====================
+
+# แมป Model → ชื่อไทย, icon, CSS class
+_MODEL_DISPLAY = {
+    'Contract':     ('สัญญาเช่า',           'bi-file-earmark-text-fill', 'contract'),
+    'Invoice':      ('ใบแจ้งหนี้',           'bi-receipt-cutoff',         'invoice'),
+    'Utility':      ('ค่าน้ำ/ค่าไฟ',        'bi-lightning-charge-fill',  'utility'),
+    'MonthlyBill':  ('ค่าเช่ารายเดือน',     'bi-calendar-month-fill',    'monthly'),
+    'Fine':         ('ค่าปรับ',              'bi-exclamation-triangle-fill', 'fine'),
+    'Maintenance':  ('แจ้งซ่อม',             'bi-tools',                  'maintenance'),
+    'Booking':      ('การจอง',               'bi-calendar-check-fill',    'booking'),
+}
+
+def _build_related_objects(protected_objects):
+    """สร้าง list ข้อมูลที่เชื่อมโยงจาก ProtectedError.protected_objects"""
+    from collections import Counter
+    counts = Counter()
+    for obj in protected_objects:
+        model_name = obj.__class__.__name__
+        counts[model_name] += 1
+
+    result = []
+    for model_name, count in counts.items():
+        label, icon, css_class = _MODEL_DISPLAY.get(
+            model_name, (model_name, 'bi-database-fill', 'default')
+        )
+        result.append({
+            'label':     label,
+            'icon':      icon,
+            'css_class': css_class,
+            'count':     count,
+        })
+    return result
+
 
 def get_user_building(user):
     from .middleware import get_user_role
@@ -188,8 +225,17 @@ def tenant_edit(request, pk):
 def tenant_delete(request, pk):
     tenant = get_object_or_404(Tenant, pk=pk)
     if request.method == 'POST':
-        tenant.delete()
-        return redirect('tenant_list')
+        try:
+            tenant.delete()
+            return redirect('tenant_list')
+        except ProtectedError as e:
+            return render(request, 'apartment/cannot_delete.html', {
+                'object_type': 'ผู้เช่า',
+                'object_name': str(tenant),
+                'related_objects': _build_related_objects(e.protected_objects),
+                'instruction': 'กรุณาลบหรือยกเลิกสัญญาเช่าที่เกี่ยวข้องกับผู้เช่าคนนี้ก่อน แล้วจึงกลับมาลบข้อมูลผู้เช่าได้',
+                'back_url': '/tenants/',
+            })
     return render(request, 'apartment/tenant/confirm_delete.html', {'object': tenant, 'title': 'ลบผู้เช่า'})
 
 
@@ -252,8 +298,17 @@ def room_edit(request, pk):
 def room_delete(request, pk):
     room = get_object_or_404(Room, pk=pk)
     if request.method == 'POST':
-        room.delete()
-        return redirect('room_list')
+        try:
+            room.delete()
+            return redirect('room_list')
+        except ProtectedError as e:
+            return render(request, 'apartment/cannot_delete.html', {
+                'object_type': 'ห้องพัก',
+                'object_name': str(room),
+                'related_objects': _build_related_objects(e.protected_objects),
+                'instruction': 'กรุณาลบสัญญาเช่า, ใบแจ้งหนี้, ค่าน้ำ/ไฟ และข้อมูลแจ้งซ่อมที่เชื่อมโยงกับห้องนี้ก่อน แล้วจึงกลับมาลบห้องพักได้',
+                'back_url': '/rooms/',
+            })
     return render(request, 'apartment/room/confirm_delete.html', {'object': room, 'title': 'ลบห้องพัก'})
 
 @login_required
@@ -409,8 +464,17 @@ def contract_print(request, pk):
 def contract_delete(request, pk):
     contract = get_object_or_404(Contract, pk=pk)
     if request.method == 'POST':
-        contract.delete()
-        return redirect('contract_list')
+        try:
+            contract.delete()
+            return redirect('contract_list')
+        except ProtectedError as e:
+            return render(request, 'apartment/cannot_delete.html', {
+                'object_type': 'สัญญาเช่า',
+                'object_name': str(contract),
+                'related_objects': _build_related_objects(e.protected_objects),
+                'instruction': 'กรุณาลบใบแจ้งหนี้ทั้งหมดที่ออกภายใต้สัญญานี้ก่อน แล้วจึงกลับมาลบสัญญาเช่าได้',
+                'back_url': '/contracts/',
+            })
     return render(request, 'apartment/contract/confirm_delete.html', {'object': contract, 'title': 'ลบสัญญาเช่า'})
 # ==================== INVOICE ====================
 
@@ -734,6 +798,7 @@ def invoice_send_all_email(request):
                     'utility':      utility,
                     'fines':        fines,
                     'tenant':       tenant,
+                    'bank_info':    settings.BANK_INFO,
                 })
                 send_mail(
                     subject        = f'ใบแจ้งหนี้ห้อง {invoice.Contract_ID.Room_ID} — {invoice.Billing_Date.strftime("%B %Y")}',
@@ -897,8 +962,17 @@ def maintenance_edit(request, pk):
 def maintenance_delete(request, pk):
     item = get_object_or_404(Maintenance, pk=pk)
     if request.method == 'POST':
-        item.delete()
-        return redirect('maintenance_list')
+        try:
+            item.delete()
+            return redirect('maintenance_list')
+        except ProtectedError as e:
+            return render(request, 'apartment/cannot_delete.html', {
+                'object_type': 'รายการแจ้งซ่อม',
+                'object_name': str(item),
+                'related_objects': _build_related_objects(e.protected_objects),
+                'instruction': 'กรุณาลบข้อมูลที่เชื่อมโยงกับรายการแจ้งซ่อมนี้ก่อน แล้วจึงกลับมาลบได้',
+                'back_url': '/maintenance/',
+            })
     return render(request, 'apartment/maintenance/confirm_delete.html', {'object': item, 'title': 'ลบรายการแจ้งซ่อม'})
 # ==================== เงินเดือนพนักงาน (Admin only) ====================
 
@@ -941,9 +1015,18 @@ def salary_edit(request, pk):
 def salary_delete(request, pk):
     employee = get_object_or_404(EmployeeSalary, pk=pk)
     if request.method == 'POST':
-        employee.delete()
-        messages.success(request, 'ลบข้อมูลพนักงานเรียบร้อยแล้ว')
-        return redirect('salary_list')
+        try:
+            employee.delete()
+            messages.success(request, 'ลบข้อมูลพนักงานเรียบร้อยแล้ว')
+            return redirect('salary_list')
+        except ProtectedError as e:
+            return render(request, 'apartment/cannot_delete.html', {
+                'object_type': 'ข้อมูลพนักงาน',
+                'object_name': str(employee),
+                'related_objects': _build_related_objects(e.protected_objects),
+                'instruction': 'กรุณาลบข้อมูลที่เชื่อมโยงกับพนักงานคนนี้ก่อน แล้วจึงกลับมาลบได้',
+                'back_url': '/salary/',
+            })
     return render(request, 'apartment/salary/confirm_delete.html', {'object': employee, 'title': 'ลบข้อมูลพนักงาน'})
 
 
@@ -2138,6 +2221,49 @@ def room_action_done_clean(request, pk):
 
 @login_required
 @role_required('ADMIN', 'MANAGER')
+def room_action_maintenance(request, pk):
+    # ปิดปรับปรุง: เปลี่ยน Status เป็น ซ่อมบำรุง
+    room = get_object_or_404(Room, pk=pk)
+
+    if request.method == 'POST':
+        room.Status = 'ซ่อมบำรุง'
+        room.Status_Flag = 'ปกติ'
+        room.save()
+        return redirect('room_detail', pk=pk)
+
+    return render(request, 'apartment/room/action_confirm.html', {
+        'room':      room,
+        'action':    'maintenance',
+        'title':     f'ปิดปรับปรุง — ห้อง {room.Room_Number}',
+        'message':   f'เปลี่ยนสถานะห้อง {room.Room_Number} เป็น "ซ่อมบำรุง / ปิดปรับปรุง" ?',
+        'warning':   'ห้องนี้จะไม่สามารถทำสัญญาหรือจองได้จนกว่าจะเปิดใช้งานอีกครั้ง',
+        'btn_color': 'dark',
+    })
+
+
+@login_required
+@role_required('ADMIN', 'MANAGER')
+def room_action_done_maintenance(request, pk):
+    # เปิดห้อง: คืนสถานะจาก ซ่อมบำรุง → ว่าง
+    room = get_object_or_404(Room, pk=pk)
+
+    if request.method == 'POST':
+        room.Status = 'ว่าง'
+        room.Status_Flag = 'ปกติ'
+        room.save()
+        return redirect('room_detail', pk=pk)
+
+    return render(request, 'apartment/room/action_confirm.html', {
+        'room':      room,
+        'action':    'done_maintenance',
+        'title':     f'เปิดห้อง — ห้อง {room.Room_Number}',
+        'message':   f'ยืนยันเปิดห้อง {room.Room_Number} กลับมาเป็นสถานะ "ว่าง" พร้อมให้เช่า ?',
+        'btn_color': 'success',
+    })
+
+
+@login_required
+@role_required('ADMIN', 'MANAGER')
 def invoice_send_email(request, pk):
     invoice      = get_object_or_404(Invoice, pk=pk)
     monthly_bill = MonthlyBill.objects.filter(Invoice_ID=invoice).first()
@@ -2161,6 +2287,7 @@ def invoice_send_email(request, pk):
             'utility':      utility,
             'fines':        fines,
             'tenant':       tenant,
+            'bank_info':    settings.BANK_INFO,
         })
 
         try:
